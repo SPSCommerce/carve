@@ -9,5 +9,6 @@ phases:
       - export BUILDPATH=$(pwd)
       - cd deployment/codepipeline/scripts/
       - chmod 443 package.sh
+      - stdbuf -i0 -o0 -e0 echo 'starting package script in build...'
       # Build carve lambda packages and send to s3
-      - ./package.sh
+      - stdbuf -i0 -o0 -e0 ./package.sh
