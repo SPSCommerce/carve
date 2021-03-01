@@ -105,7 +105,6 @@ Resources:
       BucketName: !Sub "carve-${OrganizationsId}-${AWS::Region}"
       VersioningConfiguration:
         Status: Enabled
-      RestrictPublicBuckets: True
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:

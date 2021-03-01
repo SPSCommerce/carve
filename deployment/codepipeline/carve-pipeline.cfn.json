@@ -85,9 +85,10 @@
                   {
                     "Effect": "Allow",
                     "Action": [
-                      "secretsmanager:GetSecretValue"
+                      "secretsmanager:Describe*",
+                      "secretsmanager:Get*"
                     ],
-                    "Resource": { "Fn::Sub": "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${GitHubOAUTHTokenASMPath}"}
+                    "Resource": { "Fn::Sub": "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${GitHubOAUTHTokenASMPath}*"}
                   }
                 ]
               }
@@ -258,6 +259,14 @@
                     "Resource": [
                       "*"
                     ]
+                  },
+                  {
+                    "Effect": "Allow",
+                    "Action": [
+                      "secretsmanager:Describe*",
+                      "secretsmanager:Get*"
+                    ],
+                    "Resource": { "Fn::Sub": "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${GitHubOAUTHTokenASMPath}*"}
                   },
                   {
                     "Sid": "S3Policy",
