@@ -1,5 +1,5 @@
-scipy
 boto3
+scipy
 requests
 botocore
 networkx
