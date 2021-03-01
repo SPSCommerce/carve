@@ -73,7 +73,6 @@
                     ]
                   },
                   {
-                    "Sid": "deploymentcreationpolicy",
                     "Effect": "Allow",
                     "Action": [
                       "*"
@@ -246,6 +245,7 @@
                     "Effect": "Allow",
                     "Action": [
                       "ssm:*",
+                      "secretsmanager:*",
                       "kms:Decrypt"
                     ],
                     "Resource": [
