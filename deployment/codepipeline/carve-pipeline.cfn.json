@@ -81,13 +81,6 @@
                     "Resource": [
                       "*"
                     ]
-                  },
-                  {
-                    "Effect": "Allow",
-                    "Action": [
-                      "secretsmanager:*"
-                    ],
-                    "Resource": "*"
                   }
                 ]
               }
@@ -258,13 +251,6 @@
                     "Resource": [
                       "*"
                     ]
-                  },
-                  {
-                    "Effect": "Allow",
-                    "Action": [
-                      "secretsmanager:*"
-                    ],
-                    "Resource": "*"
                   },
                   {
                     "Sid": "S3Policy",
