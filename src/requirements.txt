@@ -1,0 +1,7 @@
+scipy
+boto3
+requests
+botocore
+networkx
+matplotlib
+pyyaml

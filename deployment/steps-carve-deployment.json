@@ -1,0 +1,381 @@
+{
+  "Comment": "Create Carve endpoint stacks",
+  "StartAt": "CreateStackIterator",
+  "States": {
+    "CreateStackIterator": {
+      "Type": "Map",
+      "Next": "CleanupDeployments",
+      "MaxConcurrency": 0,
+      "Iterator": {
+        "StartAt": "CreateCarveStack",
+        "States": {
+          "CreateCarveStack": {
+            "Type": "Task",
+            "Resource":"arn:aws:states:::lambda:invoke",
+            "Parameters": {
+              "FunctionName": "${CarveFunction}",
+              "Payload": {
+                "DeployAction": "CreateCarveStack",
+                "Input.$": "$"
+              }
+            },
+            "Next": "DescribeStack",
+            "TimeoutSeconds": 20
+          },
+          "DescribeStack": {
+            "Type": "Task",
+            "Resource":"arn:aws:states:::lambda:invoke",
+            "Parameters": {
+              "FunctionName": "${CarveFunction}",
+              "Payload": {
+                "DeployAction": "DescribeStack",
+                "Input.$": "$"
+              }
+            },
+            "Next": "CreateStackStatusChoice",
+            "TimeoutSeconds": 30
+          },
+          "DescribeStackWait": {
+            "Type": "Wait",
+            "Seconds": 10,
+            "Next": "DescribeStack"
+          },
+          "Failure": {
+            "Type": "Fail"
+          },
+          "Succeed": {
+            "Type": "Succeed"
+          },
+          "CreateStackStatusChoice": {
+            "Type": "Choice",
+            "Choices": [
+              {
+                "Variable": "$.StackStatus",
+                "StringEquals": "CREATE_COMPLETE",
+                "Next": "CreateChangeSet"
+              },
+              {
+                "Or": [
+                  {
+                    "Variable": "$.StackStatus",
+                    "StringEquals": "CREATE_PENDING"
+                  },
+                  {
+                    "Variable": "$.StackStatus",
+                    "StringEquals": "CREATE_IN_PROGRESS"
+                  }
+                ],
+                "Next": "DescribeStackWait"
+              },
+              {
+                "Or": [
+                  {
+                    "Variable": "$.StackStatus",
+                    "StringEquals": "DELETE_PENDING"
+                  },
+                  {
+                    "Variable": "$.StackStatus",
+                    "StringEquals": "DELETE_IN_PROGRESS"
+                  },
+                  {
+                    "Variable": "$.StackStatus",
+                    "StringEquals": "DELETE_COMPLETE"
+                  },
+                  {
+                    "Variable": "$.StackStatus",
+                    "StringEquals": "DELETE_FAILED"
+                  },
+                  {
+                    "Variable": "$.StackStatus",
+                    "StringEquals": "FAILED"
+                  }
+                ],
+                "Next": "Failure"
+              }
+            ]
+          },
+          "CreateChangeSet": {
+            "Type": "Task",
+            "Resource":"arn:aws:states:::lambda:invoke",
+            "Parameters": {
+              "FunctionName": "${CarveFunction}",
+              "Payload": {
+                "DeployAction": "CreateChangeSet",
+                "Input.$": "$"
+              }
+            },
+            "Next": "DescribeChangeSet",
+            "TimeoutSeconds": 20
+          },
+          "DescribeChangeSet": {
+            "Type": "Task",
+            "Resource":"arn:aws:states:::lambda:invoke",
+            "Parameters": {
+              "FunctionName": "${CarveFunction}",
+              "Payload": {
+                "DeployAction": "DescribeChangeSet",
+                "Input.$": "$"
+              }
+            },
+            "Next": "CreateChangeSetChoice",
+            "TimeoutSeconds": 30
+          },
+          "CreateChangeSetChoice": {
+            "Type": "Choice",
+            "Choices": [
+              {
+                "Variable": "$.ChangeSetStatus",
+                "StringEquals": "CREATE_COMPLETE",
+                "Next": "ExecuteChangeSet"
+              },
+              {
+                "Or": [
+                  {
+                    "Variable": "$.ChangeSetStatus",
+                    "StringEquals": "CREATE_PENDING"
+                  },
+                  {
+                    "Variable": "$.ChangeSetStatus",
+                    "StringEquals": "CREATE_IN_PROGRESS"
+                  }
+                ],
+                "Next": "CreateChangeSetWait"
+              },
+              {
+                "Or": [
+                  {
+                    "Variable": "$.ChangeSetStatus",
+                    "StringEquals": "DELETE_PENDING"
+                  },
+                  {
+                    "Variable": "$.ChangeSetStatus",
+                    "StringEquals": "DELETE_IN_PROGRESS"
+                  },
+                  {
+                    "Variable": "$.ChangeSetStatus",
+                    "StringEquals": "DELETE_COMPLETE"
+                  },
+                  {
+                    "Variable": "$.ChangeSetStatus",
+                    "StringEquals": "DELETE_FAILED"
+                  },
+                  {
+                    "Variable": "$.ChangeSetStatus",
+                    "StringEquals": "FAILED"
+                  }
+                ],
+                "Next": "Failure"
+              }
+            ]
+          },
+          "CreateChangeSetWait": {
+            "Type": "Wait",
+            "Seconds": 10,
+            "Next": "DescribeChangeSet"
+          },
+          "ExecuteChangeSet": {
+            "Type": "Task",
+            "Resource":"arn:aws:states:::lambda:invoke",
+            "Parameters": {
+              "FunctionName": "${CarveFunction}",
+              "Payload": {
+                "DeployAction": "ExecuteChangeSet",
+                "Input.$": "$"
+              }
+            },
+            "Next": "DescribeChangeSetExecution",
+            "TimeoutSeconds": 30
+          },
+          "DescribeChangeSetExecution": {
+            "Type": "Task",
+            "Resource":"arn:aws:states:::lambda:invoke",
+            "Parameters": {
+              "FunctionName": "${CarveFunction}",
+              "Payload": {
+                "DeployAction": "DescribeChangeSetExecution",
+                "Input.$": "$"
+              }
+            },
+            "Next": "ExecuteChangeSetChoice",
+            "TimeoutSeconds": 30
+          },
+          "ExecuteChangeSetWait": {
+            "Type": "Wait",
+            "Seconds": 10,
+            "Next": "DescribeChangeSetExecution"
+          },
+          "ExecuteChangeSetChoice": {
+            "Type": "Choice",
+            "Choices": [
+              {
+                "Variable": "$.ExecuteChangeSetStatus",
+                "StringEquals": "EXECUTE_COMPLETE",
+                "Next": "Succeed"
+              },
+              {
+                "Or": [
+                  {
+                    "Variable": "$.ExecuteChangeSetStatus",
+                    "StringEquals": "AVAILABLE"
+                  },
+                  {
+                    "Variable": "$.ExecuteChangeSetStatus",
+                    "StringEquals": "EXECUTE_IN_PROGRESS"
+                  }
+                ],
+                "Next": "ExecuteChangeSetWait"
+              },
+              {
+                "Or": [
+                  {
+                    "Variable": "$.ExecuteChangeSetStatus",
+                    "StringEquals": "UNAVAILABLE"
+                  },
+                  {
+                    "Variable": "$.ExecuteChangeSetStatus",
+                    "StringEquals": "EXECUTE_FAILED"
+                  },
+                  {
+                    "Variable": "$.ExecuteChangeSetStatus",
+                    "StringEquals": "OBSOLETE"
+                  }
+                ],
+                "Next": "Failure"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "CleanupDeployments": {
+      "Type": "Task",
+      "Resource":"arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${CarveFunction}",
+        "Payload": {
+          "DeployAction": "CleanupDeployments"
+        }
+      },
+      "Next": "DiscoverCarveStacksAccountIterator",
+      "TimeoutSeconds": 900
+    },
+    "DiscoverCarveStacksAccountIterator": {
+      "Type": "Map",
+      "End": true,
+      "MaxConcurrency": 100,
+      "Iterator": {
+        "StartAt": "DiscoverCarveStacks",
+        "States": {
+          "DiscoverCarveStacks": {
+            "Type": "Task",
+            "Resource":"arn:aws:states:::lambda:invoke",
+            "Parameters": {
+              "FunctionName": "${CarveFunction}",
+              "Payload": {
+                "DeployAction": "DiscoverCarveStacks",
+                "Input.$": "$"
+              }
+            },
+            "Next": "DeleteStacksIterator",
+            "TimeoutSeconds": 20
+          },
+          "DeleteStacksIterator": {
+            "Type": "Map",
+            "End": true,
+            "MaxConcurrency": 0,
+            "Iterator": {
+              "StartAt": "DeleteStack",
+              "States": {
+                "DeleteStack": {
+                  "Type": "Task",
+                  "Resource":"arn:aws:states:::lambda:invoke",
+                  "Parameters": {
+                    "FunctionName": "${CarveFunction}",
+                    "Payload": {
+                      "DeployAction": "DeleteStack",
+                      "Input.$": "$"
+                    }
+                  },
+                  "Next": "DescribeStack",
+                  "TimeoutSeconds": 20
+                },
+                "DescribeStack": {
+                  "Type": "Task",
+                  "Resource":"arn:aws:states:::lambda:invoke",
+                  "Parameters": {
+                    "FunctionName": "${CarveFunction}",
+                    "Payload": {
+                      "DeployAction": "DescribeStack",
+                      "Input.$": "$"
+                    }
+                  },
+                  "Next": "DeleteStackStatusChoice",
+                  "TimeoutSeconds": 30
+                },
+                "DeleteStackWait": {
+                  "Type": "Wait",
+                  "Seconds": 10,
+                  "Next": "DescribeStack"
+                },
+                "Failure": {
+                  "Type": "Fail"
+                },
+                "Succeed": {
+                  "Type": "Succeed"
+                },
+                "DeleteStackStatusChoice": {
+                  "Type": "Choice",
+                  "Choices": [
+                    {
+                      "Variable": "$.StackStatus",
+                      "StringEquals": "DELETE_COMPLETE",
+                      "Next": "Succeed"
+                    },
+                    {
+                      "Or": [
+                        {
+                          "Variable": "$.StackStatus",
+                          "StringEquals": "DELETE_PENDING"
+                        },
+                        {
+                          "Variable": "$.StackStatus",
+                          "StringEquals": "DELETE_IN_PROGRESS"
+                        }
+                      ],
+                      "Next": "DeleteStackWait"
+                    },
+                    {
+                      "Or": [
+                        {
+                          "Variable": "$.StackStatus",
+                          "StringEquals": "CREATE_COMPLETE"
+                        },
+                        {
+                          "Variable": "$.StackStatus",
+                          "StringEquals": "CREATE_IN_PROGRESS"
+                        },
+                        {
+                          "Variable": "$.StackStatus",
+                          "StringEquals": "CREATE_PENDING"
+                        },
+                        {
+                          "Variable": "$.StackStatus",
+                          "StringEquals": "DELETE_FAILED"
+                        },
+                        {
+                          "Variable": "$.StackStatus",
+                          "StringEquals": "FAILED"
+                        }
+                      ],
+                      "Next": "Failure"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

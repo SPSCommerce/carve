@@ -1,0 +1,195 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  AWS SAM Template to deploy the private Carve API into a specific VPC
+
+Parameters:
+  VpcId:
+    Type: "AWS::EC2::VPC::Id"
+    Description: VPC ID in which the VPC Endpoint should be created
+  VpcEndpointSubnetIds:
+    Type: "List<AWS::EC2::Subnet::Id>"
+    Description: >
+      The ID of one or more subnets in which to create an endpoint network interface.
+  CarveSNSTopicArn:
+    Type: String
+    Description: Carve SNS Topic Arn
+  OrganizationsId:
+    Type: String
+    Description: AWS Organizations Id
+    Default: ""
+  CarveVersion:
+    Type: String
+    Default: "0"
+
+
+Resources:
+
+  CarveFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      FunctionName: !Sub "carve-${VpcId}"
+      Description: Continuous AWS Route Verification Engine
+      CodeUri: !Sub "s3://carve-${OrganizationsId}/deployment/Lambda-package.zip"
+      Handler: c_entrypoint.lambda_handler
+      Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/carve-${OrganizationsId}"
+      Runtime: python3.8
+      Timeout: 20
+      MemorySize: 128
+      ReservedConcurrentExecutions: 2
+      Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
+        Variables:
+          # S3Bucket: !Sub "carve-${OrganizationsId}"
+          VpcEndpointId: !Ref CarveAPIAccessEndpoint
+          VpcId: !Ref VpcId
+      VpcConfig :
+        SecurityGroupIds:
+          - !Ref CarveApiSecurityGroup
+        SubnetIds: !Ref VpcEndpointSubnetIds
+      Events:
+        APIRoot:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /
+            Method: ANY
+            RestApiId: !Ref CarvePrivateApi
+        API:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+            RestApiId: !Ref CarvePrivateApi
+
+
+  CarveSelfInvoke:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      Principal: lambda.amazonaws.com
+      SourceArn: !GetAtt CarveFunction.Arn
+      FunctionName: !GetAtt CarveFunction.Arn
+
+
+  CarveApiSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VpcIdParameter
+      GroupDescription: Allows access over 443 from the entire private network
+      SecurityGroupIngress:
+        -
+          IpProtocol: "tcp"
+          FromPort: 443
+          ToPort: 443
+          CidrIp: "0.0.0.0/0"
+
+
+  CarveSNSSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: !GetAtt CarveFunction.Arn
+      Protocol: Lambda
+      TopicArn: !Ref SNSTopic
+
+
+  CarveLambdaSNSInvoke:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      Principal: sns.amazonaws.com
+      SourceArn: !Ref SNSTopic
+      FunctionName: !GetAtt CarveFunction.Arn
+
+
+  CarveAPIAccessEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId:
+        Ref: VpcIdParameter
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.execute-api"
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds: !Ref VpcEndpointSubnetIds
+      SecurityGroupIds:
+        -
+          !Ref CarveApiSecurityGroup
+
+
+  CarvePrivateApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub "carve-endpoint-${VpcId}"
+      Description: Continuous AWS Route Verification Engine
+      StageName: !Sub "v${CarveVersion}"
+      MethodSettings:
+        - HttpMethod: '*'
+          ResourcePath: /
+          LoggingLevel: ERROR
+      EndpointConfiguration: PRIVATE
+      Variables:
+        CarveFunction: !Ref CarveFunction
+      DefinitionBody:
+        swagger: 2.0
+        info:
+          title: CarvePrivateApi
+        basePath: !Sub "/v${CarveVersion}"
+        schemes:
+          - https
+        x-amazon-apigateway-policy:
+          Version: "2012-10-17"
+          Statement:
+            -
+              Effect: "Allow"
+              Principal: "*"
+              Action:
+                - "execute-api:Invoke"
+              Resource: "execute-api:/*"
+              Condition:
+                StringEquals:
+                  aws:sourceVpce: !Ref CarveAPIAccessEndpoint
+
+        paths:
+          /:
+            x-amazon-apigateway-any-method:
+              produces:
+              - application/json
+              x-amazon-apigateway-integration:
+                responses:
+                  default:
+                    statusCode: 200
+                uri: !Join [ ":", [ !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}", "function:${stageVariables.CarveFunction}/invocations"] ]
+                passthroughBehavior: when_no_match
+                httpMethod: POST
+                type: aws_proxy
+          /{proxy+}:
+            x-amazon-apigateway-any-method:
+              produces:
+              - application/json
+              parameters:
+              - name: proxy
+                in: path
+                required: true
+                type: string
+              x-amazon-apigateway-integration:
+                uri: !Join [ ":", [ !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}", "function:${stageVariables.CarveFunction}/invocations"] ]
+                httpMethod: POST
+                type: aws_proxy
+        x-amazon-apigateway-binary-media-types:
+          - '*/*'
+
+
+Outputs:
+  CarvePrivateApi:
+    Description: "API Gateway endpoint URL"
+    Value: !Ref CarvePrivateApi
+
+  CarvePrivateApiUrl:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${CarvePrivateApi}.execute-api.${AWS::Region}.amazonaws.com/v${Version}"
+
+  CarveFunction:
+    Description: "Carve Lambda Function ARN"
+    Value: !GetAtt CarveFunction.Arn
+
+  CarveAPIAccessEndpoint:
+    Description: "Carve Private API VPC Endpoint ID"
+    Value: !GetAtt CarveAPIAccessEndpoint.Arn

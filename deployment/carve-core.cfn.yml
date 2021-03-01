@@ -1,0 +1,213 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Core Organization Resources for Carve
+
+Parameters:
+  
+  OrganizationsId:
+    Type: String
+    Description: AWS Organizations Id
+    Default: ""
+  CodeBucket:
+    Type: String
+    Default: ""
+    Description: S3 Bucket with Carve lambda zip package
+  GITSHA:
+    Type: String
+    Default: ""
+    Description: latest Git commit SHA determines S3 artifact paths
+
+Resources:
+
+  CarveFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "carve-${OrganizationsId}"
+      Description: Continuous AWS Route Verification Engine
+      Code:
+        CodeBucket: !Ref CodeBucket
+        CodeKey: !Sub "carve/packages/${GITSHA}/package.zip"
+      Environment:
+        Variables:
+          OrganizationsId: !Ref OrganizationsId
+          CarveS3Bucket: !Ref CarveS3Bucket
+          CodeBucket: !Ref CodeBucket
+          CodeKey: !Sub "carve/packages/${GITSHA}/package.zip"
+      Handler: c_entrypoint.lambda_handler
+      Runtime: python3.8
+      MemorySize: 128
+      Timeout: 900
+      Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/carve-${OrganizationsId}"
+      ReservedConcurrentExecutions: 200
+
+
+  CarveSNSSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: !GetAtt CarveFunction.Arn
+      Protocol: Lambda
+      TopicArn: !Ref SNSTopic
+      FilterPolicy:
+        target:
+          - carve-core
+
+  CarveLambdaSNSInvoke:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      Principal: sns.amazonaws.com
+      SourceArn: !Ref SNSTopic
+      FunctionName: !GetAtt CarveFunction.Arn
+
+
+  CarveDeployStepFunction:
+    Type: AWS::StepFunctions::StateMachine
+    Properties: 
+      DefinitionS3Location: 
+        Bucket: !Ref CodeBucket
+        Key: !Sub "carve/packages/${GITSHA}/steps-carve-deployment.json"
+      DefinitionSubstitutions: 
+        CarveFunction: !Ref CarveFunction
+      RoleArn: !Ref StepFunctionRole
+      StateMachineName: carve-deployment-statemachine
+      StateMachineType: STANDARD
+
+
+  StepFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "carve-${OrganizationsId}-sf"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: "Allow"
+          Principal:
+            Service:
+              - !Sub states.${AWS::Region}.amazonaws.com
+          Condition:
+            ForAnyValue:StringEquals:
+              aws:PrincipalOrgID:
+                - !Ref OrganizationsId
+      Policies:
+        - PolicyName: StatesExecutionPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "lambda:InvokeFunction"
+                Resource:
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:carve-*"
+
+
+  CarveS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "carve-${OrganizationsId}-${AWS::Region}"
+      VersioningConfiguration:
+        Status: Enabled
+      RestrictPublicBuckets: True
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: 'AES265'
+
+
+  CarveS3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref CarveS3Bucket
+      PolicyDocument:
+        Statement:
+          - Effect: Allow 
+            Action:
+              - "s3:*"
+            Resource:
+              - !GetAtt CarveS3Bucket.Arn
+            Condition:
+              StringEquals:
+                aws:PrincipalOrgID: !Ref OrganizationsId
+              ArnLike:
+                AWS:SourceArn: "arn:aws:lambda:*:*:function:carve-*"
+
+
+  SNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: !Sub "carve-events-${OrganizationsId}"
+      TopicName: !Sub "carve-events-${OrganizationsId}"
+
+
+  TopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics:
+        - !Ref SNSTopic
+      PolicyDocument:
+        Id: Carve SNS Policy
+        Version: "2012-10-17"
+        Statement:
+          - Sid: Allow Org Carve Lambdas
+            Effect: "Allow"
+            Principal:
+              AWS: "*"
+            Action:
+              - "sns:Subscribe"
+              - "sns:Receive"
+              - "sns:Publish"
+            Resource: !Ref SNSTopic
+            Condition:
+              StringEquals:
+                aws:PrincipalOrgID: !Ref OrganizationsId
+              ArnLike:
+                AWS:SourceArn: "arn:aws:lambda:*:*:function:carve-*"
+
+
+ # CloudWatchInvokeLambda:
+ #    Type: AWS::Lambda::Permission
+ #    Properties:
+ #      FunctionName: !Ref CraveFunction
+ #      Action: "lambda:InvokeFunction"
+ #      Principal: "events.amazonaws.com"
+ #      SourceArn: !GetAtt ScheduleRule.Arn
+
+ #  CloudWatchRole:
+ #    Type: AWS::IAM::Role
+ #    Properties:
+ #      AssumeRolePolicyDocument:
+ #        Version: "2012-10-17"
+ #        Statement:
+ #        - Effect: "Allow"
+ #          Principal:
+ #            Service:
+ #              - "events.amazonaws.com"
+ #          Action:
+ #            - "sts:AssumeRole"
+ #      Policies:
+ #        - PolicyName: LambdaInvocation
+ #          PolicyDocument:
+ #            Version: "2012-10-17"
+ #            Statement:
+ #              - Effect: Allow
+ #                Action:
+ #                  - lambda:Invoke*
+ #                Resource:
+ #                  - !GetAtt CraveFunction.arn
+
+ #  ScheduleRule:
+ #    Type: AWS::Events::Rule
+ #    Properties:
+ #      Description: execute VPC route test every minute
+ #      RoleArn: !GetAtt CloudWatchRole.Arn
+ #      ScheduleExpression:  "cron(* * * * *)"  # Every Minute
+ #      State: ENABLED
+ #      Targets:
+ #        - Arn: !GetAtt CraveFunction.Arn
+ #          Id: !Ref CraveFunction
+
+
+Outputs:
+  CarveTopicArn:
+    Description: Carve Events Topic ARN
+    Value: !Ref SNSTopic
+    Export:
+      Name: !Sub "${AWS::StackName}:TopicArn"

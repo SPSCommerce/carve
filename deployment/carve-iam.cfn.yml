@@ -1,0 +1,77 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: IAM Role For Every AWS Account Running Carve
+
+Parameters:
+
+  OrganizationsId:
+    Type: String
+    Description: AWS Organizations Id
+    Default: ""
+
+Resources:
+
+  CarveIamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "carve-${OrganizationsId}"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+              - lambda.amazonaws.com
+          Action: sts:AssumeRole
+          Condition:
+            ForAnyValue:StringEquals:
+              aws:PrincipalOrgID:
+                - !Ref OrganizationsId
+      Policies:
+        - PolicyName: CarveIAMPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:Invoke*
+                Resource:
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:carve-vpc-*"
+              - Effect: Allow
+                Action:
+                  - iam:PassRole
+                  - iam:GetRole
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - sts:AssumeRole
+                Resource:
+                  - !Sub "arn:aws:iam::${AWS::AccountId}:role/carve-$OrganizationsId"
+              # - Effect: "Allow"
+              #   Action:
+              #     - "sns:Subscribe"
+              #     - "sns:Receive"
+              #     - "sns:Publish"
+              #   Resource: 
+              #     - "*"
+              - Effect: Allow
+                Action:
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:CreateNetworkInterface
+                  - ec2:DeleteNetworkInterface
+                  - ec2:DescribeInstances
+                  - ec2:AttachNetworkInterface
+                  - ec2:DescribeVpcPeeringConnections
+                  - ec2:DescribeVpcs
+                Resource:
+                  - "*"
+              - Effect: Allow
+                Action:
+                  - s3:*
+                Resource:
+                  - !Sub "arn:aws:s3:::carve-${OrganizationsId}-*"
+
+
+
