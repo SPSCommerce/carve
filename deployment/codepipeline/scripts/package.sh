@@ -15,8 +15,9 @@ aws s3 cp "steps-carve-deployment.json" s3://$DEPLOYMENT_BUCKET/carve/packages/$
 # package lambda requirements
 echo "packaging lambda requirements"
 cd "$BUILDPATH/src"
-pip install -r requirements.txt -t .
-zip -r "package.zip" * > /dev/null
+python3.8 -m pip install --upgrade pip
+pip install --use-feature=2020-resolver -r requirements.txt -t .
+zip -qr "package.zip" *
 
 # upload package to S3
 echo "uploading lambda package to S3"

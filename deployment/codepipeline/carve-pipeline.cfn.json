@@ -81,6 +81,13 @@
                     "Resource": [
                       "*"
                     ]
+                  },
+                  {
+                    "Effect": "Allow",
+                    "Action": [
+                      "secretsmanager:GetSecretValue"
+                    ],
+                    "Resource": { "Ref": "GitHubOAUTHTokenASMPath" }
                   }
                 ]
               }
