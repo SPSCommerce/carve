@@ -115,24 +115,24 @@ Resources:
         Status: Enabled
 
 
-  CarveS3BucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    Properties:
-      Bucket: !Ref CarveS3Bucket
-      PolicyDocument:
-        Statement:
-          - Effect: Allow 
-            Action:
-              - "s3:*"
-            Resource:
-              - !GetAtt CarveS3Bucket.Arn
-            Principal:
-              - Service: "lambda.amazonaws.com"
-            Condition:
-              StringEquals:
-                aws:PrincipalOrgID: !Ref OrganizationsId
-              ArnLike:
-                AWS:SourceArn: "arn:aws:lambda:*:*:function:carve-*"
+  # CarveS3BucketPolicy:
+  #   Type: AWS::S3::BucketPolicy
+  #   Properties:
+  #     Bucket: !Ref CarveS3Bucket
+  #     PolicyDocument:
+  #       Statement:
+  #         - Effect: Allow 
+  #           Action:
+  #             - "s3:*"
+  #           Resource:
+  #             - !GetAtt CarveS3Bucket.Arn
+  #           Principal:
+  #             - Service: "lambda.amazonaws.com"
+  #           Condition:
+  #             StringEquals:
+  #               aws:PrincipalOrgID: !Ref OrganizationsId
+  #             ArnLike:
+  #               AWS:SourceArn: "arn:aws:lambda:*:*:function:carve-*"
 
 
   SNSTopic:
