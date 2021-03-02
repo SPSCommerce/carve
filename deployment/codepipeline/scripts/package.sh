@@ -26,20 +26,21 @@ cd "$BUILDPATH/src"
 pip install -r requirements.txt -t .
 zip -qr "package.zip" * > /dev/null
 
-# package lambda requirements
-echo "packaging lambda layer requirements"
-mkdir ../layer
-cd ../layer
-# python3.8 -m pip install --upgrade pip 
-pip install -r ../src/graph_layer_requirements.txt -t .
-zip -qr "graph_layer_package.zip" * > /dev/null
-
 # upload package to S3
 echo "uploading lambda packages to S3"
 aws s3 cp "package.zip" \
     s3://$DEPLOYMENT_BUCKET/carve/packages/$GITSHA/ \
     --metadata GIT_SHA=$CODEBUILD_SOURCE_VERSION
 
-aws s3 cp "graph_layer_package.zip" \
-    s3://$DEPLOYMENT_BUCKET/carve/graph_layer_package/ \
-    --metadata GIT_SHA=$CODEBUILD_SOURCE_VERSION
+# # ONE TIME RUN: package lambda layer requirements
+# echo "packaging lambda layer requirements"
+# mkdir ../layer
+# cd ../layer
+# # python3.8 -m pip install --upgrade pip 
+# pip install -r ../src/graph_layer_requirements.txt -t .
+# zip -qr "graph_layer_package.zip" * > /dev/null
+# # upload to S3
+# aws s3 cp "graph_layer_package.zip" \
+#     s3://$DEPLOYMENT_BUCKET/carve/graph_layer_package/ \
+#     --metadata GIT_SHA=$CODEBUILD_SOURCE_VERSION
+
