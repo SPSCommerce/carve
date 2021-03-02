@@ -19,10 +19,10 @@
                 "Input.$": "$"
               }
             },
-            "Next": "DescribeStack",
+            "Next": "DescribeStackCreation",
             "TimeoutSeconds": 20
           },
-          "DescribeStack": {
+          "DescribeStackCreation": {
             "Type": "Task",
             "Resource":"arn:aws:states:::lambda:invoke",
             "Parameters": {
@@ -38,7 +38,7 @@
           "DescribeStackWait": {
             "Type": "Wait",
             "Seconds": 10,
-            "Next": "DescribeStack"
+            "Next": "DescribeStackCreation"
           },
           "Failure": {
             "Type": "Fail"
@@ -296,10 +296,10 @@
                       "Input.$": "$"
                     }
                   },
-                  "Next": "DescribeStack",
+                  "Next": "DescribeDeleteStack",
                   "TimeoutSeconds": 20
                 },
-                "DescribeStack": {
+                "DescribeDeleteStack": {
                   "Type": "Task",
                   "Resource":"arn:aws:states:::lambda:invoke",
                   "Parameters": {
@@ -315,7 +315,7 @@
                 "DeleteStackWait": {
                   "Type": "Wait",
                   "Seconds": 10,
-                  "Next": "DescribeStack"
+                  "Next": "DescribeDeleteStack"
                 },
                 "Failure": {
                   "Type": "Fail"
