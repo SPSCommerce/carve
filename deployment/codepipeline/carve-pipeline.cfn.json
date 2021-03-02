@@ -160,7 +160,7 @@
                     "RoleArn":  { "Fn::GetAtt": [ "CarvePipelineRole", "Arn" ] },
                     "StackName": { "Fn::Sub": "${CarveStackPrefix}carve-core-${OrganizationsId}" },
                     "TemplatePath": "GithubRepo::deployment/carve-core.cfn.yml",
-                    "ParameterOverrides": {"Fn::Sub": "{\"GITSHA\": \"#{github_vars.CommitId}\"},{\"OrganizationsId\": \"${OrganizationsId}\"},{\"CodeBucket\": \"${DeployBucket}\"}"}
+                    "ParameterOverrides": {"Fn::Sub": "{\"GITSHA\": \"#{github_vars.CommitId}\", \"OrganizationsId\": \"${OrganizationsId}\", \"CodeBucket\": \"${DeployBucket}\"}"}
                   },
                   "OutputArtifacts": [],
                   "InputArtifacts": [ { "Name" : "GithubRepo" } ],
