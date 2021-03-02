@@ -24,8 +24,8 @@ Resources:
       FunctionName: !Sub "carve-${OrganizationsId}"
       Description: Continuous AWS Route Verification Engine
       Code:
-        CodeBucket: !Ref CodeBucket
-        CodeKey: !Sub "carve/packages/${GITSHA}/package.zip"
+        S3Bucket: !Ref CodeBucket
+        S3Key: !Sub "carve/packages/${GITSHA}/package.zip"
       Environment:
         Variables:
           OrganizationsId: !Ref OrganizationsId
