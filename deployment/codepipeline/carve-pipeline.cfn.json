@@ -245,7 +245,6 @@
                     "Effect": "Allow",
                     "Action": [
                       "ssm:*",
-                      "secretsmanager:*",
                       "kms:Decrypt"
                     ],
                     "Resource": [
