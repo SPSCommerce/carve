@@ -74,7 +74,7 @@ Resources:
         Key: !Sub "carve/packages/${GITSHA}/steps-carve-deployment.json"
       DefinitionSubstitutions: 
         CarveFunction: !Ref CarveFunction
-      RoleArn: !GetAtt StepFunctionRole.Arn
+      RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/carve-stepfunction-${OrganizationsId}"
       StateMachineName: carve-deployment-statemachine
       StateMachineType: STANDARD
 
