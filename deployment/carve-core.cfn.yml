@@ -106,10 +106,6 @@ Resources:
       BucketName: !Sub "carve-${OrganizationsId}-${AWS::Region}"
       VersioningConfiguration:
         Status: Enabled
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: 'AES265'
 
 
   CarveS3BucketPolicy:
