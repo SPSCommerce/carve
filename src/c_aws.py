@@ -237,7 +237,7 @@ def aws_find_stacks(startswith, region, credentials):
     stacks = []
     for page in response:
         for stack in page['StackSummaries']:
-            if stack['StackName'].startswith(startswith)
+            if stack['StackName'].startswith(startswith):
                 stacks.append(stack)
 
     return stacks

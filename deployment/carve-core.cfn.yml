@@ -32,6 +32,7 @@ Resources:
           CarveS3Bucket: !Ref CarveS3Bucket
           CodeBucket: !Ref CodeBucket
           CodeKey: !Sub "carve/packages/${GITSHA}/package.zip"
+          MPLCONFIGDIR: /tmp/matplotlib
       Handler: c_entrypoint.lambda_handler
       Runtime: python3.8
       MemorySize: 128
@@ -40,12 +41,24 @@ Resources:
       ReservedConcurrentExecutions: 200
       # pull in some public lambda layers for big python libs
       Layers:
+        - !Ref CarveLibsLayer
         # AWS provided layer for scipy and numpy
         - arn:aws:lambda:us-east-1:668099181075:layer:AWSLambda-Python38-SciPy1x:29
         # public layer for matplotlib from Klayers
         - arn:aws:lambda:us-east-1:770693421928:layer:Klayers-python38-matplotlib:21
         # - arn:aws:lambda:${AWS::Region}:113088814899:layer:Klayers-python38-scipy:1
         # - arn:aws:lambda:${AWS::Region}:113088814899:layer:Klayers-python38-numpy:1
+
+  CarveLibsLayer:
+    Type: AWS::Lambda::LayerVersion
+    Properties: 
+      CompatibleRuntimes:
+        - python3.8
+      Content: 
+        S3Bucket: !Ref CodeBucket
+        S3Key: !Sub "carve/layer_packages/${GITSHA}/layer_package.zip"
+      Description: "carve python lib dependencies"
+      LayerName: CarveLibsLayer
 
   CarveSNSSubscription:
     Type: AWS::SNS::Subscription
