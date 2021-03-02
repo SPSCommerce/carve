@@ -164,7 +164,7 @@
                     "StringEquals": "FAILED"
                   }
                 ],
-                "Next": "Failure"
+                "Next": "ChangeSetFailure"
               }
             ]
           },
@@ -317,10 +317,10 @@
                   "Seconds": 10,
                   "Next": "DescribeDeleteStack"
                 },
-                "Failure": {
+                "DeleteFailure": {
                   "Type": "Fail"
                 },
-                "Succeed": {
+                "DeleteSucceed": {
                   "Type": "Succeed"
                 },
                 "DeleteStackStatusChoice": {
@@ -329,7 +329,7 @@
                     {
                       "Variable": "$.StackStatus",
                       "StringEquals": "DELETE_COMPLETE",
-                      "Next": "Succeed"
+                      "Next": "DeleteSucceed"
                     },
                     {
                       "Or": [
@@ -367,7 +367,7 @@
                           "StringEquals": "FAILED"
                         }
                       ],
-                      "Next": "Failure"
+                      "Next": "DeleteFailure"
                     }
                   ]
                 }
