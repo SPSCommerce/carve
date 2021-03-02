@@ -164,7 +164,7 @@
                     "StringEquals": "FAILED"
                   }
                 ],
-                "Next": "ChangeSetFailure"
+                "Next": "Failure"
               }
             ]
           },
