@@ -56,9 +56,6 @@ Resources:
       Endpoint: !GetAtt CarveFunction.Arn
       Protocol: Lambda
       TopicArn: !Ref SNSTopic
-      FilterPolicy:
-        target:
-          - carve-core
 
   CarveLambdaSNSInvoke:
     Type: AWS::Lambda::Permission
