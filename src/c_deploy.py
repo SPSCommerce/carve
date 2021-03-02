@@ -251,7 +251,7 @@ def sf_DiscoverStacks(event):
     delete_stacks = []
     for parent_connection in parent_connections:
         # each connection contains a list of carve stacks and a region
-        for stack in parent_connection.recv()
+        for stack in parent_connection.recv():
             vpc = stack['StackName'].split(startswith)[1]
             vpc_id = f"vpc-{vpc}"
             # if carve stack is for a vpc not in the graph, delete it
