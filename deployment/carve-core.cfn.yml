@@ -42,6 +42,7 @@ Resources:
       # pull in some public lambda layers for big python libs
       Layers:
         - !Ref CarveLibsLayer
+        # - arn:aws:lambda:us-east-1:223166783801:layer:CarveLibsLayer:1
         # AWS provided layer for scipy and numpy
         - arn:aws:lambda:us-east-1:668099181075:layer:AWSLambda-Python38-SciPy1x:29
         # public layer for matplotlib from Klayers
@@ -56,7 +57,8 @@ Resources:
         - python3.8
       Content: 
         S3Bucket: !Ref CodeBucket
-        S3Key: !Sub "carve/layer_packages/${GITSHA}/layer_package.zip"
+        S3Key: !Sub "carve/layer_packages/e7b93094872e7f2a13e34f7abfbe87a5af38094b/layer_package.zip"
+        # S3Key: !Sub "carve/layer_packages/${GITSHA}/layer_package.zip"
       Description: "carve python lib dependencies"
       LayerName: CarveLibsLayer
 

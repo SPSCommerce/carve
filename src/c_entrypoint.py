@@ -35,7 +35,7 @@ def setup_context(context):
     return c_context
 
 
-def lambda_hander(context, event):
+def lambda_handler(context, event):
     '''
     entrypoint for SNS events:
         - execute route test against a given payload
