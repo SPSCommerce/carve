@@ -126,6 +126,8 @@ Resources:
               - "s3:*"
             Resource:
               - !GetAtt CarveS3Bucket.Arn
+            Principal:
+              - Service: "lambda.amazonaws.com"
             Condition:
               StringEquals:
                 aws:PrincipalOrgID: !Ref OrganizationsId
