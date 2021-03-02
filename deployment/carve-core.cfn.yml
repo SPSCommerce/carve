@@ -80,6 +80,7 @@ Resources:
         Version: "2012-10-17"
         Statement:
         - Effect: "Allow"
+          Action: sts:AssumeRole
           Principal:
             Service:
               - !Sub states.${AWS::Region}.amazonaws.com
