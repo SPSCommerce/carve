@@ -15,13 +15,15 @@ Resources:
     Properties:
       RoleName: !Sub "carve-lambda-${OrganizationsId}"
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
-        - Effect: Allow
+        - Effect: "Allow"
           Principal:
             Service:
-              - lambda.amazonaws.com
-          Action: sts:AssumeRole
+              - "lambda.amazonaws.com"
+              - "ec2.amazonaws.com"
+          Action:
+            - "sts:AssumeRole"
       Policies:
         - PolicyName: CarveIAMPolicy
           PolicyDocument:
