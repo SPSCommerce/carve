@@ -36,7 +36,7 @@ Resources:
       Runtime: python3.8
       MemorySize: 128
       Timeout: 900
-      Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/carve-${OrganizationsId}"
+      Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/carve-lambda-${OrganizationsId}"
       ReservedConcurrentExecutions: 200
       Layers:
         - !Ref CarveGraphLayer

@@ -13,7 +13,7 @@ Resources:
   CarveIamRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub "carve-${OrganizationsId}"
+      RoleName: !Sub "carve-lambda-${OrganizationsId}"
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -22,10 +22,6 @@ Resources:
             Service:
               - lambda.amazonaws.com
           Action: sts:AssumeRole
-          Condition:
-            ForAnyValue:StringEquals:
-              aws:PrincipalOrgID:
-                - !Ref OrganizationsId
       Policies:
         - PolicyName: CarveIAMPolicy
           PolicyDocument:
