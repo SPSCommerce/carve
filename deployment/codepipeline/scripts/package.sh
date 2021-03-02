@@ -43,6 +43,6 @@ zip -r "graph_layer_package.zip" * > /dev/null
 # upload to S3
 echo "uploading lambda layer package to S3"
 aws s3 cp "graph_layer_package.zip" \
-    s3://$DEPLOYMENT_BUCKET/carve/graph_layer_package/ \
+    s3://$DEPLOYMENT_BUCKET/carve/graph_layer_packages/$GITSHA/ \
     --metadata GIT_SHA=$CODEBUILD_SOURCE_VERSION
 

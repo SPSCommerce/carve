@@ -46,7 +46,7 @@ Resources:
     Properties: 
       Content: 
         S3Bucket: !Ref CodeBucket
-        S3Key: !Sub "carve/graph_layer_package/graph_layer_package.zip"
+        S3Key: !Sub "carve/graph_layer_packages/${GITSHA}/graph_layer_package.zip"
       Description: "large networkx python dependencies"
       LayerName: CarveGraphLayer
 
