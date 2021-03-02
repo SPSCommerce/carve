@@ -2,7 +2,6 @@ import networkx as nx
 from networkx.readwrite import json_graph
 import argparse
 import json
-import yaml
 import os
 from copy import deepcopy
 from c_carve import load_graph, save_graph

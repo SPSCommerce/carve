@@ -38,7 +38,17 @@ Resources:
       Timeout: 900
       Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/carve-${OrganizationsId}"
       ReservedConcurrentExecutions: 200
+      Layers:
+        - !Ref CarveGraphLayer
 
+  CarveGraphLayer:
+    Type: AWS::Lambda::LayerVersion
+    Properties: 
+      Content: 
+        S3Bucket: !Ref CodeBucket
+        S3Key: !Sub "carve/graph_layer_package/graph_layer_package.zip"
+      Description: "large networkx python dependencies"
+      LayerName: CarveGraphLayer
 
   CarveSNSSubscription:
     Type: AWS::SNS::Subscription
