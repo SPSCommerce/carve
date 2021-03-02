@@ -38,17 +38,14 @@ Resources:
       Timeout: 900
       Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/carve-lambda-${OrganizationsId}"
       ReservedConcurrentExecutions: 200
+      # pull in some public lambda layers for big python libs
       Layers:
-        - !Ref CarveGraphLayer
-
-  CarveGraphLayer:
-    Type: AWS::Lambda::LayerVersion
-    Properties: 
-      Content: 
-        S3Bucket: !Ref CodeBucket
-        S3Key: !Sub "carve/graph_layer_packages/${GITSHA}/graph_layer_package.zip"
-      Description: "large networkx python dependencies"
-      LayerName: CarveGraphLayer
+        # AWS provided layer for scipy and numpy
+        - arn:aws:lambda:us-east-1:668099181075:layer:AWSLambda-Python38-SciPy1x:29
+        # public layer for matplotlib from Klayers
+        - arn:aws:lambda:us-east-1:770693421928:layer:Klayers-python38-matplotlib:21
+        # - arn:aws:lambda:${AWS::Region}:113088814899:layer:Klayers-python38-scipy:1
+        # - arn:aws:lambda:${AWS::Region}:113088814899:layer:Klayers-python38-numpy:1
 
   CarveSNSSubscription:
     Type: AWS::SNS::Subscription

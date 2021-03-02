@@ -149,7 +149,9 @@ def save_graph(G, file_path):
     # save json data
     try:
         os.remove(file_path)
-
+    except:
+        pass
+ 
     with open(file_path, 'a') as f:
         json.dump(json_graph.node_link_data(G), f)
     
