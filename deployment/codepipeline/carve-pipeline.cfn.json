@@ -140,7 +140,7 @@
                     },
                     "RunOrder" : 2
                   }
-               ]
+              ]
             },
             {
               "Name" : "CarveCoreDeploy",
@@ -158,12 +158,13 @@
                     "ActionMode": "CREATE_UPDATE",
                     "Capabilities": "CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND",
                     "RoleArn":  { "Fn::GetAtt": [ "CarvePipelineRole", "Arn" ] },
-                    "StackName": {"Fn::Sub": "${CarveStackPrefix}carve-core-${OrganizationsId}"},
+                    "StackName": { "Fn::Sub": "${CarveStackPrefix}carve-core-${OrganizationsId}" },
                     "TemplatePath": "GithubRepo::deployment/carve-core.cfn.yml",
                     "ParameterOverrides": {"Fn::Sub": "{\"GITSHA\": \"#{github_vars.CommitId}\"},{\"OrganizationsId\": \"${OrganizationsId}\"},{\"CodeBucket\": \"${DeployBucket}\"}"}
                   },
                   "OutputArtifacts": [],
-                  "InputArtifacts": [ { "Name" : "GithubRepo" } ]
+                  "InputArtifacts": [ { "Name" : "GithubRepo" } ],
+                  "RunOrder" : 3
                 }
               ]
             }
@@ -181,7 +182,7 @@
           "Environment": {
             "Type": "LINUX_CONTAINER",
             "ComputeType": "BUILD_GENERAL1_SMALL",
-            "Image": "aws/codebuild/amazonlinux2-x86_64-standard:3.0",
+            "Image": "aws/codebuild/python:3.7.1",
             "PrivilegedMode": true,
             "EnvironmentVariables": [
               {
@@ -198,7 +199,7 @@
             "Type": "CODEPIPELINE",
             "BuildSpec": "deployment/codepipeline/pipeline_buildspec.yml"
             },
-          "TimeoutInMinutes": 120,
+          "TimeoutInMinutes": 5,
           "Tags": [
             {
               "Key": "GitSHA",
@@ -242,9 +243,11 @@
                     ]
                   },
                   {
+                    "Sid": "DeployPolicy",
                     "Effect": "Allow",
                     "Action": [
                       "ssm:*",
+                      "secretsmanager:*",
                       "kms:Decrypt"
                     ],
                     "Resource": [
