@@ -102,7 +102,7 @@ def aws_get_carve_tags(lambda_arn):
     cfn_tags = shelve.open('/tmp/tags_cache', writeback=True)
 
     # if not cached, get tags
-    if len(cfn_tags) is 0:
+    if len(cfn_tags) == 0:
         client = boto3.client('lambda')
         response = client.list_tags(Resource=lambda_arn)
 

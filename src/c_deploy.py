@@ -21,7 +21,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def deploy_carve_endpoints(context, event):
+def deploy_carve_endpoints(event, context):
     # event must include:
     #   event['graph_path'] = graph path in the carve-org-* controlled S3 bucket
     #   event['role'] = role pattern to use across all accounts
@@ -181,7 +181,7 @@ def sf_DeleteStack(event):
     return payload
 
 
-def sf_CleanupDeployments(context, event):
+def sf_CleanupDeployments(event, context):
     '''discover all deployments of carve named stacks and determine if they should exist'''
     # event will be a json array of all final DescribeChangeSetExecution tasks
 
@@ -273,7 +273,7 @@ def _discover_stacks_process(startswith, region, credentials, child_conn):
     child_conn.close()
 
 
-def sf_CreateCarveStack(context, event):
+def sf_CreateCarveStack(event, context):
     ''' deploy a carve endpoint/api '''
 
     tags = aws_get_carve_tags(context.invoked_function_arn)
@@ -313,10 +313,10 @@ def sf_CreateCarveStack(context, event):
     return payload
 
 
-def deploy_steps_entrypoint(context, event):
+def deploy_steps_entrypoint(event, context):
     ''' step function tasks for deployment all flow thru here after the lambda_hanlder '''
     if event['DeployAction'] == 'CreateCarveStack':
-        response = sf_CreateCarveStack(context, event)
+        response = sf_CreateCarveStack(event, context)
 
     elif event['DeployAction'] == 'DescribeStack':
         response = sf_DescribeStack(event)
@@ -334,7 +334,7 @@ def deploy_steps_entrypoint(context, event):
         response = sf_DescribeChangeSet(event)
 
     elif event['DeployAction'] == 'CleanupDeployments':
-        response = sf_CleanupDeployments(context, event)
+        response = sf_CleanupDeployments(event, context)
 
     elif event['DeployAction'] == 'DeleteStack':
         response = sf_DeleteStack(event)

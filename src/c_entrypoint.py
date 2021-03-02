@@ -35,7 +35,7 @@ def setup_context(context):
     return c_context
 
 
-def lambda_handler(context, event):
+def lambda_handler(event, context):
     '''
     entrypoint for SNS events:
         - execute route test against a given payload
@@ -70,11 +70,11 @@ def lambda_handler(context, event):
 
     elif 'DeployStart' in event:
         print('Starting deployment process')
-        return deploy_carve_endpoints(context, event)
+        return deploy_carve_endpoints(event, context)
 
     elif 'DeployAction' in event:
         print('TRIGGERED by Deployment Step Function')
-        return deploy_steps_entrypoint(context, event)
+        return deploy_steps_entrypoint(event, context)
 
     elif 'VerifyAction' in event:
         print('TRIGGERED by Route Verification Step Function')
