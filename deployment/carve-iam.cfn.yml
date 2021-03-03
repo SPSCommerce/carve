@@ -47,7 +47,7 @@ Resources:
                 Action:
                   - sts:AssumeRole
                 Resource:
-                  - !Sub "arn:aws:iam::${AWS::AccountId}:role/carve-${OrganizationsId}"
+                  - !Sub "arn:aws:iam::${AWS::AccountId}:role/carve-lambda-${OrganizationsId}"
               # - Effect: "Allow"
               #   Action:
               #     - "sns:Subscribe"
