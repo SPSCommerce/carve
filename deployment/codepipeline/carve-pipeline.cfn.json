@@ -158,7 +158,7 @@
                       "PermissionModel": "SERVICE_MANAGED",
                       "StackSetName": {"Fn::Sub": "${CarveStackPrefix}carve-lambda-${OrganizationsId}"},
                       "TemplatePath": "GithubRepo::deployment/carve-iam.cfn.yml",
-                      "Parameters": {"Fn::Sub": "{Parameter=OrganizationsId,ParameterValue=${OrganizationsId}"}
+                      "Parameters": {"Fn::Sub": "Parameter=OrganizationsId,ParameterValue=${OrganizationsId"}
                   },
                   "OutputArtifacts": [],
                   "InputArtifacts": [ { "Name" : "GithubRepo" } ]

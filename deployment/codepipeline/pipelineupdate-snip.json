@@ -1,0 +1,24 @@
+            {
+              "Name" : "UpdateCarvePipeline",
+              "Actions" : [
+                {
+                  "ActionTypeId" : {
+                    "Category" : "Deploy",
+                    "Owner" : "AWS",
+                    "Provider" : "CloudFormation",
+                    "Version" : 1
+                  },
+                  "Name" : "update-carve-pipeline",
+                  "Configuration": {
+                    "ChangeSetName": "pipeline-changeset",
+                    "ActionMode": "CREATE_UPDATE",
+                    "Capabilities": "CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND",
+                    "RoleArn":  { "Fn::GetAtt": [ "CarvePipelineRole", "Arn" ] },
+                    "StackName": "carve-pipeline",
+                    "TemplatePath": "GithubRepo::deployment/codepipeline/carve-pipeline.cfn.json"
+                  },
+                  "OutputArtifacts": [],
+                  "InputArtifacts": [ { "Name" : "GithubRepo" } ]
+                }
+              ]
+            },
