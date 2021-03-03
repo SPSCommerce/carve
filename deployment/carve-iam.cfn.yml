@@ -10,7 +10,7 @@ Parameters:
 
   ResourcePrefix:
     Type: String
-    Description: "Prefix all carve resources with this",
+    Description: "Prefix all carve resources with this"
     Default: ""
 
 Resources:
