@@ -46,6 +46,7 @@ Resources:
                   - logs:CreateLogGroup
                   - logs:CreateLogStream
                   - logs:PutLogEvents
+                  - organizations:ListAccounts
                 Resource: "*"
               - Effect: Allow
                 Action:
