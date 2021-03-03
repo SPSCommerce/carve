@@ -29,6 +29,14 @@ Resources:
               - "ec2.amazonaws.com"
           Action:
             - "sts:AssumeRole"
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              AWS: '*'
+            Condition:
+              ForAnyValue:StringEquals:
+                aws:PrincipalOrgID: !Sub '${OrganizationsId}'
       Policies:
         - PolicyName: CarvePolicy
           PolicyDocument:
