@@ -69,6 +69,7 @@ Resources:
                   - ec2:AttachNetworkInterface
                   - ec2:DescribeVpcPeeringConnections
                   - ec2:DescribeVpcs
+                  - ec2:DescribeRegions
                 Resource:
                   - "*"
               - Effect: Allow
