@@ -11,6 +11,11 @@
         "Description": "AWS Organizations Id",
         "Default": ""
       },
+      "RootOU": {
+        "Type": "String",
+        "Description": "AWS Organizations Root OU Id for stackset deploy",
+        "Default": ""
+      },
       "CarveStackPrefix": {
         "Type": "String",
         "Description": "Prefix all carve stack names with this",
@@ -151,14 +156,14 @@
                       "Capabilities": "CAPABILITY_NAMED_IAM",
                       "OrganizationsAutoDeployment": "Enabled",
                       "Description": "CarveRole",
-                      "DeploymentTargets": { "Ref": "OrganizationsId"},
+                      "DeploymentTargets": { "Ref": "RootOU"},
                       "Regions": { "Ref": "AWS::Region"},
                       "FailureTolerancePercentage": 100, 
                       "MaxConcurrentPercentage": 100,
                       "PermissionModel": "SERVICE_MANAGED",
                       "StackSetName": {"Fn::Sub": "${CarveStackPrefix}carve-lambda-${OrganizationsId}"},
                       "TemplatePath": "GithubRepo::deployment/carve-iam.cfn.yml",
-                      "Parameters": {"Fn::Sub": "Parameter=OrganizationsId,ParameterValue=${OrganizationsId"}
+                      "Parameters": {"Fn::Sub": "ParameterKey=OrganizationsId,ParameterValue=${OrganizationsId}"}
                   },
                   "OutputArtifacts": [],
                   "InputArtifacts": [ { "Name" : "GithubRepo" } ]
