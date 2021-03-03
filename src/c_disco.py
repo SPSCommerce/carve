@@ -8,12 +8,12 @@ from multiprocessing import Process, Pipe
 import os
 import sys
 import time
-from c_aws import aws_parallel_role_creation
+from c_aws import aws_parallel_role_creation, aws_upload_file_carve_s3
 from botocore.config import Config
 
 
 
-def _discover_org_graph(accounts, regions, c_context):
+def _discover_org_graph(accounts, regions, context):
 
     # when refacotring for lambda
     # could self invoke to split vpc/peering discovery
@@ -25,8 +25,10 @@ def _discover_org_graph(accounts, regions, c_context):
     p_processes = []
     p_parent_connections = []
 
+    role = f"arn:aws:sts::*:role/{os.environ['ResourcePrefix']}carve-lambda-{os.environ['OrganizationsId']}"
+
     # create all IAM assumed role sessions now, and store their credentials
-    credentials = aws_parallel_role_creation(accounts.keys(), c_context['role'])
+    credentials = aws_parallel_role_creation(accounts.keys(), role)
 
     # create one VPC and one Peering discovery process per AWS account and region
     processes = (len(accounts) * len(regions))
@@ -217,33 +219,28 @@ def _discover_peering(region, account_id, credentials):
     return G
 
 
-def c_disco(c_context):
+def discovery(event, context):
     ''' kick off org/vpc/pcx discovery logic '''
-    print('generating dynamic org graph')
+    print('generating dynamic org vpc graph')
 
     # discover AWS Organizations Accounts
     accounts = discover_org_accounts()
 
-    print('get region list')
-    if c_context['region_list'] == 'all':
-        client = boto3.client('ec2', region_name='us-east-1')
-        regions = [region['RegionName'] for region in client.describe_regions()['Regions']]
-    else:
-        regions = c_context['region_list'].split(',')
+    client = boto3.client('ec2', region_name=os.environ['AWS_REGION'])
+    regions = [region['RegionName'] for region in client.describe_regions()['Regions']]
 
     # run primary VPC/PCX discovery function
-    G = _discover_org_graph(accounts, regions, c_context)
+    G = _discover_org_graph(accounts, regions, event)
 
-    # ts = int(time.time())
     G.graph['Name'] = f'c_discovered_{int(time.time())}'
 
+    print("discovery complete uploading to s3")
     # save json data
-    with open(f"{G.graph['Name']}.json", 'a') as f:
+    with open(f"/tmp/{G.graph['Name']}.json", 'a') as f:
         json.dump(json_graph.node_link_data(G), f)
 
-    return G
+    aws_upload_file_carve_s3('discovery/', f"/tmp/{G.graph['Name']}.json")
 
-
-
+    return 
 
 

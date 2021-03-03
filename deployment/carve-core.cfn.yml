@@ -15,6 +15,10 @@ Parameters:
     Type: String
     Default: ""
     Description: latest Git commit SHA determines S3 artifact paths
+  ResourcePrefix:
+    Type: String
+    Description: "Prefix all carve resources with this",
+    Default: ""
 
 Resources:
 
@@ -33,6 +37,7 @@ Resources:
           CodeBucket: !Ref CodeBucket
           CodeKey: !Sub "carve/packages/${GITSHA}/package.zip"
           MPLCONFIGDIR: /tmp/matplotlib
+          ResourcePrefix: !Ref ResourcePrefix
       Handler: c_entrypoint.lambda_handler
       Runtime: python3.8
       MemorySize: 128

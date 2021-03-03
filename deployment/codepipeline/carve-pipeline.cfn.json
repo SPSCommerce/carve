@@ -16,7 +16,7 @@
         "Description": "AWS Organizations Root OU Id for stackset deploy",
         "Default": ""
       },
-      "CarveStackPrefix": {
+      "ResourcePrefix": {
         "Type": "String",
         "Description": "Prefix all carve stack names with this",
         "Default": ""
@@ -161,7 +161,7 @@
                       "FailureTolerancePercentage": 100, 
                       "MaxConcurrentPercentage": 100,
                       "PermissionModel": "SERVICE_MANAGED",
-                      "StackSetName": {"Fn::Sub": "${CarveStackPrefix}carve-lambda-${OrganizationsId}"},
+                      "StackSetName": {"Fn::Sub": "${ResourcePrefix}carve-lambda-${OrganizationsId}"},
                       "TemplatePath": "GithubRepo::deployment/carve-iam.cfn.yml",
                       "Parameters": {"Fn::Sub": "ParameterKey=OrganizationsId,ParameterValue=${OrganizationsId}"}
                   },
@@ -181,7 +181,7 @@
                       "ActionMode": "CREATE_UPDATE",
                       "Capabilities": "CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND",
                       "RoleArn":  { "Fn::GetAtt": [ "CarvePipelineRole", "Arn" ] },
-                      "StackName": { "Fn::Sub": "${CarveStackPrefix}carve-iam-${OrganizationsId}" },
+                      "StackName": { "Fn::Sub": "${ResourcePrefix}carve-iam-${OrganizationsId}" },
                       "TemplatePath": "GithubRepo::deployment/carve-iam.cfn.yml",
                       "ParameterOverrides": {"Fn::Sub": "{\"OrganizationsId\": \"${OrganizationsId}\"}"}
                     },
@@ -206,7 +206,7 @@
                     "ActionMode": "CREATE_UPDATE",
                     "Capabilities": "CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND",
                     "RoleArn":  { "Fn::GetAtt": [ "CarvePipelineRole", "Arn" ] },
-                    "StackName": { "Fn::Sub": "${CarveStackPrefix}carve-core-${OrganizationsId}" },
+                    "StackName": { "Fn::Sub": "${ResourcePrefix}carve-core-${OrganizationsId}" },
                     "TemplatePath": "GithubRepo::deployment/carve-core.cfn.yml",
                     "ParameterOverrides": {"Fn::Sub": "{\"GITSHA\": \"#{github_vars.CommitId}\", \"OrganizationsId\": \"${OrganizationsId}\", \"CodeBucket\": \"${DeployBucket}\"}"}
                   },

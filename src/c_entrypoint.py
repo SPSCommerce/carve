@@ -1,11 +1,7 @@
-# import boto3
-# from botocore.exceptions import ClientError
-# import sys
 import json
 import os
 from c_deploy import deploy_steps_entrypoint
-
-# from botocore.config import Config
+from c_disco import discovery
 
 
 def setup_context(context):
@@ -18,19 +14,16 @@ def setup_context(context):
     # c_context['VpcId'] = os.environ['VpcId']
 
     # local test vars
-    c_context['role'] = "arn:aws:sts::*:role/carve"
+    # c_context['role'] = "arn:aws:sts::*:role/carve"
     # c_context['region_list'] = "us-east-1,us-west-2,ap-southeast-2,ca-central-1"
     c_context['region_list'] = 'all'
-    c_context['json_graph'] = '/src/c_disco_graph.json'
-    c_context['diff_graph'] = '/src/c_disco_graph_wrong.json'
+    # c_context['json_graph'] = '/src/c_disco_graph.json'
+    # c_context['diff_graph'] = '/src/c_disco_graph_wrong.json'
     c_context['peers_only'] = 'true'
     c_context['VpcId'] = 'vpc-id'
-    c_context['export_visual'] = 'true'
+    c_context['export_visual'] = 'false'
     c_context['invoked_function_arn'] = context.invoked_function_arn
     # boto client config number of retries
-
-    c_context['S3Bucket'] = os.environ['S3Bucket']
-    c_context['OrganizationsId'] = os.environ['OrganizationsId']
 
     return c_context
 
@@ -75,6 +68,10 @@ def lambda_handler(event, context):
         print('TRIGGERED by Deployment Step Function')
         return deploy_steps_entrypoint(event, context)
 
+    elif 'Discovery' in event:
+        print('Starting deployment process')
+        return discovery(event, context)
+
     elif 'VerifyAction' in event:
         print('TRIGGERED by Route Verification Step Function')
         # return verify_steps_entrypoint(event)
@@ -106,12 +103,6 @@ def deploy_test():
     # print(G)
     deploy_org_endpoints(G, deploy_args.role)
 
-
-
-if __name__ == '__main__':
-
-    deploy_test()
-    
 
     # # test = 'sns'
     # # test = 'cw'
