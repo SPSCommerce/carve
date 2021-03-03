@@ -5,7 +5,7 @@ import json
 import sys
 import os
 
-from c_disco import c_disco
+from c_disco import discovery
 # from pprint import pprint
 
 
@@ -151,7 +151,7 @@ def save_graph(G, file_path):
         os.remove(file_path)
     except:
         pass
- 
+
     with open(file_path, 'a') as f:
         json.dump(json_graph.node_link_data(G), f)
     
@@ -166,7 +166,7 @@ def main(c_context):
         G = False
 
     if not G:
-        G = c_disco(c_context)
+        G = discovery(c_context)
 
     if 'export_visual' in c_context:
         if c_context['export_visual'] == 'true':
