@@ -230,7 +230,7 @@ def discovery(event, context):
     regions = [region['RegionName'] for region in client.describe_regions()['Regions']]
 
     # run primary VPC/PCX discovery function
-    G = _discover_org_graph(accounts, regions, event)
+    G = _discover_org_graph(accounts, regions, context)
 
     G.graph['Name'] = f'c_discovered_{int(time.time())}'
 
