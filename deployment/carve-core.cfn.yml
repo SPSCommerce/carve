@@ -17,7 +17,7 @@ Parameters:
     Description: latest Git commit SHA determines S3 artifact paths
   ResourcePrefix:
     Type: String
-    Description: "Prefix all carve resources with this",
+    Description: "Prefix all carve resources with this"
     Default: ""
 
 Resources:
