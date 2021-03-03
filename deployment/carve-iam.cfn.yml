@@ -30,7 +30,7 @@ Resources:
           Action:
             - "sts:AssumeRole"
       Policies:
-        - PolicyName: CarveIAMPolicy
+        - PolicyName: CarvePolicy
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
