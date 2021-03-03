@@ -129,13 +129,13 @@
               "Name" : "PackageLambda-DeployIAM",
               "Actions" : [
                   {
+                    "Name" : "carve-lambda-packaging",
                     "ActionTypeId" : {
                       "Category" : "Build",
                       "Owner" : "AWS",
                       "Provider" : "CodeBuild",
                       "Version" : 1
                     },
-                    "Name" : "carve-lambda-packaging",
                     "InputArtifacts" : [ { "Name" : "GithubRepo" } ],
                     "Region" : { "Ref": "AWS::Region" },
                     "Configuration": {
@@ -167,7 +167,27 @@
                   },
                   "OutputArtifacts": [],
                   "InputArtifacts": [ { "Name" : "GithubRepo" } ]
-              }
+                  },
+                  {
+                    "Name" : "carve-iam-deployment",
+                    "ActionTypeId" : {
+                      "Category" : "Deploy",
+                      "Owner" : "AWS",
+                      "Provider" : "CloudFormation",
+                      "Version" : 1
+                    },
+                    "Configuration": {
+                      "ChangeSetName": "pipeline-changeset",
+                      "ActionMode": "CREATE_UPDATE",
+                      "Capabilities": "CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND",
+                      "RoleArn":  { "Fn::GetAtt": [ "CarvePipelineRole", "Arn" ] },
+                      "StackName": { "Fn::Sub": "${CarveStackPrefix}carve-iam-${OrganizationsId}" },
+                      "TemplatePath": "GithubRepo::deployment/carve-iam.cfn.yml",
+                      "ParameterOverrides": {"Fn::Sub": "{\"OrganizationsId\": \"${OrganizationsId}\"}"}
+                    },
+                    "OutputArtifacts": [],
+                    "InputArtifacts": [ { "Name" : "GithubRepo" } ]
+                  }
               ]
             },
             {
