@@ -7,6 +7,10 @@ Parameters:
     Type: String
     Description: AWS Organizations Id
     Default: ""
+  Version:
+    Type: String
+    Description: Version or commit
+    Default: ""
 
 Resources:
 

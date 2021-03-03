@@ -116,13 +116,36 @@
                       "Repo": "carve",
                       "Branch": "main",
                       "OAuthToken": {"Fn::Sub": "{{resolve:secretsmanager:${GitHubOAUTHTokenASMPath}:SecretString:token}}"}
-                    },
-                    "RunOrder" : 1
+                    }
                   }
               ]
             },
             {
-              "Name" : "CarveCorePackage",
+              "Name" : "UpdateCarvePipeline",
+              "Actions" : [
+                {
+                  "ActionTypeId" : {
+                    "Category" : "Deploy",
+                    "Owner" : "AWS",
+                    "Provider" : "CloudFormation",
+                    "Version" : 1
+                  },
+                  "Name" : "update-carve-pipeline",
+                  "Configuration": {
+                    "ChangeSetName": "pipeline-changeset",
+                    "ActionMode": "CREATE_UPDATE",
+                    "Capabilities": "CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND",
+                    "RoleArn":  { "Fn::GetAtt": [ "CarvePipelineRole", "Arn" ] },
+                    "StackName": "carve-pipeline",
+                    "TemplatePath": "GithubRepo::deployment/codepipeline/codepipeline.cfn.json"
+                  },
+                  "OutputArtifacts": [],
+                  "InputArtifacts": [ { "Name" : "GithubRepo" } ]
+                }
+              ]
+            },
+            {
+              "Name" : "PackageLambda-DeployIAM",
               "Actions" : [
                   {
                     "ActionTypeId" : {
@@ -131,15 +154,39 @@
                       "Provider" : "CodeBuild",
                       "Version" : 1
                     },
-                    "Name" : "lambda-packaging",
+                    "Name" : "carve-lambda-packaging",
                     "InputArtifacts" : [ { "Name" : "GithubRepo" } ],
                     "Region" : { "Ref": "AWS::Region" },
                     "Configuration": {
                       "ProjectName": { "Ref": "CarveCodeBuild"},
                       "EnvironmentVariables": "[{\"name\":\"GITSHA\",\"value\":\"#{github_vars.CommitId}\",\"type\":\"PLAINTEXT\"}]"
-                    },
-                    "RunOrder" : 2
-                  }
+                    }
+                  },
+                  {
+                  "Name": "carve-iam-stackset-deploy",
+                  "Region": { "Ref": "AWS::Region"},
+                  "ActionTypeId": {
+                      "Category": "Deploy",
+                      "Owner": "AWS",
+                      "Provider": "CloudFormationStackSet",
+                      "Version": 1
+                  },
+                  "Configuration": {
+                      "Capabilities": "CAPABILITY_IAM,CAPABILITY_NAMED_IAM",
+                      "OrganizationsAutoDeployment": "Enabled",
+                      "Description": "Carve IAM Role Required in all AWS Accounts",
+                      "DeploymentTargets": { "Ref": "OrganizationsId"},
+                      "Regions": { "Ref": "AWS::Region"},
+                      "FailureTolerancePercentage": 100, 
+                      "MaxConcurrentPercentage": 100,
+                      "PermissionModel": "SERVICE_MANAGED",
+                      "StackSetName": {"Fn::Sub": "${CarveStackPrefix}carve-lambda-${OrganizationsId}"},
+                      "TemplatePath": "GithubRepo::deployment/carve-iam.cfn.yml",
+                      "Parameters": {"Fn::Sub": "[{ParameterKey=Version,ParameterValue=#{github_vars.CommitId}},{Parameter=OrganizationsId,ParameterValue=${OrganizationsId}]"}
+                  },
+                  "OutputArtifacts": [],
+                  "InputArtifacts": [ { "Name" : "GithubRepo" } ]
+              }
               ]
             },
             {
@@ -163,8 +210,7 @@
                     "ParameterOverrides": {"Fn::Sub": "{\"GITSHA\": \"#{github_vars.CommitId}\", \"OrganizationsId\": \"${OrganizationsId}\", \"CodeBucket\": \"${DeployBucket}\"}"}
                   },
                   "OutputArtifacts": [],
-                  "InputArtifacts": [ { "Name" : "GithubRepo" } ],
-                  "RunOrder" : 3
+                  "InputArtifacts": [ { "Name" : "GithubRepo" } ]
                 }
               ]
             }

@@ -47,10 +47,9 @@ def lambda_handler(event, context):
     # lambda needs to log its info at startup
 
     '''
-    print(event)
+    # print(event)
 
     # c_context = setup_context(context)
-    # print(f'context: {c_context}')
 
     # Triggered by cloudwatch cron/scheduled job = crawler run
     if 'detail-type' in event:
@@ -79,9 +78,6 @@ def lambda_handler(event, context):
     elif 'VerifyAction' in event:
         print('TRIGGERED by Route Verification Step Function')
         # return verify_steps_entrypoint(event)
-
-
-
 
     # # queryStringParameters
     # param1 = event["queryStringParameters"]["param1"]

@@ -39,16 +39,12 @@ Resources:
       Timeout: 900
       Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/carve-lambda-${OrganizationsId}"
       ReservedConcurrentExecutions: 200
-      # pull in some public lambda layers for big python libs
       Layers:
         - !Ref CarveLibsLayer
-        # - arn:aws:lambda:us-east-1:223166783801:layer:CarveLibsLayer:1
-        # AWS provided layer for scipy and numpy
+        # AWS provided lambda layer for scipy and numpy
         - arn:aws:lambda:us-east-1:668099181075:layer:AWSLambda-Python38-SciPy1x:29
-        # public layer for matplotlib from Klayers
+        # public lambda layer for matplotlib from Klayers
         - arn:aws:lambda:us-east-1:770693421928:layer:Klayers-python38-matplotlib:21
-        # - arn:aws:lambda:${AWS::Region}:113088814899:layer:Klayers-python38-scipy:1
-        # - arn:aws:lambda:${AWS::Region}:113088814899:layer:Klayers-python38-numpy:1
 
   CarveLibsLayer:
     Type: AWS::Lambda::LayerVersion
