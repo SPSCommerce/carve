@@ -109,10 +109,13 @@ def aws_get_carve_tags(lambda_arn):
 
         cfn_tags = []
         for key, value in response['Tags'].items():
-            tag = {}
-            tag['Key'] = key
-            tag['Value'] = value
-            cfn_tags.append(tag)
+            if key.startswith("aws:"):
+                pass
+            else:
+                tag = {}
+                tag['Key'] = key
+                tag['Value'] = value
+                cfn_tags.append(tag)
     else:
         print(f"found cached tags: {cfn_tags}")
 

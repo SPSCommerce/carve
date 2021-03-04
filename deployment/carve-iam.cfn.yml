@@ -81,6 +81,15 @@ Resources:
                   - !Sub "arn:aws:cloudformation:*:${AWS::AccountId}:stack/${ResourcePrefix}carve-endpoint-vpc-*"
               - Effect: Allow
                 Action:
+                  - "*"
+                Resource:
+                  - "*"
+                Condition:
+                  ForAnyValue:StringEquals:
+                    aws:CalledVia:
+                      - cloudformation.amazonaws.com                  
+              - Effect: Allow
+                Action:
                   - ec2:DescribeNetworkInterfaces
                   - ec2:CreateNetworkInterface
                   - ec2:DeleteNetworkInterface
