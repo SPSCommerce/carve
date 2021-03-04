@@ -231,15 +231,17 @@ def discovery(event, context):
 
     # run primary VPC/PCX discovery function
     G = _discover_org_graph(accounts, regions, context)
+    name = f'c_discovered_{int(time.time())}'
 
-    G.graph['Name'] = f'c_discovered_{int(time.time())}'
+    G.graph['Name'] = name
 
-    print("discovery complete uploading to s3")
     # save json data
-    with open(f"/tmp/{G.graph['Name']}.json", 'a') as f:
+    with open(f"/tmp/{name}.json", 'a') as f:
         json.dump(json_graph.node_link_data(G), f)
 
-    aws_upload_file_carve_s3('discovery/', f"/tmp/{G.graph['Name']}.json")
+    print(f"discovery complete uploading to s3: /tmp/{name}.json")
+
+    aws_upload_file_carve_s3('discovery/', f"/tmp/{name}.json")
 
     return 
 
