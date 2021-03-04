@@ -99,6 +99,19 @@ def deploy_carve_endpoints(event, context):
 #         lambda_hander({}, event)
 
 
+def seed_deployment_files():
+    # seed the same lambda package that created this deployment to the carve s3 bucket
+    aws_download_file_carve_s3(
+        key=os.environ['CodeKey'],
+        file_path='package.zip',
+        bucket=os.environ['CodeBucket']
+        )
+    # push package to carve deployment folder
+
+    # unzip package
+
+
+
 def sf_ExecuteChangeSet(event):
 
     response = aws_execute_change_set(

@@ -256,6 +256,22 @@ def aws_read_s3_direct(key, region):
     return obj.get()['Body'].read().decode('utf-8')
 
 
+def aws_download_file_carve_s3(key, file_path, bucket=None):
+    '''
+    writes file_path to the carve s3 bucket
+    '''
+    client = boto3.client('s3', config=Config(retries=dict(max_attempts=10)))
+    if bucket is None:
+        bucket = os.environ['CarveS3Bucket']
+
+    try:
+        response = client.download_file(Bucket=bucket, Key=key, Filename=file_path)
+        return response
+    except ClientError as e:
+        print(f's3 error: {e}')
+        # logger.exception(f'Failed to write outputs/logs s3 bucket')
+
+
 def aws_upload_file_carve_s3(key, file_path):
     '''
     writes file_path to the carve s3 bucket

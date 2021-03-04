@@ -35,7 +35,7 @@ Resources:
           OrganizationsId: !Ref OrganizationsId
           CarveS3Bucket: !Ref CarveS3Bucket
           CodeBucket: !Ref CodeBucket
-          CodeKey: !Sub "carve/packages/${GITSHA}/package.zip"
+          GITSHA: !Ref GITSHA
           MPLCONFIGDIR: /tmp/matplotlib
           ResourcePrefix: !Ref ResourcePrefix
           CarveDeployStepFunction: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ResourcePrefix}carve-deployment-statemachine"
