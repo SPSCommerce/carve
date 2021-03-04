@@ -258,7 +258,7 @@ def aws_upload_file_carve_s3(key, file_path):
     client = boto3.client('s3', config=Config(retries=dict(max_attempts=10)))
 
     try:
-        response = client.upload_file(Filename=file_path, Bucket=os.environ['S3Bucket'], Key=key)
+        response = client.upload_file(Filename=file_path, Bucket=os.environ['CaveS3Bucket'], Key=key)
         return response
     except:
         pass
