@@ -3,6 +3,7 @@ from botocore.config import Config
 from botocore.exceptions import ClientError
 import json
 import sys
+import os
 from multiprocessing import Process, Pipe
 import time
 import shelve
