@@ -1,6 +1,6 @@
 import json
 import os
-from c_deploy import deploy_steps_entrypoint
+from c_deploy import deploy_steps_entrypoint, deploy_carve_endpoints
 from c_disco import discovery
 
 
