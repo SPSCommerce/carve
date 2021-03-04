@@ -39,7 +39,12 @@ def deploy_carve_endpoints(event, context):
     graph_data = aws_read_s3_direct(event['graph_path'], os.environ['AWS_REGION'])
     G = json_graph.node_link_graph(json.load(graph_data))
 
-    role = event['role']
+    # used passed role if present, else use known carve pattern
+    if role in event:
+        role = event['role']
+    else:
+        role_name = f"{os.environ['ResourcePrefix']}carve-lambda-{os.environ['OrganizationsId']}"
+        role = f"arn:aws:iam::*:role/{role_name}"
 
     # save graph as "deployed" to S3 before starting
     try:
