@@ -241,7 +241,7 @@ def discovery(event, context):
 
     print(f"discovery complete uploading to s3: /tmp/{name}.json")
 
-    aws_upload_file_carve_s3('discovery/', f"/tmp/{name}.json")
+    aws_upload_file_carve_s3(f'discovery/{name}.json', f"/tmp/{name}.json")
 
     return 
 
