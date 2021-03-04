@@ -19,6 +19,12 @@ aws s3 cp "$BUILDPATH/deployment/steps-carve-deployment.json" \
     s3://$DEPLOYMENT_BUCKET/carve/packages/$GITSHA/ \
     --metadata GIT_SHA=$CODEBUILD_SOURCE_VERSION
 
+# copy carve endpoint deployment templates into deployment folder in lambda src
+mkdir "$BUILDPATH/src/deployment"
+cp "$BUILDPATH/deployment/carve-iam.cfn.yml" "$BUILDPATH/src/deployment/"
+cp "$BUILDPATH/deployment/carve-vpc.sam.yml" "$BUILDPATH/src/deployment/"
+cp "$BUILDPATH/deployment/carve-vpc-endpoint-bootstrap.cfn.yml" "$BUILDPATH/src/deployment/"
+
 # package lambda
 echo "packaging lambda"
 cd "$BUILDPATH/src"
