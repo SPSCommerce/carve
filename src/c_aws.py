@@ -113,6 +113,8 @@ def aws_get_carve_tags(lambda_arn):
             tag['Key'] = key
             tag['Value'] = value
             cfn_tags.append(tag)
+    else:
+        print(f"found cached tags: {cfn_tags}")
 
     return cfn_tags
 
@@ -247,8 +249,7 @@ def aws_find_stacks(startswith, region, credentials):
 def aws_read_s3_direct(key, region):
     # get graph from S3
     resource = boto3.resource('s3')
-    bucketname = os.environ['CarveS3Bucket']
-    obj = resource.Object(bucket, key)
+    obj = resource.Object(os.environ['CarveS3Bucket'], key)
     return obj.get()['Body'].read().decode('utf-8')
 
 

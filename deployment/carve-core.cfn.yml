@@ -25,7 +25,7 @@ Resources:
   CarveFunction:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Sub "carve-${OrganizationsId}"
+      FunctionName: !Sub "${ResourcePrefix}carve-${OrganizationsId}"
       Description: Continuous AWS Route Verification Engine
       Code:
         S3Bucket: !Ref CodeBucket
@@ -38,11 +38,12 @@ Resources:
           CodeKey: !Sub "carve/packages/${GITSHA}/package.zip"
           MPLCONFIGDIR: /tmp/matplotlib
           ResourcePrefix: !Ref ResourcePrefix
+          CarveDeployStepFunction: !GetAtt CarveDeployStepFunction.Arn
       Handler: c_entrypoint.lambda_handler
       Runtime: python3.8
       MemorySize: 1024
       Timeout: 120
-      Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/carve-lambda-${OrganizationsId}"
+      Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ResourcePrefix}carve-lambda-${OrganizationsId}"
       ReservedConcurrentExecutions: 200
       Layers:
         - !Ref CarveLibsLayer
@@ -87,15 +88,15 @@ Resources:
         Key: !Sub "carve/packages/${GITSHA}/steps-carve-deployment.json"
       DefinitionSubstitutions: 
         CarveFunction: !Ref CarveFunction
-      RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/carve-stepfunction-${OrganizationsId}"
-      StateMachineName: carve-deployment-statemachine
+      RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ResourcePrefix}carve-stepfunction-${OrganizationsId}"
+      StateMachineName: !Sub "${ResourcePrefix}carve-deployment-statemachine"
       StateMachineType: STANDARD
 
 
   StepFunctionRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub "carve-stepfunction-${OrganizationsId}"
+      RoleName: !Sub "${ResourcePrefix}carve-stepfunction-${OrganizationsId}"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -103,11 +104,7 @@ Resources:
           Action: sts:AssumeRole
           Principal:
             Service:
-              - !Sub states.${AWS::Region}.amazonaws.com
-          Condition:
-            ForAnyValue:StringEquals:
-              aws:PrincipalOrgID:
-                - !Ref OrganizationsId
+              - !Sub "states.${AWS::Region}.amazonaws.com"
       Policies:
         - PolicyName: StatesExecutionPolicy
           PolicyDocument:
@@ -117,13 +114,13 @@ Resources:
                 Action:
                   - "lambda:InvokeFunction"
                 Resource:
-                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:carve-*"
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ResourcePrefix}carve-*"
 
 
   CarveS3Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "carve-${OrganizationsId}-${AWS::Region}"
+      BucketName: !Sub "${ResourcePrefix}carve-${OrganizationsId}-${AWS::Region}"
       VersioningConfiguration:
         Status: Enabled
 
@@ -151,8 +148,8 @@ Resources:
   SNSTopic:
     Type: AWS::SNS::Topic
     Properties:
-      DisplayName: !Sub "carve-events-${OrganizationsId}"
-      TopicName: !Sub "carve-events-${OrganizationsId}"
+      DisplayName: !Sub "${ResourcePrefix}carve-events-${OrganizationsId}"
+      TopicName: !Sub "${ResourcePrefix}carve-events-${OrganizationsId}"
 
 
   TopicPolicy:
@@ -177,7 +174,7 @@ Resources:
               StringEquals:
                 aws:PrincipalOrgID: !Ref OrganizationsId
               ArnLike:
-                AWS:SourceArn: "arn:aws:lambda:*:*:function:carve-*"
+                AWS:SourceArn: "arn:aws:lambda:*:*:function:${ResourcePrefix}carve-*"
 
 
  # CloudWatchInvokeLambda:

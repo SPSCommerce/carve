@@ -45,8 +45,9 @@ Resources:
               - Effect: Allow
                 Action:
                   - lambda:Invoke*
+                  - lambda:ListTags
                 Resource:
-                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ResourcePrefix}carve-vpc-*"
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ResourcePrefix}carve-*"
               - Effect: Allow
                 Action:
                   - iam:PassRole
@@ -61,6 +62,11 @@ Resources:
                   - sts:AssumeRole
                 Resource:
                   - !Sub "arn:aws:iam::*:role/${ResourcePrefix}carve-lambda-${OrganizationsId}"
+              - Effect: Allow
+                Action:
+                  - states:StartExecution
+                Resource:
+                  - !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ResourcePrefix}carve-deployment-statemachine"
               # - Effect: "Allow"
               #   Action:
               #     - "sns:Subscribe"
@@ -68,6 +74,11 @@ Resources:
               #     - "sns:Publish"
               #   Resource: 
               #     - "*"
+              - Effect: Allow
+                Action:
+                  - cloudformation:CreateStack
+                Resource: 
+                  - !Sub "arn:aws:cloudformation:*:${AWS::AccountId}:stack/${ResourcePrefix}carve-endpoint-vpc-*"
               - Effect: Allow
                 Action:
                   - ec2:DescribeNetworkInterfaces

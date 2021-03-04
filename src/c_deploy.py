@@ -37,10 +37,10 @@ def deploy_carve_endpoints(event, context):
 
     # load graph data directly from carve controlled bucket
     graph_data = aws_read_s3_direct(event['graph_path'], os.environ['AWS_REGION'])
-    G = json_graph.node_link_graph(json.load(graph_data))
+    G = json_graph.node_link_graph(json.loads(graph_data))
 
     # used passed role if present, else use known carve pattern
-    if role in event:
+    if 'role' in event:
         role = event['role']
     else:
         role_name = f"{os.environ['ResourcePrefix']}carve-lambda-{os.environ['OrganizationsId']}"
@@ -143,7 +143,7 @@ def sf_DescribeChangeSet(event):
 
 
 def sf_CreateChangeSet(event):
-    template_url = f"https://s3.amazonaws.com/{os.environ['S3Bucket']}/deployment/carve-vpc.sam.yml"
+    template_url = f"https://s3.amazonaws.com/{os.environ['CarveS3Bucket']}/deployment/carve-vpc.sam.yml"
     parameters = {"OrganizationsId": os.environ['OrganizationsId']}
     changeset_name = aws_create_changeset(
         stackname=event['Input']['StackName'],
@@ -282,6 +282,7 @@ def sf_CreateCarveStack(event, context):
     ''' deploy a carve endpoint/api '''
 
     tags = aws_get_carve_tags(context.invoked_function_arn)
+    print(tags)
 
     # check if stack already exists
     stackname = f"carve-endpoint-{event['Input']['VpcId']}"
@@ -295,12 +296,17 @@ def sf_CreateCarveStack(event, context):
         stack = {'StackId': response['StackId']}
     else:
         # create bootstrap stack so a changeset can be created for SAM deploy
-        template_url = f"https://s3.amazonaws.com/{os.environ['S3Bucket']}/deployment/carve-vpc-endpoint-bootstrap.cfn.yml"
-        parameters = {
-            "OrganizationsId": os.environ['OrganizationsId'],
-            "VpcName": event['Input']['VpcName']
+        template_url = f"https://s3.amazonaws.com/{os.environ['CarveS3Bucket']}/deployment/carve-vpc-endpoint-bootstrap.cfn.yml"
+        parameters = [
+            {
+                "ParameterKey": "OrganizationsId",
+                "ParameterValue": os.environ['OrganizationsId']
+            },
+            {
+                "ParameterKey": "VpcName",
+                "ParameterValue": event['Input']['VpcName']
             }
-        
+        ]
         stack = aws_create_stack(
             stackname=stackname,
             region=event['Input']['Region'],
