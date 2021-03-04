@@ -247,7 +247,7 @@ def aws_find_stacks(startswith, region, credentials):
 def aws_read_s3_direct(key, region):
     # get graph from S3
     resource = boto3.resource('s3')
-    bucketname = os.environ['CaveS3Bucket']
+    bucketname = os.environ['CarveS3Bucket']
     obj = resource.Object(bucket, key)
     return obj.get()['Body'].read().decode('utf-8')
 
@@ -259,10 +259,10 @@ def aws_upload_file_carve_s3(key, file_path):
     client = boto3.client('s3', config=Config(retries=dict(max_attempts=10)))
 
     try:
-        print(f"bucket = {os.environ['CaveS3Bucket']}")
+        print(f"bucket = {os.environ['CarveS3Bucket']}")
         print(f"file_path = {file_path}")
         print(f"key = {key}")
-        response = client.upload_file(Filename=file_path, Bucket=os.environ['CaveS3Bucket'], Key=key)
+        response = client.upload_file(Filename=file_path, Bucket=os.environ['CarveS3Bucket'], Key=key)
         return response
     except ClientError as e:
         print(f's3 error: {e}')
