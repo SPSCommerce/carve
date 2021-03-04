@@ -38,7 +38,7 @@ Resources:
           CodeKey: !Sub "carve/packages/${GITSHA}/package.zip"
           MPLCONFIGDIR: /tmp/matplotlib
           ResourcePrefix: !Ref ResourcePrefix
-          CarveDeployStepFunction: !GetAtt CarveDeployStepFunction.Arn
+          CarveDeployStepFunction: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ResourcePrefix}carve-deployment-statemachine"
       Handler: c_entrypoint.lambda_handler
       Runtime: python3.8
       MemorySize: 1024
