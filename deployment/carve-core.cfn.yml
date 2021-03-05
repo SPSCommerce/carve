@@ -33,7 +33,7 @@ Resources:
       Environment:
         Variables:
           OrganizationsId: !Ref OrganizationsId
-          CarveS3Bucket: !Ref CarveS3Bucket
+          CarveS3Bucket: !Sub "${ResourcePrefix}carve-${OrganizationsId}-${AWS::Region}"
           CodeBucket: !Ref CodeBucket
           GITSHA: !Ref GITSHA
           MPLCONFIGDIR: /tmp/matplotlib
@@ -116,8 +116,10 @@ Resources:
                 Resource:
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ResourcePrefix}carve-*"
 
+
   CarveS3Bucket:
     Type: AWS::S3::Bucket
+    DependsOn: CarveFunction
     Properties:
       BucketName: !Sub "${ResourcePrefix}carve-${OrganizationsId}-${AWS::Region}"
       VersioningConfiguration:
@@ -134,7 +136,9 @@ Resources:
                 Name: prefix
                 Value: deploy_input/
 
+
   S3InvokeCarvePermission:
+    DependsOn: CarveS3Bucket
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
