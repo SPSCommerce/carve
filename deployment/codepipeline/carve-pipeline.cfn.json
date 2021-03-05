@@ -144,7 +144,7 @@
                     }
                   },
                   {
-                  "Name": "carve-iam-stackset-deploy",
+                  "Name": "carve-iam-org-stackset-deploy",
                   "Region": { "Ref": "AWS::Region"},
                   "ActionTypeId": {
                       "Category": "Deploy",
@@ -163,13 +163,13 @@
                       "PermissionModel": "SERVICE_MANAGED",
                       "StackSetName": {"Fn::Sub": "${ResourcePrefix}carve-lambda-${OrganizationsId}"},
                       "TemplatePath": "GithubRepo::deployment/carve-iam.cfn.yml",
-                      "Parameters": {"Fn::Sub": "{\"OrganizationsId\": \"${OrganizationsId}\",\"ResourcePrefix\":\"${ResourcePrefix}\"}"}
+                      "Parameters": {"Fn::Sub": "ParameterKey=OrganizationsId,ParameterValue=${OrganizationsId} ParameterKey=ResourcePrefix,ParameterValue=${ResourcePrefix}" }
                   },
                   "OutputArtifacts": [],
                   "InputArtifacts": [ { "Name" : "GithubRepo" } ]
                   },
                   {
-                    "Name" : "carve-iam-deployment",
+                    "Name" : "carve-iam-core-deployment",
                     "ActionTypeId" : {
                       "Category" : "Deploy",
                       "Owner" : "AWS",
