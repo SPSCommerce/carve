@@ -163,7 +163,7 @@
                       "PermissionModel": "SERVICE_MANAGED",
                       "StackSetName": {"Fn::Sub": "${ResourcePrefix}carve-lambda-${OrganizationsId}"},
                       "TemplatePath": "GithubRepo::deployment/carve-iam.cfn.yml",
-                      "Parameters": {"Fn::Sub": "ParameterKey=OrganizationsId,ParameterValue=${OrganizationsId}"}
+                      "Parameters": {"Fn::Sub": "{\"OrganizationsId\": \"${OrganizationsId}\",\"ResourcePrefix\":\"${ResourcePrefix}\"}"}
                   },
                   "OutputArtifacts": [],
                   "InputArtifacts": [ { "Name" : "GithubRepo" } ]
@@ -183,7 +183,7 @@
                       "RoleArn":  { "Fn::GetAtt": [ "CarvePipelineRole", "Arn" ] },
                       "StackName": { "Fn::Sub": "${ResourcePrefix}carve-iam-${OrganizationsId}" },
                       "TemplatePath": "GithubRepo::deployment/carve-iam.cfn.yml",
-                      "ParameterOverrides": {"Fn::Sub": "{\"OrganizationsId\": \"${OrganizationsId}\"}"}
+                      "ParameterOverrides": {"Fn::Sub": "{\"OrganizationsId\": \"${OrganizationsId}\",\"ResourcePrefix\":\"${ResourcePrefix}\"}"}
                     },
                     "OutputArtifacts": [],
                     "InputArtifacts": [ { "Name" : "GithubRepo" } ]
@@ -200,7 +200,7 @@
                     "Provider" : "CloudFormation",
                     "Version" : 1
                   },
-                  "Name" : "carve-deployment",
+                  "Name" : "carve-core-deployment",
                   "Configuration": {
                     "ChangeSetName": "pipeline-changeset",
                     "ActionMode": "CREATE_UPDATE",
@@ -208,7 +208,7 @@
                     "RoleArn":  { "Fn::GetAtt": [ "CarvePipelineRole", "Arn" ] },
                     "StackName": { "Fn::Sub": "${ResourcePrefix}carve-core-${OrganizationsId}" },
                     "TemplatePath": "GithubRepo::deployment/carve-core.cfn.yml",
-                    "ParameterOverrides": {"Fn::Sub": "{\"GITSHA\": \"#{github_vars.CommitId}\", \"OrganizationsId\": \"${OrganizationsId}\", \"CodeBucket\": \"${DeployBucket}\"}"}
+                    "ParameterOverrides": {"Fn::Sub": "{\"GITSHA\":\"#{github_vars.CommitId}\",\"ResourcePrefix\":\"${ResourcePrefix}\",\"OrganizationsId\":\"${OrganizationsId}\",\"CodeBucket\":\"${DeployBucket}\"}"}
                   },
                   "OutputArtifacts": [],
                   "InputArtifacts": [ { "Name" : "GithubRepo" } ]

@@ -142,12 +142,12 @@ Resources:
       Principal: s3.amazonaws.com
       SourceArn: !Sub "arn:aws:s3:::${ResourcePrefix}carve-${OrganizationsId}-${AWS::Region}"
 
-  CreateDeployInputFolder:
-    Type: Custom::CreateDeployInputFolder
-    Properties:
-      ServiceToken:  !GetAtt CarveFunction.Arn 
-      Bucket: !Ref CarveS3Bucket
-      Key: deploy_input/
+  # CreateDeployInputFolder:
+  #   Type: Custom::CreateDeployInputFolder
+  #   Properties:
+  #     ServiceToken:  !GetAtt CarveFunction.Arn 
+  #     Bucket: !Ref CarveS3Bucket
+  #     Key: deploy_input/
 
 
   # CarveS3BucketPolicy:
