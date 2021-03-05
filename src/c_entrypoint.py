@@ -83,8 +83,8 @@ def lambda_handler(event, context):
     elif 'ResourceProperties' in event:
         return custom_resource_entrypoint(event, context)
 
-else:
-    print(f'unrecognized event: {event}')
+    else:
+        print(f'unrecognized event: {event}')
 
 
 
