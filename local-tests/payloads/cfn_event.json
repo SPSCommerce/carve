@@ -1,0 +1,12 @@
+{
+   "RequestType" : "Create",
+   "RequestId" : "9db53695-b0a0-47d6-908a-ea2d8a3ab5d7",
+   "ResponseURL" : "https://...",
+   "ResourceType" : "Custom::S3PutObject",
+   "LogicalResourceId" : "CreateDeployInputFolder",
+   "StackId" : "arn:aws:cloudformation:us-east-1:955617200811:stack/carve-o-98yua04f/1351a360-4fd0-11e9-b201-0a20b68b404c",
+   "ResourceProperties" : {
+      "Bucket": "CarveS3Bucket",
+      "Key": "deploy_input/"
+   }
+}  

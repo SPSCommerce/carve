@@ -1,8 +1,12 @@
 import json
 import os
-from c_deploy import deploy_steps_entrypoint, deploy_carve_endpoints
+from c_deploy import deploy_steps_entrypoint, deploy_carve_endpoints, custom_resource_entrypoint
 from c_disco import discovery
+import logging
 
+import logging
+logger = logging.logging.getLogger()
+logger.setLevel(logging.INFO)
 
 def setup_context(context):
     '''
@@ -75,6 +79,14 @@ def lambda_handler(event, context):
     elif 'VerifyAction' in event:
         print('TRIGGERED by Route Verification Step Function')
         # return verify_steps_entrypoint(event)
+    
+    elif 'ResourceProperties' in event:
+        return custom_resource_entrypoint(event, context)
+
+else:
+    print(f'unrecognized event: {event}')
+
+
 
     # # queryStringParameters
     # param1 = event["queryStringParameters"]["param1"]

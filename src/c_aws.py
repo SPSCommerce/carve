@@ -272,6 +272,19 @@ def aws_download_file_carve_s3(key, file_path, bucket=None):
         # logger.exception(f'Failed to write outputs/logs s3 bucket')
 
 
+def aws_create_s3_path(path):
+    if path.endswith("/"):
+        s3path = path
+    else:
+        s3path = f'{path}/'
+
+    client = boto3.client('s3', config=Config(retries=dict(max_attempts=10)))
+    try:
+        client.put_object(Bucket=os.environ['CarveS3Bucket'], Key=s3path)
+    except ClientError as e:
+        print(f'error creating s3 path: {e}')
+
+
 def aws_upload_file_carve_s3(key, file_path):
     '''
     writes file_path to the carve s3 bucket

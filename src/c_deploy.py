@@ -1,6 +1,5 @@
 import networkx as nx
 from networkx.readwrite import json_graph
-import argparse
 import json
 import os
 from copy import deepcopy
@@ -9,16 +8,7 @@ from c_disco import discover_org_accounts
 from c_aws import *
 from multiprocessing import Process, Pipe
 from boto3.session import Session
-
-
-def parse_args():
-    """Parse command line arguments."""
-    # process arguments
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--role", "-r", default="", help="Role ARN pattern for all accounts")
-    parser.add_argument("--graph", "-g", default="json", help="Path to json graph file")
-
-    return parser.parse_args()
+from crhelper import CfnResource
 
 
 def deploy_carve_endpoints(event, context):
@@ -35,35 +25,18 @@ def deploy_carve_endpoints(event, context):
     #   - vpc name
     #   - temporary IAM credentials
 
-    # load graph data directly from carve controlled bucket
-    graph_data = aws_read_s3_direct(event['graph_path'], os.environ['AWS_REGION'])
+    # read graph from carve controlled bucket
+    graph_data = aws_read_s3_direct(event['NetworkGraphS3Key'], os.environ['AWS_REGION'])
     G = json_graph.node_link_graph(json.loads(graph_data))
-
-    # used passed role if present, else use known carve pattern
-    if 'role' in event:
-        role = event['role']
-    else:
-        role_name = f"{os.environ['ResourcePrefix']}carve-lambda-{os.environ['OrganizationsId']}"
-        role = f"arn:aws:iam::*:role/{role_name}"
-
-    # save graph as "deployed" to S3 before starting
-    try:
-        graph_name = f"{G.graph['Name']}-deployed-{int(time.time())}"
-    except:
-        graph_name = f"carve-deployed-{int(time.time())}"
-    graph_path = f"/tmp/{graph_name}.json"
-    save_graph(G, graph_path)
-    aws_upload_file_carve_s3(
-        key=f"deployment/deployed_graphs/{graph_name}.json",
-        file_path=graph_path
-        )
 
     # create all IAM assumed role sessions for deployment now, and store their credentials
     accounts = set()
     for vpc in list(G.nodes):
         accounts.add(G.nodes().data()[vpc]['Account'])
 
-    credentials = aws_parallel_role_creation(accounts, role)
+    role_name = f"{os.environ['ResourcePrefix']}carve-lambda-{os.environ['OrganizationsId']}"
+
+    credentials = aws_parallel_role_creation(accounts, f"arn:aws:iam::*:role/{role_name}")
 
     deployment_targets = []
     for vpc in list(G.nodes):
@@ -363,9 +336,25 @@ def deploy_steps_entrypoint(event, context):
     elif event['DeployAction'] == 'DeleteStack':
         response = sf_DeleteStack(event)
 
-
     # return json to step function
     return json.dumps(response, default=str)
+
+
+### functions below for a CFN custom resource to create the deploy S3 path
+helper = CfnResource()
+
+@helper.create
+@helper.update
+def create_bucket_path(event, context):
+    aws_create_s3_path(event['ResourceProperties']['Key'])
+    helper.Data['Path'] = event['ResourceProperties']['Key']
+
+@helper.delete
+def no_op(event, context):
+    pass
+
+def custom_resource_entrypoint(event, context):
+    helper(event, context)
 
 
 
