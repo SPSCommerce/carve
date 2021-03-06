@@ -293,7 +293,7 @@ def aws_delete_bucket_notification():
           NotificationConfiguration={}
         )
         return response
-    except ClientError at e:
+    except ClientError as e:
         print(f'error creating bucket notification: {e}')
 
 
@@ -356,7 +356,7 @@ def aws_put_bucket_notification(path, notification_id, function_arn):
           }
         )
         return response
-    except ClientError at e:
+    except ClientError as e:
         print(f'error creating bucket notification: {e}')
 
 

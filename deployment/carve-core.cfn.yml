@@ -59,7 +59,7 @@ Resources:
         - python3.8
       Content: 
         S3Bucket: !Ref CodeBucket
-        S3Key: !Sub "carve/layer_packages/e7b93094872e7f2a13e34f7abfbe87a5af38094b/layer_package.zip"
+        S3Key: !Sub "carve/layer_packages/${GITSHA}/layer_package.zip"
         # S3Key: !Sub "carve/layer_packages/${GITSHA}/layer_package.zip"
       Description: "carve python lib dependencies"
       LayerName: CarveLibsLayer
