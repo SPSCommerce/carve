@@ -3,8 +3,8 @@ import os
 from c_deploy import deploy_steps_entrypoint, deploy_carve_endpoints, custom_resource_entrypoint
 from c_disco import discovery
 import logging
-
 import logging
+
 logger = logging.logging.getLogger()
 logger.setLevel(logging.INFO)
 

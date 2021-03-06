@@ -285,6 +285,81 @@ def aws_create_s3_path(path):
         print(f'error creating s3 path: {e}')
 
 
+def aws_delete_bucket_notification():
+    client = boto3.client('s3', config=Config(retries=dict(max_attempts=10)))
+    try:
+        response = client.put_bucket_notification_configuration(
+          Bucket=os.environ['CarveS3Bucket'],
+          NotificationConfiguration={}
+        )
+        return response
+    except ClientError at e:
+        print(f'error creating bucket notification: {e}')
+
+
+def aws_empty_bucket():
+    bucket = os.environ['CarveS3Bucket']
+    client = boto3.client('s3')
+    paginator = client.get_paginator('list_object_versions')
+
+    delete_list = []
+    for response in paginator.paginate(Bucket=bucket):
+        if 'DeleteMarkers' in response:
+            for mark in response['DeleteMarkers']:
+                delete_list.append({'Key': mark['Key'], 'VersionId': mark['VersionId']})
+
+        if 'Versions' in object_response_itr:
+            for version in resource['Versions']:
+                delete_list.append({'Key': version['Key'], 'VersionId': version['VersionId']})
+
+    for i in range(0, len(delete_list), 1000):
+        response = s3_client.delete_objects(
+            Bucket=bucket,
+            Delete={
+                'Objects': delete_list[i:i+1000],
+                'Quiet': True
+            }
+        )
+        print(f"purged s3: {response}")
+
+
+
+def aws_put_bucket_notification(path, notification_id, function_arn):
+    client = boto3.client('s3', config=Config(retries=dict(max_attempts=10)))
+    try:
+        response = client.put_bucket_notification_configuration(
+          Bucket=os.environ['CarveS3Bucket'],
+          NotificationConfiguration={
+            'LambdaFunctionConfigurations': [
+              {
+                'Id': notification_id,
+                'LambdaFunctionArn': functionArn,
+                'Events': [
+                  's3:ObjectCreated:*'
+                ],
+                'Filter': {
+                  'S3Key': {
+                    'Rules': [
+                      {
+                        'Name': 'prefix',
+                        'Value': path
+                      },
+                      {
+                        'Name': 'suffix',
+                        'Value': '.json'
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        )
+        return response
+    except ClientError at e:
+        print(f'error creating bucket notification: {e}')
+
+
 def aws_upload_file_carve_s3(key, file_path):
     '''
     writes file_path to the carve s3 bucket

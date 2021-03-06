@@ -119,26 +119,13 @@ Resources:
 
   CarveS3Bucket:
     Type: AWS::S3::Bucket
-    DependsOn: S3InvokeCarvePermission
     Properties:
       BucketName: !Sub "${ResourcePrefix}carve-${OrganizationsId}-${AWS::Region}"
       VersioningConfiguration:
         Status: Enabled
-      NotificationConfiguration:
-        LambdaConfigurations:
-        - 
-          Function: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ResourcePrefix}carve-${OrganizationsId}"
-          Event: 's3:ObjectCreated:*'
-          Filter:
-            S3Key:
-              Rules:
-              - 
-                Name: prefix
-                Value: deploy_input/
 
 
   S3InvokeCarvePermission:
-    DependsOn: CarveFunction
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
@@ -146,12 +133,23 @@ Resources:
       Principal: s3.amazonaws.com
       SourceArn: !Sub "arn:aws:s3:::${ResourcePrefix}carve-${OrganizationsId}-${AWS::Region}"
 
-  # CreateDeployInputFolder:
-  #   Type: Custom::CreateDeployInputFolder
+
+  # SetupCarveBucket:
+  #   Type: Custom::SetupCarveBucket
   #   Properties:
   #     ServiceToken:  !GetAtt CarveFunction.Arn 
   #     Bucket: !Ref CarveS3Bucket
-  #     Key: deploy_input/
+  #     DeployEventPath: deploy_input/
+  #     NotificationId: CarveDeploy
+
+
+  # DeleteStackCleanup:
+  #   # delete any associated carve endpoint stacks if this stack is deleted
+  #   Type: Custom::DeleteStackCleanup
+  #   Properties:
+  #     ServiceToken:  !GetAtt CarveFunction.Arn 
+  #     OrganizationsId: !Ref OrganizationsId
+  #     ResourcePrefix: !Ref ResourcePrefix
 
 
   # CarveS3BucketPolicy:

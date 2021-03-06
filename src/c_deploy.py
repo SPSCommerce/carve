@@ -312,49 +312,64 @@ def sf_CreateCarveStack(event, context):
 
 def deploy_steps_entrypoint(event, context):
     ''' step function tasks for deployment all flow thru here after the lambda_hanlder '''
-    if event['DeployAction'] == 'CreateCarveStack':
-        response = sf_CreateCarveStack(event, context)
-
-    elif event['DeployAction'] == 'DescribeStack':
+    if event['DeployAction'] == 'DescribeStack':
         response = sf_DescribeStack(event)
-
-    elif event['DeployAction'] == 'CreateChangeSet':
-        response = sf_CreateChangeSet(event)
 
     elif event['DeployAction'] == 'DescribeChangeSet':
         response = sf_DescribeChangeSet(event)
 
-    elif event['DeployAction'] == 'ExecuteChangeSet':
-        response = sf_ExecuteChangeSet(event)
-
     elif event['DeployAction'] == 'DescribeChangeSetExecution':
         response = sf_DescribeChangeSet(event)
 
-    elif event['DeployAction'] == 'CleanupDeployments':
-        response = sf_CleanupDeployments(event, context)
+    elif event['DeployAction'] == 'CreateCarveStack':
+        response = sf_CreateCarveStack(event, context)
+
+    elif event['DeployAction'] == 'CreateChangeSet':
+        response = sf_CreateChangeSet(event)
+
+    elif event['DeployAction'] == 'ExecuteChangeSet':
+        response = sf_ExecuteChangeSet(event)
 
     elif event['DeployAction'] == 'DeleteStack':
         response = sf_DeleteStack(event)
+
+    elif event['DeployAction'] == 'CleanupDeployments':
+        response = sf_CleanupDeployments(event, context)
 
     # return json to step function
     return json.dumps(response, default=str)
 
 
-### functions below for a CFN custom resource to create the deploy S3 path
+### CFN custom resource setup the Carve bucket for deply
 helper = CfnResource()
 
 @helper.create
+def deploy_CfnCreate(event, context):
+    path = event['ResourceProperties']['DeployEventPath']
+    notification_id = event['ResourceProperties']['NotificationId']
+    aws_create_s3_path(path)
+    aws_put_bucket_notification(path, notification_id, context.invoked_function_arn)
+    helper.Data['Path'] = path
+    helper.Data['Notification'] = notification_id
+
 @helper.update
-def create_bucket_path(event, context):
-    aws_create_s3_path(event['ResourceProperties']['Key'])
-    helper.Data['Path'] = event['ResourceProperties']['Key']
+def deploy_CfnUpdate(event, context):
+    deploy_CfnDelete(event, context)
+    deploy_CfnCreate(event, context)
 
 @helper.delete
-def no_op(event, context):
-    pass
+def deploy_CfnDelete(event, context):
+    aws_delete_bucket_notification()
+    aws_empty_bucket()
 
 def custom_resource_entrypoint(event, context):
+    # need to deal with DeleteStackCleanup vs SetupCarveBucket
     helper(event, context)
+
+
+
+
+
 
 
 
