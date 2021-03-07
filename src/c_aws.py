@@ -7,7 +7,6 @@ import os
 from multiprocessing import Process, Pipe
 import time
 import shelve
-from c_entrypoint import logger
 
 boto_config = Config(retries=dict(max_attempts=10))
 

@@ -8,9 +8,7 @@ from multiprocessing import Process, Pipe
 import os
 import sys
 import time
-from c_aws import aws_parallel_role_creation, aws_upload_file_carve_s3
-from botocore.config import Config
-
+from c_aws import aws_parallel_role_creation, aws_upload_file_carve_s3, boto_config
 
 
 def _discover_org_graph(accounts, regions, context):
@@ -135,7 +133,7 @@ def _discover_vpcs(region, account_id, account_name, credentials, default_vpcs=F
     ''' get VPCs in account/region, returns nx.Graph object of VPC nodes'''
     client = boto3.client(
         'ec2',
-        config=Config(retries=dict(max_attempts=10)),
+        config=boto_config,
         region_name=region,
         aws_access_key_id = credentials['AccessKeyId'],
         aws_secret_access_key = credentials['SecretAccessKey'],
@@ -185,7 +183,7 @@ def _discover_peering(region, account_id, credentials):
     ''' get peering conns in account/region, returns nx.Graph object of peering connection nodes'''
     client = boto3.client(
         'ec2',
-        config=Config(retries=dict(max_attempts=10)),
+        config=boto_config,
         region_name=region,
         aws_access_key_id = credentials['AccessKeyId'],
         aws_secret_access_key = credentials['SecretAccessKey'],

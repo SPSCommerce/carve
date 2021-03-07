@@ -2,6 +2,7 @@ import networkx as nx
 from networkx.readwrite import json_graph
 import json
 import os
+import sys
 from copy import deepcopy
 from c_carve import load_graph, save_graph
 from c_disco import discover_org_accounts
@@ -25,9 +26,22 @@ def deploy_carve_endpoints(event, context):
     #   - vpc name
     #   - temporary IAM credentials
 
-    # read graph from carve controlled bucket
-    graph_data = aws_read_s3_direct(event['NetworkGraphS3Key'], os.environ['AWS_REGION'])
-    G = json_graph.node_link_graph(json.loads(graph_data))
+    # read graph from s3 event
+    key = event['Records'][0]['s3']['object']['key']
+    try:
+        graph_data = aws_read_s3_direct(key, os.environ['AWS_REGION'])
+        G = json_graph.node_link_graph(json.loads(graph_data))
+    except Exception as e:
+        print('error loading graph: {e}')
+        sys.exit()
+
+    # move object immediately
+    filename = key.split('/')[-1]
+    deploy_key = f"deploying/{filename}"
+    response = aws_copy_s3_object(key, deploy_key, region)
+    print(f"copy response: {response}")
+    response = aws_delete_s3_object(key, region)
+    print(f"delete response: {response}")
 
     # create all IAM assumed role sessions for deployment now, and store their credentials
     accounts = set()
@@ -83,7 +97,8 @@ def seed_deployment_files():
 
     # unzip package
 
-
+def delete_carve_endpoints():
+    deploy_carve_endpoints(event, context)
 
 def sf_ExecuteChangeSet(event):
 
@@ -343,29 +358,45 @@ def deploy_steps_entrypoint(event, context):
 ### CFN custom resource setup the Carve bucket for deply
 helper = CfnResource()
 
+def custom_resource_entrypoint(event, context):
+    # need to deal with DeleteStackCleanup vs SetupCarveBucket
+    helper(event, context)
+
 @helper.create
 def deploy_CfnCreate(event, context):
-    path = event['ResourceProperties']['DeployEventPath']
-    notification_id = event['ResourceProperties']['NotificationId']
-    aws_create_s3_path(path)
-    aws_put_bucket_notification(path, notification_id, context.invoked_function_arn)
-    helper.Data['Path'] = path
-    helper.Data['Notification'] = notification_id
+    if 'DeployEventPath' in event['ResourceProperties']:
+        path = event['ResourceProperties']['DeployEventPath']
+        notification_id = event['ResourceProperties']['NotificationId']
+        aws_create_s3_path(path)
+        aws_put_bucket_notification(path, notification_id, context.invoked_function_arn)
+        helper.Data['Path'] = path
+        helper.Data['Notification'] = notification_id
+
+
+    else:
+        pass
 
 @helper.update
 def deploy_CfnUpdate(event, context):
     deploy_CfnDelete(event, context)
     deploy_CfnCreate(event, context)
 
+
 @helper.delete
+def deploy_CfnDeletePoll(event, context):
+    if len(aws_states_list_executions(os.environ['CarveDeployStepFunction'])) > 0:
+        return None
+    else:
+        return True
+
+
+@helper.poll_delete
 def deploy_CfnDelete(event, context):
-    aws_delete_bucket_notification()
-    aws_empty_bucket()
+    # elif 'OrganizationsId' in event['ResourceProperties']:
+    #     delete_carve_endpoints(event, context)
 
-def custom_resource_entrypoint(event, context):
-    # need to deal with DeleteStackCleanup vs SetupCarveBucket
-    helper(event, context)
-
+    # aws_delete_bucket_notification()
+    # aws_empty_bucket()
 
 
 

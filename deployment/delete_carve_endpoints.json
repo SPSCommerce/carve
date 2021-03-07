@@ -1,0 +1,9 @@
+{
+  "directed": false,
+  "multigraph": false,
+  "graph": {
+    "Name": "delete_carve_endpoints"
+  },
+  "nodes": [],
+  "links": []
+}
