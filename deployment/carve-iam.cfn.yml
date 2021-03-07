@@ -66,6 +66,9 @@ Resources:
               - Effect: Allow
                 Action:
                   - states:StartExecution
+                  - states:Describe*
+                  - states:Get*
+                  - states:List*
                 Resource:
                   - !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ResourcePrefix}carve-deployment-statemachine"
               # - Effect: "Allow"
