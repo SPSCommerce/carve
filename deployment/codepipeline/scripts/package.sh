@@ -24,6 +24,7 @@ mkdir "$BUILDPATH/src/deployment"
 cp "$BUILDPATH/deployment/carve-iam.cfn.yml" "$BUILDPATH/src/deployment/"
 cp "$BUILDPATH/deployment/carve-vpc.sam.yml" "$BUILDPATH/src/deployment/"
 cp "$BUILDPATH/deployment/carve-vpc-endpoint-bootstrap.cfn.yml" "$BUILDPATH/src/deployment/"
+cp "$BUILDPATH/deployment/delete_carve_endpoints.json" "$BUILDPATH/src/deployment/"
 
 # package lambda
 echo "packaging lambda"
@@ -38,14 +39,14 @@ aws s3 cp "package.zip" \
     s3://$DEPLOYMENT_BUCKET/carve/packages/$GITSHA/ \
     --metadata GIT_SHA=$CODEBUILD_SOURCE_VERSION
 
-# ONE TIME RUN: package lambda layer requirements
-echo "packaging lambda requirements layer"
-mkdir -p ../layer/python && cd ../layer
-pip install -r ../src/requirements.txt -t ./python
-zip -r "layer_package.zip" * > /dev/null
-# upload to S3
-echo "uploading lambda layer package to S3"
-aws s3 cp "layer_package.zip" \
-    s3://$DEPLOYMENT_BUCKET/carve/layer_packages/$GITSHA/ \
-    --metadata GIT_SHA=$CODEBUILD_SOURCE_VERSION
+# # ONE TIME RUN: package lambda layer requirements
+# echo "packaging lambda requirements layer"
+# mkdir -p ../layer/python && cd ../layer
+# pip install -r ../src/requirements.txt -t ./python
+# zip -r "layer_package.zip" * > /dev/null
+# # upload to S3
+# echo "uploading lambda layer package to S3"
+# aws s3 cp "layer_package.zip" \
+#     s3://$DEPLOYMENT_BUCKET/carve/layer_packages/$GITSHA/ \
+#     --metadata GIT_SHA=$CODEBUILD_SOURCE_VERSION
 
