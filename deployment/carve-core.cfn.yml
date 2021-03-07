@@ -59,8 +59,8 @@ Resources:
         - python3.8
       Content: 
         S3Bucket: !Ref CodeBucket
-        S3Key: !Sub "carve/layer_packages/${GITSHA}/layer_package.zip"
         # S3Key: !Sub "carve/layer_packages/${GITSHA}/layer_package.zip"
+        S3Key: !Sub "carve/layer_packages/4ae38dacbb1c656f723cd6a8828d0652bc8bea1c/layer_package.zip"
       Description: "carve python lib dependencies"
       LayerName: CarveLibsLayer
 
@@ -134,13 +134,13 @@ Resources:
       SourceArn: !Sub "arn:aws:s3:::${ResourcePrefix}carve-${OrganizationsId}-${AWS::Region}"
 
 
-  # SetupCarveBucket:
-  #   Type: Custom::SetupCarveBucket
-  #   Properties:
-  #     ServiceToken:  !GetAtt CarveFunction.Arn 
-  #     Bucket: !Ref CarveS3Bucket
-  #     DeployEventPath: deploy_input/
-  #     NotificationId: CarveDeploy
+  SetupCarveBucket:
+    Type: Custom::SetupCarveBucket
+    Properties:
+      ServiceToken:  !GetAtt CarveFunction.Arn 
+      Bucket: !Ref CarveS3Bucket
+      DeployEventPath: deploy_input/
+      NotificationId: CarveDeploy
 
 
   # DeleteStackCleanup:
@@ -150,6 +150,7 @@ Resources:
   #     ServiceToken:  !GetAtt CarveFunction.Arn 
   #     OrganizationsId: !Ref OrganizationsId
   #     ResourcePrefix: !Ref ResourcePrefix
+  #     CarveS3Bucket: !Ref CarveS3Bucket
 
 
   # CarveS3BucketPolicy:
