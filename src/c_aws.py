@@ -7,11 +7,14 @@ import os
 from multiprocessing import Process, Pipe
 import time
 import shelve
+from c_entrypoint import logger
+
+boto_config = Config(retries=dict(max_attempts=10))
 
 
 def aws_assume_role(role_arn, session_name, token_life=900):
     # a function for this lambda to assume a given role
-    sts_client = boto3.client('sts', config=Config(retries=dict(max_attempts=10)))
+    sts_client = boto3.client('sts', config=boto_config)
     try:
         assumed_role_object = sts_client.assume_role(
             RoleArn=role_arn,
@@ -82,7 +85,7 @@ def aws_describe_stack(stackname, region, credentials):
     ''' return a stack description if it exists ''' 
     client = boto3.client(
         'cloudformation',
-        config=Config(retries=dict(max_attempts=10)),
+        config=boto_config,
         region_name=region,
         aws_access_key_id = credentials['AccessKeyId'],
         aws_secret_access_key = credentials['SecretAccessKey'],
@@ -123,7 +126,7 @@ def aws_get_carve_tags(lambda_arn):
 
 
 def aws_get_orgid():
-    client = boto3.client('organizations', config=Config(retries=dict(max_attempts=10)))
+    client = boto3.client('organizations', config=boto_config)
     response = client.describe_organization()
     return(response['Organization']['MasterAccountId'])
 
@@ -131,7 +134,7 @@ def aws_get_orgid():
 def aws_execute_change_set(change_set_name, region, credentials):
     client = boto3.client(
         'cloudformation',
-        config=Config(retries=dict(max_attempts=10)),
+        config=boto_config,
         region_name=region,
         aws_access_key_id = credentials['AccessKeyId'],
         aws_secret_access_key = credentials['SecretAccessKey'],
@@ -146,7 +149,7 @@ def aws_create_stack(stackname, region, template_url, parameters, credentials, t
 
     client = boto3.client(
         'cloudformation',
-        config=Config(retries=dict(max_attempts=10)),
+        config=boto_config,
         region_name=region,
         aws_access_key_id = credentials['AccessKeyId'],
         aws_secret_access_key = credentials['SecretAccessKey'],
@@ -168,7 +171,7 @@ def aws_delete_stack(stackname, region, credentials):
 
     client = boto3.client(
         'cloudformation',
-        config=Config(retries=dict(max_attempts=10)),
+        config=boto_config,
         region_name=region,
         aws_access_key_id = credentials['AccessKeyId'],
         aws_secret_access_key = credentials['SecretAccessKey'],
@@ -186,7 +189,7 @@ def aws_create_changeset(stackname, region, template_url, parameters, credential
 
     client = boto3.client(
         'cloudformation',
-        config=Config(retries=dict(max_attempts=10)),
+        config=boto_config,
         region_name=region,
         aws_access_key_id = credentials['AccessKeyId'],
         aws_secret_access_key = credentials['SecretAccessKey'],
@@ -213,7 +216,7 @@ def aws_create_changeset(stackname, region, template_url, parameters, credential
 def aws_describe_change_set(change_set_name, stackname, region, credentials):
     client = boto3.client(
         'cloudformation',
-        config=Config(retries=dict(max_attempts=10)),
+        config=boto_config,
         region_name=region,
         aws_access_key_id = credentials['AccessKeyId'],
         aws_secret_access_key = credentials['SecretAccessKey'],
@@ -231,7 +234,7 @@ def aws_describe_change_set(change_set_name, stackname, region, credentials):
 def aws_find_stacks(startswith, region, credentials):
     client = boto3.client(
         'cloudformation',
-        config=Config(retries=dict(max_attempts=10)),
+        config=boto_config,
         region_name=region,
         aws_access_key_id = credentials['AccessKeyId'],
         aws_secret_access_key = credentials['SecretAccessKey'],
@@ -251,16 +254,28 @@ def aws_find_stacks(startswith, region, credentials):
 
 def aws_read_s3_direct(key, region):
     # get graph from S3
-    resource = boto3.resource('s3')
+    resource = boto3.resource('s3', config=boto_config)
     obj = resource.Object(os.environ['CarveS3Bucket'], key)
     return obj.get()['Body'].read().decode('utf-8')
 
+
+def aws_copy_s3_object(key, target, region):
+    # get graph from S3
+    resource = boto3.resource('s3', config=boto_config)
+    response = resource.Object(os.environ['CarveS3Bucket'], target).copy_from(CopySource=key)
+    return response
+
+def aws_delete_s3_object(key, region):
+    # get graph from S3
+    resource = boto3.resource('s3', config=boto_config)
+    response = resource.Object(os.environ['CarveS3Bucket'], key).delete()
+    return response
 
 def aws_download_file_carve_s3(key, file_path, bucket=None):
     '''
     writes file_path to the carve s3 bucket
     '''
-    client = boto3.client('s3', config=Config(retries=dict(max_attempts=10)))
+    client = boto3.client('s3', config=boto_config)
     if bucket is None:
         bucket = os.environ['CarveS3Bucket']
 
@@ -272,13 +287,19 @@ def aws_download_file_carve_s3(key, file_path, bucket=None):
         # logger.exception(f'Failed to write outputs/logs s3 bucket')
 
 
+def aws_states_list_executions(arn):
+    client = boto3.client('stepfunctions', config=boto_config)
+    response = client.list_executions(stateMachineArn=arn)
+    return response['executions']
+
+
 def aws_create_s3_path(path):
     if path.endswith("/"):
         s3path = path
     else:
         s3path = f'{path}/'
 
-    client = boto3.client('s3', config=Config(retries=dict(max_attempts=10)))
+    client = boto3.client('s3', config=boto_config)
     try:
         client.put_object(Bucket=os.environ['CarveS3Bucket'], Key=s3path)
     except ClientError as e:
@@ -286,7 +307,7 @@ def aws_create_s3_path(path):
 
 
 def aws_delete_bucket_notification():
-    client = boto3.client('s3', config=Config(retries=dict(max_attempts=10)))
+    client = boto3.client('s3', config=boto_config)
     try:
         response = client.put_bucket_notification_configuration(
           Bucket=os.environ['CarveS3Bucket'],
@@ -299,7 +320,7 @@ def aws_delete_bucket_notification():
 
 def aws_empty_bucket():
     bucket = os.environ['CarveS3Bucket']
-    client = boto3.client('s3')
+    client = boto3.client('s3', config=boto_config)
     paginator = client.get_paginator('list_object_versions')
 
     delete_list = []
@@ -308,24 +329,24 @@ def aws_empty_bucket():
             for mark in response['DeleteMarkers']:
                 delete_list.append({'Key': mark['Key'], 'VersionId': mark['VersionId']})
 
-        if 'Versions' in object_response_itr:
-            for version in resource['Versions']:
+        if 'Versions' in response:
+            for version in response['Versions']:
                 delete_list.append({'Key': version['Key'], 'VersionId': version['VersionId']})
 
     for i in range(0, len(delete_list), 1000):
-        response = s3_client.delete_objects(
+        response = client.delete_objects(
             Bucket=bucket,
             Delete={
                 'Objects': delete_list[i:i+1000],
                 'Quiet': True
             }
         )
-        print(f"purged s3: {response}")
+        print(f"purged s3 bucket: {bucket}")
 
 
 
 def aws_put_bucket_notification(path, notification_id, function_arn):
-    client = boto3.client('s3', config=Config(retries=dict(max_attempts=10)))
+    client = boto3.client('s3', config=boto_config)
     try:
         response = client.put_bucket_notification_configuration(
           Bucket=os.environ['CarveS3Bucket'],
@@ -333,13 +354,13 @@ def aws_put_bucket_notification(path, notification_id, function_arn):
             'LambdaFunctionConfigurations': [
               {
                 'Id': notification_id,
-                'LambdaFunctionArn': functionArn,
+                'LambdaFunctionArn': function_arn,
                 'Events': [
                   's3:ObjectCreated:*'
                 ],
                 'Filter': {
-                  'S3Key': {
-                    'Rules': [
+                  'Key': {
+                    'FilterRules': [
                       {
                         'Name': 'prefix',
                         'Value': path
@@ -364,7 +385,7 @@ def aws_upload_file_carve_s3(key, file_path):
     '''
     writes file_path to the carve s3 bucket
     '''
-    client = boto3.client('s3', config=Config(retries=dict(max_attempts=10)))
+    client = boto3.client('s3', config=boto_config)
 
     try:
         print(f"bucket = {os.environ['CarveS3Bucket']}")
