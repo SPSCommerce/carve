@@ -39,8 +39,8 @@ def lambda_handler(event, context):
                 print(f'TRIGGERED by SNS: {sns_arn}')
                 return sns_arn
 
-        elif 'eventSource' in event['Records']:
-            if event['Records'][0]['EventSource'] == "aws:s3":
+        elif 'eventSource' in event['Records'][0]:
+            if event['Records'][0]['eventSource'] == "aws:s3":
                 if event['Records'][0]['s3']['bucket']['name'] == os.environ['CarveS3Bucket']:
                     deploy_carve_endpoints(event, context)
 

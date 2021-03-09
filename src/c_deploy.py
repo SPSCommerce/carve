@@ -10,7 +10,7 @@ from c_aws import *
 from multiprocessing import Process, Pipe
 from boto3.session import Session
 from crhelper import CfnResource
-
+import time
 
 def deploy_carve_endpoints(event, context):
     # event must include:
@@ -28,8 +28,9 @@ def deploy_carve_endpoints(event, context):
 
     # read graph from s3 event
     key = event['Records'][0]['s3']['object']['key']
+    region = os.environ['AWS_REGION']
     try:
-        graph_data = aws_read_s3_direct(key, os.environ['AWS_REGION'])
+        graph_data = aws_read_s3_direct(key, region)
         G = json_graph.node_link_graph(json.loads(graph_data))
     except Exception as e:
         print('error loading graph: {e}')
@@ -51,6 +52,11 @@ def deploy_carve_endpoints(event, context):
     role_name = f"{os.environ['ResourcePrefix']}carve-lambda-{os.environ['OrganizationsId']}"
 
     credentials = aws_parallel_role_creation(accounts, f"arn:aws:iam::*:role/{role_name}")
+
+    if 'Name' in G.graph:
+        graph_name = G.graph['Name']
+    else:
+        graph_name = f'c_deployed_{int(time.time())}'
 
     deployment_targets = []
     for vpc in list(G.nodes):

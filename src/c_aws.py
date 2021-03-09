@@ -261,7 +261,13 @@ def aws_read_s3_direct(key, region):
 def aws_copy_s3_object(key, target, region):
     # get graph from S3
     resource = boto3.resource('s3', config=boto_config)
-    response = resource.Object(os.environ['CarveS3Bucket'], target).copy_from(CopySource=key)
+    src = {
+        "Bucket": os.environ['CarveS3Bucket'],
+        "Key": key
+    }
+    bucket = resource.Bucket(os.environ['CarveS3Bucket'])
+    response = bucket.copy(src, target)
+    # response = resource.Object(os.environ['CarveS3Bucket'], target).copy_from(CopySource=key)
     return response
 
 def aws_delete_s3_object(key, region):
