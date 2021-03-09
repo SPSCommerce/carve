@@ -36,14 +36,11 @@ def deploy_carve_endpoints(event, context):
         print(f'error loading graph: {e}')
         sys.exit()
 
-
     # move object immediately
     filename = key.split('/')[-1]
     deploy_key = f"deploying/{filename}"
-    response = aws_copy_s3_object(key, deploy_key, region)
-    print(f"copy response: {response}")
-    response = aws_delete_s3_object(key, region)
-    print(f"delete response: {response}")
+    aws_copy_s3_object(key, deploy_key, region)
+    # aws_delete_s3_object(key, region)
 
     # create all IAM assumed role sessions for deployment now, and store their credentials
     accounts = set()
@@ -69,7 +66,7 @@ def deploy_carve_endpoints(event, context):
         target['VpcId'] = vpc
         target['VpcName'] = vpc_data['Name']
         target['Credentials'] = credentials[vpc_data['Account']]
-        target['Role'] = role
+        target['Role'] = credentials[vpc_data['Account']]
         deployment_targets.append(target)
 
     # cache deployment tags now to local lambda disk to reduce api calls

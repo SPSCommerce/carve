@@ -80,7 +80,7 @@ Resources:
               #     - "*"
               - Effect: Allow
                 Action:
-                  - cloudformation:CreateStack
+                  - cloudformation:*
                 Resource: 
                   - !Sub "arn:aws:cloudformation:*:${AWS::AccountId}:stack/${ResourcePrefix}carve-endpoint-vpc-*"
               - Effect: Allow
@@ -93,7 +93,7 @@ Resources:
                 Condition:
                   ForAnyValue:StringEquals:
                     aws:CalledVia:
-                      - cloudformation.amazonaws.com                  
+                      - cloudformation.amazonaws.com               
               - Effect: Allow
                 Action:
                   - ec2:DescribeNetworkInterfaces
