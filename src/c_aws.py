@@ -254,8 +254,12 @@ def aws_find_stacks(startswith, region, credentials):
 def aws_read_s3_direct(key, region):
     # get graph from S3
     resource = boto3.resource('s3', config=boto_config)
-    obj = resource.Object(os.environ['CarveS3Bucket'], key)
-    return obj.get()['Body'].read().decode('utf-8')
+    try:
+        obj = resource.Object(os.environ['CarveS3Bucket'], key)
+        return obj.get()['Body'].read().decode('utf-8')
+    except ClientError as e:
+        print(f"error reading s3: {e}")
+        return None
 
 
 def aws_copy_s3_object(key, target, region):
