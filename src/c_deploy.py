@@ -394,13 +394,7 @@ def deploy_CfnDeletePoll(event, context):
 def deploy_CfnDelete(event, context):
     # elif 'OrganizationsId' in event['ResourceProperties']:
     #     delete_carve_endpoints(event, context)
-
-    # aws_delete_bucket_notification()
-    # aws_empty_bucket()
-
-
-
-
-
-
+    # pass
+    aws_delete_bucket_notification()
+    aws_empty_bucket()
 
