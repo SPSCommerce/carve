@@ -372,7 +372,6 @@ def deploy_CfnCreate(event, context):
         helper.Data['Path'] = path
         helper.Data['Notification'] = notification_id
 
-
     else:
         pass
 
@@ -394,7 +393,7 @@ def deploy_CfnDeletePoll(event, context):
 def deploy_CfnDelete(event, context):
     # elif 'OrganizationsId' in event['ResourceProperties']:
     #     delete_carve_endpoints(event, context)
-    # pass
-    aws_delete_bucket_notification()
-    aws_empty_bucket()
+    pass
+    # aws_delete_bucket_notification()
+    # aws_empty_bucket()
 
