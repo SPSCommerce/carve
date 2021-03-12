@@ -171,8 +171,7 @@ Resources:
             Action:
               - "s3:*"
             Resource: !GetAtt CarveS3Bucket.Arn
-            Principal:
-              AWS: "*"
+            Principal: "*"
             # Condition:
             #   StringEquals:
             #     aws:PrincipalOrgID: !Ref OrganizationsId

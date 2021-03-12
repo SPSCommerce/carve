@@ -54,10 +54,6 @@ def deploy_carve_endpoints(event, context):
     for vpc in list(G.nodes):
         accounts.add(G.nodes().data()[vpc]['Account'])
 
-    role_name = f"{os.environ['ResourcePrefix']}carve-lambda-{os.environ['OrganizationsId']}"
-
-    credentials = aws_parallel_role_creation(accounts, f"arn:aws:iam::*:role/{role_name}")
-
     if 'Name' in G.graph:
         graph_name = G.graph['Name']
     else:
@@ -72,8 +68,8 @@ def deploy_carve_endpoints(event, context):
         target['Region'] = vpc_data['Region']
         target['VpcId'] = vpc
         target['VpcName'] = vpc_data['Name']
-        target['Credentials'] = credentials[vpc_data['Account']]
-        target['Role'] = credentials[vpc_data['Account']]
+        # target['Credentials'] = credentials[vpc_data['Account']]
+        target['Role'] = carve_role_arn(vpc_data['Account'])
         deployment_targets.append(target)
 
     # cache deployment tags now to local lambda disk to reduce api calls
@@ -110,6 +106,13 @@ def seed_deployment_files():
 
 def delete_carve_endpoints():
     deploy_carve_endpoints(event, context)
+
+
+def carve_role_arn(account):
+    # return the carve IAM role ARN for any account number
+    role_name = f"{os.environ['ResourcePrefix']}carve-lambda-{os.environ['OrganizationsId']}"
+    role = f"arn:aws:iam::{account}:role/{role_name}"
+    return role
 
 def sf_ExecuteChangeSet(event):
 
@@ -189,23 +192,37 @@ def sf_DescribeStack(event):
 
 
 def sf_DeleteStack(event):
+
+    account = event['Input']['Account']
+
+    credentials = aws_assume_role(carve_role_arn(account), f"carve-cleanup-{region}")
+
     aws_delete_stack(
         stackname=event['Input']['StackName'],
-        region=event['Region'],
-        credentials=event['Credentials'])
+        region=event['Input']['Region'],
+        credentials=account)
 
     payload = deepcopy(event['Input'])
     return payload
+
+
+def sf_OrganizeDeletions(event):
+    delete_stacks = []
+    for task in event:
+        if 'StackName' in task:
+            delete_stacks.append['task']
+
+    return delete_stacks
 
 
 def sf_CleanupDeployments(event, context):
     '''discover all deployments of carve named stacks and determine if they should exist'''
     # event will be a json array of all final DescribeChangeSetExecution tasks
 
-    # need to load deployed graph from S3
+    # swipe the GraphName from one of the tasks, need to load deployed graph from S3
     graph_name = None
     for task in event:
-        if ['GraphName'] in task:
+        if 'GraphName' in task:
             graph_name = task['GraphName']
             role = task['Role']
             break
@@ -214,20 +231,25 @@ def sf_CleanupDeployments(event, context):
         print('something went wrong')
         sys.exit()
 
-    # need new creds for all accounts in the org
+
+    # need all accounts in the org
     accounts = discover_org_accounts()
-    credentials = aws_parallel_role_creation(accounts.keys(), role)
 
+    # get all regions
+    s = Session()
+    regions = s.get_available_regions('cloudformation')
+
+    # create discovery list of all accounts/regions for step function
     discover_stacks = []
-    for account_id, account_name in accounts.items():
-        cleanup = {}
-        cleanup['Account'] = account_id
-        cleanup['StartsWith'] = 'carve-endpoint-vpc-'
-        cleanup['GraphName'] = graph_name
-        cleanup['Credentials'] = credentials[account_id]
-        discover_stacks.append(cleanup)
+    for region in regions:
+        for account_id, account_name in accounts.items():
+            cleanup = {}
+            cleanup['Account'] = account_id
+            cleanup['Region'] = region
+            cleanup['GraphName'] = graph_name
+            discover_stacks.append(cleanup)
 
-    # feeds into an step function iterator
+    # returns to a step function iterator
     return discover_stacks
 
 
@@ -246,44 +268,28 @@ def sf_DeploymentComplete(event):
     aws_delete_s3_object(key, region)
 
 
-def sf_DiscoverStacks(event):
+def sf_DiscoverCarveStacks(event):
+
     account = event['Input']['Account']
-    credentials = event['Input']['Credentials']
-    startswith = event['Input']['StartsWith']
+    region = event['Input']['Region']
     graph_name = event['Input']['GraphName']
 
-    # create a list to all processes and connections
-    processes = []
-    parent_connections = []
+    credentials = aws_assume_role(carve_role_arn(account), f"carve-cleanup-{region}")
 
-    s = Session()
-    regions = s.get_available_regions('cloudformation')
+    # find all carve named stacks
+    startswith = f"{os.environ['ResourcePrefix']}carve-endpoint-vpc-"
+    stacks = aws_find_stacks(startswith, region, credentials)
 
-    for region in regions:
-        # process for discovering stacks in account/region
-        parent_conn, child_conn = Pipe()
-        parent_connections.append(parent_conn)
-        process = Process(
-            target=_discover_stacks_process,
-            args=(startswith, region, credentials, child_conn)
-            )
-        processes.append(process)
-    
-    for process in processes:
-        process.start()
-
-    # load deployment network graph from S3 json file
-    key=f"deploy_active/{graph_name}.json"    
-    graph_data = aws_read_s3_direct(key, region)
-    G = json_graph.node_link_graph(json.load(graph_data))
-
-    for process in processes:
-        process.join()
-
-    delete_stacks = []
-    for parent_connection in parent_connections:
-        # each connection contains a list of carve stacks and a region
-        for stack in parent_connection.recv():
+    if len(stacks) == 0:
+        return []
+    else:
+        # load deployment network graph from S3 json file
+        key=f"deploy_active/{graph_name}.json"    
+        graph_data = aws_read_s3_direct(key, region)
+        G = json_graph.node_link_graph(json.loads(graph_data))
+        # generate a list of all carve stacks not in the graph
+        delete_stacks = []
+        for stack in stacks:
             vpc = stack['StackName'].split(startswith)[1]
             vpc_id = f"vpc-{vpc}"
             # if carve stack is for a vpc not in the graph, delete it
@@ -291,18 +297,12 @@ def sf_DiscoverStacks(event):
                 # create payloads for delete iterator in state machine
                 payload = deepcopy(event['Input'])
                 payload['StackName'] = stack['StackName']
-                payload['Region'] = stack['Region']
+                payload['Region'] = region
+                payload['Account'] = account
                 delete_stacks.append(payload)
 
-    return delete_stacks
+        return delete_stacks
 
-
-def _discover_stacks_process(startswith, region, credentials, child_conn):
-    stacks = aws_find_stacks(startswith, region, credentials)
-    for stack in stacks:
-        stack['Region'] = region
-    child_conn.send(stacks)
-    child_conn.close()
 
 
 def sf_CreateCarveStack(event, context):
@@ -313,10 +313,12 @@ def sf_CreateCarveStack(event, context):
     stackname = f"{os.environ['ResourcePrefix']}carve-endpoint-{event['Input']['VpcId']}"
     print(f"Deploy {stackname} to {event['Input']['Account']} in {event['Input']['Region']}")
 
+    credentials = aws_assume_role(event['Input']['Role'], f"carve-deploy-{event['Input']['VpcId']}")
+
     response = aws_describe_stack(
         stackname=stackname,
         region=event['Input']['Region'],
-        credentials=event['Input']['Credentials']
+        credentials=credentials
         )
 
     if response is not None:
@@ -339,7 +341,7 @@ def sf_CreateCarveStack(event, context):
             region=event['Input']['Region'],
             template_url=template_url,
             parameters=parameters,
-            credentials=event['Input']['Credentials'],
+            credentials=credentials,
             tags=tags
             )
 
@@ -376,6 +378,16 @@ def deploy_steps_entrypoint(event, context):
 
     elif event['DeployAction'] == 'CleanupDeployments':
         response = sf_CleanupDeployments(event, context)
+
+    elif event['DeployAction'] == 'OrganizeDeletions':
+        response = sf_OrganizeDeletions(event, context)
+
+    elif event['DeployAction'] == 'DiscoverCarveStacks':
+        # response = sf_DiscoverCarveStacks(event, context)
+        response = None
+
+
+
 
     # return json to step function
     return json.dumps(response, default=str)
