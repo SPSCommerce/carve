@@ -39,11 +39,15 @@ def deploy_carve_endpoints(event, context):
         print(f'error loading graph: {e}')
         sys.exit()
 
-    # move object immediately
+    # move deployment object immediately
     filename = key.split('/')[-1]
-    deploy_key = f"deploying/{filename}"
+    deploy_key = f"deploy_started/{filename}"
     aws_copy_s3_object(key, deploy_key, region)
-    # aws_delete_s3_object(key, region)
+    aws_delete_s3_object(key, region)
+
+    # push CFN deployment files to S3
+    for file in os.listdir('deployment'):
+        aws_upload_file_carve_s3(f'deployment/{file}.json', f'deploy_templates/{file}.json')
 
     # create all IAM assumed role sessions for deployment now, and store their credentials
     accounts = set()
@@ -151,7 +155,7 @@ def sf_DescribeChangeSet(event):
 
 
 def sf_CreateChangeSet(event):
-    template_url = f"https://s3.amazonaws.com/{os.environ['CarveS3Bucket']}/deployment/carve-vpc.sam.yml"
+    template_url = f"https://s3.amazonaws.com/{os.environ['CarveS3Bucket']}/deploy_templates/carve-vpc.sam.yml"
     parameters = {"OrganizationsId": os.environ['OrganizationsId']}
     changeset_name = aws_create_changeset(
         stackname=event['Input']['StackName'],
@@ -227,6 +231,21 @@ def sf_CleanupDeployments(event, context):
     return discover_stacks
 
 
+def sf_DeploymentComplete(event):
+    # not functional yet
+    sys.exit()
+
+    # should notify of happiness
+    # should move deploy graph to completed
+    # need to add a final step to state machine
+
+    # move deployment object immediately
+    filename = key.split('/')[-1]
+    deploy_key = f"deploy_started/{filename}"
+    aws_copy_s3_object(key, deploy_key, region)
+    aws_delete_s3_object(key, region)
+
+
 def sf_DiscoverStacks(event):
     account = event['Input']['Account']
     credentials = event['Input']['Credentials']
@@ -254,7 +273,7 @@ def sf_DiscoverStacks(event):
         process.start()
 
     # load deployment network graph from S3 json file
-    key=f"deployment/deployed_graphs/{graph_name}.json"    
+    key=f"deploy_active/{graph_name}.json"    
     graph_data = aws_read_s3_direct(key, region)
     G = json_graph.node_link_graph(json.load(graph_data))
 
@@ -293,7 +312,7 @@ def sf_CreateCarveStack(event, context):
     print(tags)
 
     # check if stack already exists
-    stackname = f"carve-endpoint-{event['Input']['VpcId']}"
+    stackname = f"{os.environ['ResourcePrefix']}carve-endpoint-{event['Input']['VpcId']}"
     response = aws_describe_stack(
         stackname=stackname,
         region=event['Input']['Region'],
@@ -304,7 +323,7 @@ def sf_CreateCarveStack(event, context):
         stack = {'StackId': response['StackId']}
     else:
         # create bootstrap stack so a changeset can be created for SAM deploy
-        template_url = f"https://s3.amazonaws.com/{os.environ['CarveS3Bucket']}/deployment/carve-vpc-endpoint-bootstrap.cfn.yml"
+        template_url = f"https://s3.amazonaws.com/{os.environ['CarveS3Bucket']}/deploy_templates/carve-vpc-endpoint-bootstrap.cfn.yml"
         parameters = [
             {
                 "ParameterKey": "OrganizationsId",
