@@ -168,6 +168,7 @@ Resources:
             Principal:
               Service: 
                 - "lambda.amazonaws.com"
+                - "sts.amazonaws.com"
             Condition:
               StringEquals:
                 aws:PrincipalOrgID: !Ref OrganizationsId

@@ -47,7 +47,7 @@ def deploy_carve_endpoints(event, context):
 
     # push CFN deployment files to S3
     for file in os.listdir('deployment'):
-        aws_upload_file_carve_s3(f'deploy_templates/{file}.json', f'deployment/{file}.json')
+        aws_upload_file_carve_s3(f'deploy_templates/{file}', f'{os.getcwd()}/deployment/{file}')
 
     # create all IAM assumed role sessions for deployment now, and store their credentials
     accounts = set()
@@ -309,7 +309,7 @@ def sf_CreateCarveStack(event, context):
     ''' deploy a carve endpoint/api '''
 
     tags = aws_get_carve_tags(context.invoked_function_arn)
-    print(tags)
+    print(f"deploying {stackname} to {event['Input']['Account']} in {event['Input']['Region']}")
 
     # check if stack already exists
     stackname = f"{os.environ['ResourcePrefix']}carve-endpoint-{event['Input']['VpcId']}"
