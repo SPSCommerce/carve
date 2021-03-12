@@ -90,10 +90,10 @@ Resources:
                   - "*"
                 Resource:
                   - "*"
-                Condition:
-                  ForAnyValue:StringEquals:
-                    aws:CalledVia:
-                      - cloudformation.amazonaws.com               
+                # Condition:
+                #   ForAnyValue:StringEquals:
+                #     aws:CalledVia:
+                #       - cloudformation.amazonaws.com               
               - Effect: Allow
                 Action:
                   - ec2:DescribeNetworkInterfaces
