@@ -34,7 +34,7 @@ def deploy_carve_endpoints(event, context):
     try:
         graph_data = aws_read_s3_direct(key, region)
         print(graph_data)
-        G = json_graph.node_link_graph(jsons.load(graph_data))
+        G = json_graph.node_link_graph(json.loads(graph_data))
     except Exception as e:
         print(f'error loading graph: {e}')
         sys.exit()
