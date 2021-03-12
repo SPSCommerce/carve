@@ -47,7 +47,7 @@ def deploy_carve_endpoints(event, context):
 
     # push CFN deployment files to S3
     for file in os.listdir('deployment'):
-        aws_upload_file_carve_s3(f'deployment/{file}.json', f'deploy_templates/{file}.json')
+        aws_upload_file_carve_s3(f'deploy_templates/{file}.json', f'deployment/{file}.json')
 
     # create all IAM assumed role sessions for deployment now, and store their credentials
     accounts = set()

@@ -397,9 +397,9 @@ def aws_upload_file_carve_s3(key, file_path):
     client = boto3.client('s3', config=boto_config)
 
     try:
-        print(f"bucket = {os.environ['CarveS3Bucket']}")
-        print(f"file_path = {file_path}")
-        print(f"key = {key}")
+        # print(f"bucket = {os.environ['CarveS3Bucket']}")
+        # print(f"file_path = {file_path}")
+        # print(f"key = {key}")
         response = client.upload_file(Filename=file_path, Bucket=os.environ['CarveS3Bucket'], Key=key)
         return response
     except ClientError as e:
