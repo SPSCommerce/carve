@@ -159,22 +159,25 @@ Resources:
       Bucket: !Ref CarveS3Bucket
       PolicyDocument:
         Statement:
-          - Effect: Allow 
+          - Sid: CarveCoreLambda
+            Effect: Allow 
             Action:
               - "s3:*"
-            Resource:
-              - !Sub "arn:aws:s3:::${CarveS3Bucket}"
-              - !Sub "arn:aws:s3:::${CarveS3Bucket}/*"
+            Resource: !GetAtt CarveS3Bucket.Arn
             Principal:
-              Service: 
-                - "lambda.amazonaws.com"
-                - "sts.amazonaws.com"
-            Condition:
-              StringEquals:
-                aws:PrincipalOrgID: !Ref OrganizationsId
-              ArnLike:
-                AWS:SourceArn: !Sub "arn:aws:lambda:*:*:function:*${ResourcePrefix}carve-o-*"
-
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ResourcePrefix}carve-lambda-${OrganizationsId}"
+          - Sid: CarveVPCLambdas
+            Effect: Allow 
+            Action:
+              - "s3:*"
+            Resource: !GetAtt CarveS3Bucket.Arn
+            Principal:
+              AWS: "*"
+            # Condition:
+            #   StringEquals:
+            #     aws:PrincipalOrgID: !Ref OrganizationsId
+            #   ArnLike:
+            #     aws:SourceArn: !Sub "arn:aws:lambda:*:*:function:*${ResourcePrefix}carve-o-*"
 
   SNSTopic:
     Type: AWS::SNS::Topic

@@ -32,7 +32,7 @@ def _aws_assume_role_process(account, role, child_conn):
 
     credentials = aws_assume_role(
         role_arn=role.replace(":*:", f":{account}:"), 
-        session_name=f"org_session_{account}"
+        session_name=f"carve_session_{account}"
         )
 
     response = {"account": account, "credentials": credentials}

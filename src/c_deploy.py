@@ -309,10 +309,10 @@ def sf_CreateCarveStack(event, context):
     ''' deploy a carve endpoint/api '''
 
     tags = aws_get_carve_tags(context.invoked_function_arn)
-    print(f"deploying {stackname} to {event['Input']['Account']} in {event['Input']['Region']}")
-
     # check if stack already exists
     stackname = f"{os.environ['ResourcePrefix']}carve-endpoint-{event['Input']['VpcId']}"
+    print(f"Deploy {stackname} to {event['Input']['Account']} in {event['Input']['Region']}")
+
     response = aws_describe_stack(
         stackname=stackname,
         region=event['Input']['Region'],
