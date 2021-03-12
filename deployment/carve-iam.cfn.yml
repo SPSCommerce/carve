@@ -82,7 +82,7 @@ Resources:
                 Action:
                   - cloudformation:*
                 Resource: 
-                  - !Sub "arn:aws:cloudformation:*:*stack/${ResourcePrefix}carve-endpoint-vpc-*"
+                  - !Sub "arn:aws:cloudformation:*:*:stack/${ResourcePrefix}carve-endpoint-vpc-*"
               - Effect: Allow
                 Action:
                   # consider limiting to list of resources that Carve creates
