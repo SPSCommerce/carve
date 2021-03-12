@@ -115,7 +115,22 @@ Resources:
                   - "lambda:InvokeFunction"
                 Resource:
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ResourcePrefix}carve-*"
-
+              - Effect: Allow
+                Action:
+                  - cloudformation:*
+                Resource: 
+                  - !Sub "arn:aws:cloudformation:*:${AWS::AccountId}:stack/${ResourcePrefix}carve-endpoint-vpc-*"
+              # - Effect: Allow
+              #   Action:
+              #     # consider limiting to list of resources that Carve creates
+              #     # but at least its constrained by the above to specific stacks
+              #     - "*"
+              #   Resource:
+              #     - "*"
+              #   Condition:
+              #     ForAnyValue:StringEquals:
+              #       aws:CalledVia:
+              #         - cloudformation.amazonaws.com  
 
   CarveS3Bucket:
     Type: AWS::S3::Bucket

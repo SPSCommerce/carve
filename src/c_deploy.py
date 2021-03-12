@@ -28,10 +28,13 @@ def deploy_carve_endpoints(event, context):
 
     # read graph from s3 event
     key = event['Records'][0]['s3']['object']['key']
+    print(f'deploying graph: {key}')
+
     region = os.environ['AWS_REGION']
     try:
         graph_data = aws_read_s3_direct(key, region)
-        G = json_graph.node_link_graph(json.load(graph_data))
+        print(graph_data)
+        G = json_graph.node_link_graph(jsons.load(graph_data))
     except Exception as e:
         print(f'error loading graph: {e}')
         sys.exit()

@@ -42,6 +42,7 @@ def lambda_handler(event, context):
         elif 'eventSource' in event['Records'][0]:
             if event['Records'][0]['eventSource'] == "aws:s3":
                 if event['Records'][0]['s3']['bucket']['name'] == os.environ['CarveS3Bucket']:
+                    print(f'TRIGGERED by S3 object {event['Records'][0]['s3']['object']['key']} in S3 buket {event['Records'][0]['s3']['bucket']['name']}')
                     deploy_carve_endpoints(event, context)
 
     elif 'queryStringParameters' in event:
