@@ -187,10 +187,9 @@ Resources:
           - Sid: DeploymentAccess
             Effect: Allow
             Action:
-              - "s3:GetObject*"
-              - "s3:PutObject*"
-            Resource: !GetAtt CarveS3Bucket.Arn
+              - "s3:*"
             Principal: "*"
+            Resource: !GetAtt CarveS3Bucket.Arn
             Condition:
               StringEquals:
                 aws:PrincipalOrgID: !Ref OrganizationsId
