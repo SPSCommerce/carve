@@ -5,7 +5,7 @@ import json
 import sys
 import os
 
-from c_disco import discovery
+# from c_disco import discovery
 # from pprint import pprint
 
 
