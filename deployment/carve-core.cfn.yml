@@ -54,9 +54,9 @@ Resources:
       Layers:
         - !Ref CarveRequirementsLayer
         # AWS provided lambda layer for scipy and numpy
-        - !Ref "arn:aws:lambda:${AWS::Region}:668099181075:layer:AWSLambda-Python38-SciPy1x:29"
+        - !Sub "arn:aws:lambda:${AWS::Region}:668099181075:layer:AWSLambda-Python38-SciPy1x:29"
         # public lambda layer for matplotlib from Klayers
-        - !Ref "arn:aws:lambda:${AWS::Region}:770693421928:layer:Klayers-python38-matplotlib:21"
+        - !Sub "arn:aws:lambda:${AWS::Region}:770693421928:layer:Klayers-python38-matplotlib:21"
 
   CarveRequirementsLayer:
     Type: AWS::Lambda::LayerVersion
@@ -65,8 +65,8 @@ Resources:
         - python3.8
       Content: 
         S3Bucket: !Ref CodeBucket
-        S3Key: !Sub "requirements_packages/${GITSHA}/requirements_package.zip"
-        # S3Key: !Sub "requirements_packages/4ae38dacbb1c656f723cd6a8828d0652bc8bea1c/requirements_package.zip"
+        # S3Key: !Sub "requirements_packages/${GITSHA}/requirements_package.zip"
+        S3Key: !Sub "requirements_packages/b1381f2c51b3877528a5d14436f4267a45071946/requirements_package.zip"
       Description: "Carve python requirements"
       LayerName: CarveRequirementsLayer
 
