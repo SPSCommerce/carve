@@ -32,7 +32,7 @@ Resources:
       Description: Continuous AWS Route Verification Engine
       Code:
         S3Bucket: !Ref CodeBucket
-        S3Key: !Sub "carve/packages/${GITSHA}/package.zip"
+        S3Key: !Sub "lambda_packages/${GITSHA}/package.zip"
       Environment:
         Variables:
           OrganizationsId: !Ref OrganizationsId
@@ -52,23 +52,23 @@ Resources:
       Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ResourcePrefix}carve-lambda-${OrganizationsId}"
       ReservedConcurrentExecutions: 200
       Layers:
-        - !Ref CarveLibsLayer
+        - !Ref CarveRequirementsLayer
         # AWS provided lambda layer for scipy and numpy
         - !Ref "arn:aws:lambda:${AWS::Region}:668099181075:layer:AWSLambda-Python38-SciPy1x:29"
         # public lambda layer for matplotlib from Klayers
         - !Ref "arn:aws:lambda:${AWS::Region}:770693421928:layer:Klayers-python38-matplotlib:21"
 
-  CarveLibsLayer:
+  CarveRequirementsLayer:
     Type: AWS::Lambda::LayerVersion
     Properties: 
       CompatibleRuntimes:
         - python3.8
       Content: 
         S3Bucket: !Ref CodeBucket
-        S3Key: !Sub "carve/layer_packages/${GITSHA}/layer_package.zip"
-        # S3Key: !Sub "carve/layer_packages/4ae38dacbb1c656f723cd6a8828d0652bc8bea1c/layer_package.zip"
-      Description: "carve python lib dependencies"
-      LayerName: CarveLibsLayer
+        S3Key: !Sub "requirements_packages/${GITSHA}/requirements_package.zip"
+        # S3Key: !Sub "requirements_packages/4ae38dacbb1c656f723cd6a8828d0652bc8bea1c/requirements_package.zip"
+      Description: "Carve python requirements"
+      LayerName: CarveRequirementsLayer
 
   CarveSNSSubscription:
     Type: AWS::SNS::Subscription
