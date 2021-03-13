@@ -39,7 +39,7 @@ Resources:
           CarveS3Bucket: !Sub "${ResourcePrefix}carve-${OrganizationsId}-${AWS::Region}"
           CodeBucket: !Ref CodeBucket
           GITSHA: !Ref GITSHA
-          CarveSNSTopicArn: !GetAtt SNSTopic.Arn
+          CarveSNSTopic: !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${SNSTopic}"
           MPLCONFIGDIR: /tmp/matplotlib
           ResourcePrefix: !Ref ResourcePrefix
           CarveDeployStepFunction: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ResourcePrefix}carve-deployment-statemachine"
