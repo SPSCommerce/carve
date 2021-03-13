@@ -280,7 +280,7 @@ def aws_delete_s3_object(key, region):
     response = resource.Object(os.environ['CarveS3Bucket'], key).delete()
     return response
 
-def aws_download_file_carve_s3(key, file_path, bucket=None):
+def aws_get_carve_s3(key, file_path, bucket=None):
     '''
     writes file_path to the carve s3 bucket
     '''
@@ -310,7 +310,11 @@ def aws_create_s3_path(path):
 
     client = boto3.client('s3', config=boto_config)
     try:
-        client.put_object(Bucket=os.environ['CarveS3Bucket'], Key=s3path)
+        client.put_object(
+            Bucket=os.environ['CarveS3Bucket'],
+            Key=s3path,
+            ACL='bucket-owner-full-control'
+            )
     except ClientError as e:
         print(f'error creating s3 path: {e}')
 
@@ -327,30 +331,107 @@ def aws_delete_bucket_notification():
         print(f'error creating bucket notification: {e}')
 
 
-def aws_empty_bucket():
-    bucket = os.environ['CarveS3Bucket']
-    client = boto3.client('s3', config=boto_config)
-    paginator = client.get_paginator('list_object_versions')
+# def aws_empty_bucket():
+#     bucket = os.environ['CarveS3Bucket']
+#     client = boto3.client('s3', config=boto_config)
+#     paginator = client.get_paginator('list_object_versions')
 
-    delete_list = []
-    for response in paginator.paginate(Bucket=bucket):
-        if 'DeleteMarkers' in response:
-            for mark in response['DeleteMarkers']:
-                delete_list.append({'Key': mark['Key'], 'VersionId': mark['VersionId']})
+#     delete_list = []
+#     for response in paginator.paginate(Bucket=bucket):
+#         if 'DeleteMarkers' in response:
+#             for mark in response['DeleteMarkers']:
+#                 delete_list.append({'Key': mark['Key'], 'VersionId': mark['VersionId']})
 
-        if 'Versions' in response:
-            for version in response['Versions']:
-                delete_list.append({'Key': version['Key'], 'VersionId': version['VersionId']})
+#         if 'Versions' in response:
+#             for version in response['Versions']:
+#                 delete_list.append({'Key': version['Key'], 'VersionId': version['VersionId']})
 
-    for i in range(0, len(delete_list), 1000):
-        response = client.delete_objects(
-            Bucket=bucket,
-            Delete={
-                'Objects': delete_list[i:i+1000],
-                'Quiet': True
-            }
+#     for i in range(0, len(delete_list), 1000):
+#         response = client.delete_objects(
+#             Bucket=bucket,
+#             Delete={
+#                 'Objects': delete_list[i:i+1000],
+#                 'Quiet': True
+#             }
+#         )
+#         print(f"purged s3 bucket: {bucket}")
+
+def aws_describe_peers(region, credentials):
+    client = boto3.client(
+        'ec2',
+        config=boto_config,
+        region_name=region,
+        aws_access_key_id = credentials['AccessKeyId'],
+        aws_secret_access_key = credentials['SecretAccessKey'],
+        aws_session_token = credentials['SessionToken']
         )
-        print(f"purged s3 bucket: {bucket}")
+
+    paginator = client.get_paginator('describe_vpc_peering_connections')
+    pcxs = []
+    for pages in paginator.paginate():
+        for pcx in pages['VpcPeeringConnections']:
+            pcxs.append(pcx)
+    return pcxs
+
+
+def aws_describe_subnets(region, credentials):
+    client = boto3.client(
+        'ec2',
+        config=boto_config,
+        region_name=region,
+        aws_access_key_id = credentials['AccessKeyId'],
+        aws_secret_access_key = credentials['SecretAccessKey'],
+        aws_session_token = credentials['SessionToken']
+        )
+
+    paginator = client.get_paginator('describe_subnets')
+    subnets = []
+    for page in paginator.paginate():
+        for subnet in pages['Subnets']:
+            subnets.append(subnet)
+    return subnets
+
+
+def aws_describe_vpcs(region, credentials):
+    client = boto3.client(
+        'ec2',
+        config=boto_config,
+        region_name=region,
+        aws_access_key_id = credentials['AccessKeyId'],
+        aws_secret_access_key = credentials['SecretAccessKey'],
+        aws_session_token = credentials['SessionToken']
+        )
+
+    paginator = client.get_paginator('describe_vpcs')
+    vpcs = []
+    for pages in paginator.paginate():
+        for vpc in pages['Vpcs']:
+            vpcs.apped(vpc)
+    return vpcs
+
+
+def aws_purge_s3_bucket():
+    bucket = os.environ['CarveS3Bucket']
+    client = boto3.resource('s3', config=boto_config)
+    bucket.objects.all().delete() 
+
+
+def aws_purge_s3_path(path):
+    bucket = os.environ['CarveS3Bucket']
+    client = boto3.resource('s3', config=boto_config)
+    bucket.objects.filter(Prefix=path).delete()
+
+
+# def aws_put_bucket_policy(path, function_arn):
+#     client = boto3.client('s3', config=boto_config)
+#     try:
+#         response = client.put_bucket_notification_configuration(
+#             Bucket=os.environ['CarveS3Bucket'],
+#             Policy='policy'
+#         )
+#         return response
+#     except ClientError as e:
+#         print(f'error putting bucket policy: {e}')
 
 
 
@@ -400,7 +481,12 @@ def aws_upload_file_carve_s3(key, file_path):
         # print(f"bucket = {os.environ['CarveS3Bucket']}")
         # print(f"file_path = {file_path}")
         # print(f"key = {key}")
-        response = client.upload_file(Filename=file_path, Bucket=os.environ['CarveS3Bucket'], Key=key)
+        response = client.upload_file(
+            Filename=file_path,
+            Bucket=os.environ['CarveS3Bucket'],
+            Key=key,
+            ExtraArgs={'ACL': 'bucket-owner-full-control'}
+            )
         return response
     except ClientError as e:
         print(f's3 error: {e}')

@@ -9,6 +9,13 @@ from c_disco import discovery
 # from pprint import pprint
 
 
+def carve_role_arn(account):
+    # return the carve IAM role ARN for any account number
+    role_name = f"{os.environ['ResourcePrefix']}carve-lambda-{os.environ['OrganizationsId']}"
+    role = f"arn:aws:iam::{account}:role/{role_name}"
+    return role
+    
+
 def run_test(G, c_context):
     targets = []
     for edge in list(G.edges):

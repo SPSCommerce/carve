@@ -4,7 +4,8 @@ import json
 import os
 import sys
 from copy import deepcopy
-from c_carve import load_graph, save_graph
+from c_carve import load_graph, save_graph, carve_role_arn
+
 from c_disco import discover_org_accounts
 from c_aws import *
 from multiprocessing import Process, Pipe
@@ -88,11 +89,11 @@ def deploy_carve_endpoints(event, context):
 
 def subnet_rank(G):
     subnets = {}
-    for vpc in list(G.nodes)
+    for vpc in list(G.nodes):
         vpc_data = G.nodes().data()[vpc]
         for subnet in vpc_data['Subnets']:
             if subnet in subnets:
-                subnets[subnets] = subnets[subnets] += 1
+                subnets[subnet] = subnets[subnet] + 1
             else:
                 subnets[subnet] = 1
     return subnet(sorted(subnets.items(), key=lambda item: item[1]))
@@ -100,7 +101,7 @@ def subnet_rank(G):
 
 def seed_deployment_files():
     # seed the same lambda package that created this deployment to the carve s3 bucket
-    aws_download_file_carve_s3(
+    aws_get_carve_s3(
         key=os.environ['CodeKey'],
         file_path='package.zip',
         bucket=os.environ['CodeBucket']
@@ -113,11 +114,6 @@ def delete_carve_endpoints():
     deploy_carve_endpoints(event, context)
 
 
-def carve_role_arn(account):
-    # return the carve IAM role ARN for any account number
-    role_name = f"{os.environ['ResourcePrefix']}carve-lambda-{os.environ['OrganizationsId']}"
-    role = f"arn:aws:iam::{account}:role/{role_name}"
-    return role
 
 
 def sf_ExecuteChangeSet(event):
@@ -223,7 +219,7 @@ def sf_OrganizeDeletions(event):
     delete_stacks = []
     for task in event:
         if 'StackName' in task:
-            delete_stacks.append['task']
+            delete_stacks.append(task)
 
     return delete_stacks
 
@@ -249,8 +245,7 @@ def sf_CleanupDeployments(event, context):
     accounts = discover_org_accounts()
 
     # get all regions
-    s = Session()
-    regions = s.get_available_regions('cloudformation')
+    regions = Session().get_available_regions('cloudformation')
 
     # create discovery list of all accounts/regions for step function
     discover_stacks = []
@@ -395,9 +390,6 @@ def deploy_steps_entrypoint(event, context):
         # response = sf_DiscoverCarveStacks(event, context)
         response = None
 
-
-
-
     # return json to step function
     return json.dumps(response, default=str)
 
@@ -440,7 +432,8 @@ def deploy_CfnDeletePoll(event, context):
 def deploy_CfnDelete(event, context):
     # elif 'OrganizationsId' in event['ResourceProperties']:
     #     delete_carve_endpoints(event, context)
-    pass
-    # aws_delete_bucket_notification()
-    # aws_empty_bucket()
+    # pass
+    aws_delete_bucket_notification()
+    aws_purge_s3_bucket()
+    return True
 

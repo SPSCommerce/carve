@@ -56,14 +56,18 @@ def lambda_handler(event, context):
         print('TRIGGERED by Deployment Step Function')
         return deploy_steps_entrypoint(event, context)
 
-    elif 'Discovery' in event:
-        print('Starting deployment process')
-        return discovery(event, context)
-
     elif 'VerifyAction' in event:
         print('TRIGGERED by Route Verification Step Function')
         # return verify_steps_entrypoint(event)
     
+    elif 'DiscoveryAction' in event:
+        print('Starting discovery process')
+        return discovery_steps_entrypoint(event, context)
+
+    elif 'Discovery' in event:
+        print('Starting discovery process')
+        return discovery_steps_entrypoint(event, context)
+
     elif 'ResourceProperties' in event:
         return custom_resource_entrypoint(event, context)
 

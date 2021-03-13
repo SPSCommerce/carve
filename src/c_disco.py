@@ -3,65 +3,16 @@ from networkx.readwrite import json_graph
 import boto3
 import json
 from botocore.exceptions import ClientError
+from boto3.session import Session
 import pylab as plt
-from multiprocessing import Process, Pipe
 import os
 import sys
 import time
-from c_aws import aws_parallel_role_creation, aws_upload_file_carve_s3, boto_config
+from c_aws import aws_upload_file_carve_s3, boto_config
+from c_carve import carve_role_arn, save_graph
 
 
-def _discover_org_graph(accounts, regions, context):
-
-    # when refacotring for lambda
-    # could self invoke to split vpc/peering discovery
-    # would make each lambda have to handle 1/2 as many parallel processes
-
-    # create a list to all processes and connections
-    v_processes = []
-    v_parent_connections = []
-    p_processes = []
-    p_parent_connections = []
-
-    role = f"arn:aws:sts::*:role/{os.environ['ResourcePrefix']}carve-lambda-{os.environ['OrganizationsId']}"
-
-    # create all IAM assumed role sessions now, and store their credentials
-    credentials = aws_parallel_role_creation(accounts.keys(), role)
-
-    # create one VPC and one Peering discovery process per AWS account and region
-    processes = (len(accounts) * len(regions))
-    print(f'starting {processes} discovery processes for {len(accounts)} accounts in {len(regions)} regions')
-
-    for account_id, account_name in accounts.items():
-        for region in regions:
-
-            # process for discovering VPCs in account/region
-            v_parent_conn, v_child_conn = Pipe()
-            v_parent_connections.append(v_parent_conn)
-            v_process = Process(
-                target=_discovery_process,
-                args=(account_id, account_name, region, credentials[account_id], 'vpcs', v_child_conn)
-                )
-            v_processes.append(v_process)
-            v_process.start()
-
-            # process for discovering PCXs in account/region
-            p_parent_conn, p_child_conn = Pipe()
-            p_parent_connections.append(p_parent_conn)
-            p_process = Process(
-                target=_discovery_process,
-                args=(account_id, account_name, region, credentials[account_id], 'peering', p_child_conn)
-                )
-            p_processes.append(p_process)
-            p_process.start()
-
-    # wait for all processes to finish
-    for process in v_processes:
-        process.join()
-
-    # wait for all processes to finish
-    for process in p_processes:
-        process.join()
+def build_org_graph(vpcs, pcxs):
 
     G = nx.Graph(Name=f"carve-discovered-{int(time.time())}")
 
@@ -114,147 +65,207 @@ def discover_org_accounts():
     return accounts
 
 
-def _discovery_process(account_id, account_name, region, credentials, resources, child_conn):
-    '''discover VPC/peering resources in a specific account/region, return nx.Graph'''
-
-    # discover resources, with G as a graph data structure
-    if resources == 'vpcs':
-        G = _discover_vpcs(region, account_id, account_name, credentials)
-    if resources == 'peering':
-        G = _discover_peering(region, account_id, credentials)
-  
-    # return graph object and close
-    child_conn.send(G)
-    child_conn.close()
-
-
-
-def _discover_vpcs(region, account_id, account_name, credentials, default_vpcs=False):
+def discover_vpcs(region, account_id, account_name, credentials):
     ''' get VPCs in account/region, returns nx.Graph object of VPC nodes'''
-    client = boto3.client(
-        'ec2',
-        config=boto_config,
-        region_name=region,
-        aws_access_key_id = credentials['AccessKeyId'],
-        aws_secret_access_key = credentials['SecretAccessKey'],
-        aws_session_token = credentials['SessionToken']
-        )
+
 
     # create graph structure for VPCs
     G = nx.Graph()
 
-    paginator = client.get_paginator('describe_subnets')
-    subnets = []
-    for page in paginator.paginate():
-        for subnet in pages['Subnets']:
-            subnets.append(subnet)
+    subnets = aws_describe_subnets(region, credentials)
 
-    paginator = client.get_paginator('describe_vpcs')
-    for pages in paginator.paginate():
-        for vpc in pages['Vpcs']:
+    for vpc in aws_describe_vpcs(region, credentials):
 
-            if vpc['OwnerId'] != account_id:
-                # don't add shared VPCs
-                continue
+        if vpc['OwnerId'] != account_id:
+            # don't add shared VPCs
+            continue
 
-            if vpc['IsDefault']:
-                if not default_vpcs:
-                    # don't add default VPCs unless requested
-                    continue
+        if vpc['IsDefault']:
+            # don't add default VPCs
+            continue
 
-            # get VPC name from tag if available
-            name = "No Name"
-            if 'Tags' in vpc:
-                for tag in vpc['Tags']:
-                    if tag['Key'] == 'Name':
-                        name = tag['Value']
-                        break
+        # get VPC name from tag if available
+        name = "unnamed"
+        if 'Tags' in vpc:
+            for tag in vpc['Tags']:
+                if tag['Key'] == 'Name':
+                    name = tag['Value']
+                    break
 
-            vpc_subnets = []
-            for subnet in subnets:
-                if subnet['VpcId'] == vpc['VpcId']:
-                    vpc_subnets.append({
-                        "AvailabilityZoneId": subnet['AvailabilityZoneId'],
-                        "SubnetId": subnet['SubnetId']
-                    })
+        vpc_subnets = []
+        for subnet in subnets:
+            if subnet['VpcId'] == vpc['VpcId']:
+                vpc_subnets.append({
+                    "AvailabilityZoneId": subnet['AvailabilityZoneId'],
+                    "SubnetId": subnet['SubnetId']
+                })
 
-            # create graph node
-            G.add_node(
-                vpc['VpcId'],
-                Name=name,
-                Account=account_id,
-                AccountName=account_name,
-                Region=region,
-                CidrBlock=vpc['CidrBlock'],
-                Subnets=vpc_subnets,
-                PrivateEndpoint=None,
-                ApiGatewayUrl=None
-                )
+        # create graph node
+        G.add_node(
+            vpc['VpcId'],
+            Name=name,
+            Account=account_id,
+            AccountName=account_name,
+            Region=region,
+            CidrBlock=vpc['CidrBlock'],
+            Subnets=vpc_subnets,
+            PrivateEndpoint=None,
+            ApiGatewayUrl=None
+            )
+
     return G
 
 
-def _discover_peering(region, account_id, credentials):
+def discover_pcxs(region, account_id, credentials):
     ''' get peering conns in account/region, returns nx.Graph object of peering connection nodes'''
-    client = boto3.client(
-        'ec2',
-        config=boto_config,
-        region_name=region,
-        aws_access_key_id = credentials['AccessKeyId'],
-        aws_secret_access_key = credentials['SecretAccessKey'],
-        aws_session_token = credentials['SessionToken']
-        )
 
     G = nx.Graph()
+    for pcx in aws_describe_peers(region, credentials):
+        # get PCX name from tag
+        name = "No Name"
+        if 'Tags' in pcx:
+            for tag in pcx['Tags']:
+                if tag['Key'] == 'Name':
+                    name = tag['Value']
+                    break            
 
-    paginator = client.get_paginator('describe_vpc_peering_connections')
-    for pages in paginator.paginate():
-        for conn in pages['VpcPeeringConnections']:
-            # get PCX name from tag
-            name = "No Name"
-            if 'Tags' in conn:
-                for tag in conn['Tags']:
-                    if tag['Key'] == 'Name':
-                        name = tag['Value']
-                        break            
-            G.add_node(
-                conn['VpcPeeringConnectionId'],
-                Name=name,
-                VpcPeeringConnectionId=conn['VpcPeeringConnectionId'],
-                Account=account_id,
-                Region=region,
-                AccepterVpcId=conn['AccepterVpcInfo']['VpcId'],
-                AccepterAccount=conn['AccepterVpcInfo']['OwnerId'],
-                RequesterVpcId=conn['RequesterVpcInfo']['VpcId'],
-                RequesterAccount=conn['RequesterVpcInfo']['OwnerId']
-                )
+        G.add_node(
+            pcx['VpcPeeringConnectionId'],
+            Name=name,
+            VpcPeeringConnectionId=pcx['VpcPeeringConnectionId'],
+            Account=account_id,
+            Region=region,
+            AccepterVpcId=pcx['AccepterVpcInfo']['VpcId'],
+            AccepterAccount=pcx['AccepterVpcInfo']['OwnerId'],
+            RequesterVpcId=pcx['RequesterVpcInfo']['VpcId'],
+            RequesterAccount=pcx['RequesterVpcInfo']['OwnerId']
+            )
 
     return G
 
 
-def discovery(event, context):
-    ''' kick off org/vpc/pcx discovery logic '''
-    print('generating dynamic org vpc graph')
+def discover_resources(resource, region, account_id, account_name, credentials):
+    if resource == 'vpcs':
+        G = discover_vpcs(region, account_id, account_name, credentials)
+    if resource == 'pcxs':
+        G = discover_pcxs(region, account_id, credentials)
 
-    # discover AWS Organizations Accounts
-    accounts = discover_org_accounts()
-
-    client = boto3.client('ec2', region_name=os.environ['AWS_REGION'])
-    regions = [region['RegionName'] for region in client.describe_regions()['Regions']]
-
-    # run primary VPC/PCX discovery function
-    G = _discover_org_graph(accounts, regions, context)
-    name = f'c_discovered_{int(time.time())}'
-
+    name = f'{resource}_{account_id}_{region}_{int(time.time())}'
     G.graph['Name'] = name
 
-    # save json data
-    with open(f"/tmp/{name}.json", 'a') as f:
-        json.dump(json_graph.node_link_data(G), f)
+    save_graph(G, f"/tmp/{name}.json")
 
-    print(f"discovery complete uploading to s3: /tmp/{name}.json")
+    aws_upload_file_carve_s3(f'discovery/accounts/{name}.json', f"/tmp/{name}.json")
 
-    aws_upload_file_carve_s3(f'discovery/{name}.json', f"/tmp/{name}.json")
+    return {resource: f'discovery/accounts/{name}.json'}
 
-    return 
+
+def sf_DiscoverAccountRegion(event, context):
+    ''' second step function task for discovery, per region/account '''
+
+    region = event['Input']['region']
+    account_id = event['Input']['region']
+    account_name = event['Input']['region']
+
+    credentials = aws_assume_role(carve_role_arn(account_id), f"carve-discovery-{region}")
+
+    discovered = []
+
+    for resource in ['vpcs', 'pcxs']:
+        discovered.append(discover_resources(resource, region, account_id, account_name, credentials))
+
+    return discovered
+
+
+def sf_StartDiscovery():
+    ''' first step function task to build accounts/region list for discovery '''
+
+    # discover AWS Organizations accounts/regions
+    accounts = discover_org_accounts()
+    regions = Session().get_available_regions('cloudformation')
+
+    discovery_targets = []
+    for account_id, account_name in accounts:
+        for region in regions:
+            discovery_targets.append({
+                "account_id": account_id,
+                "account_name": account_name,
+                "region": region
+            })
+
+    print(f"discovering VPCs/PCXs in {len(accounts)} accounts in {len(regions)} regions")
+
+    # need to purge S3 discovery folder before starting new discovery
+    aws_purge_s3_path('discovery/accounts/')
+
+    return discovery_targets
+
+
+def sf_OrganizeDiscovery(event):
+    pass
+
+    vpcs = []
+    pcxs = []
+    for task in event:
+        if 'vpc' in task:
+            vpcs.append(task['vpc'])
+        elif 'pcxs' in task:
+            pcxs.append(task['pcxs'])
+
+    # Load all VPCs into discovered graph G
+    g_name = f"carve-discovered-{int(time.time())}"
+    G = nx.Graph(Name=g_name)
+    for vpc in vpcs:
+        name = vpc.split('/')[-1]
+        if not os.path.isfile(f"/tmp/{name}"):
+            aws_get_carve_s3(vpc, f"/tmp/{name}")
+        V = load_graph(name)
+        G.add_nodes_from(V.nodes.data())
+
+    # Load all peering connections into temp P
+    P = nx.Graph()
+    for pcx in pcxs:
+        name = pcx.split('/')[-1]
+        if not os.path.isfile(f"/tmp/{name}"):
+            aws_get_carve_s3(pcx, f"/tmp/{name}")
+        X = load_graph(name)
+        P.add_nodes_from(X.nodes.data())
+
+    # add edges to G by looking at all peering connections
+    for pcx in P.nodes.data():
+        G.add_edge(
+            pcx[1]['AccepterVpcId'],
+            pcx[1]['RequesterVpcId'],
+            Account=pcx[1]['Account'],
+            VpcPeeringConnectionId=pcx[1]['VpcPeeringConnectionId'],
+            AccountName=accounts[pcx[1]['Account']],
+            AccepterAccount=pcx[1]['AccepterAccount'],
+            AccepterAccountName=accounts[pcx[1]['AccepterAccount']],
+            AccepterVPCName=G.nodes[pcx[1]['AccepterVpcId']]['Name'],
+            RequesterAccount=pcx[1]['RequesterAccount'],
+            RequesterAccountName=accounts[pcx[1]['RequesterAccount']],
+            RequesterVPCName=G.nodes[pcx[1]['RequesterVpcId']]['Name']
+            )
+
+    save_graph(G, f"/tmp/{g_name}.json")
+
+    aws_upload_file_carve_s3(f'discovered/{g_name}.json', f"/tmp/{g_name}.json")
+
+    return {'discovery': f's3://a-carve-o-dvdaw54vmt-us-east-1/discovered/{g_name}.json'}
+
+
+def discovery_steps_entrypoint(event, context):
+    ''' step function tasks for deployment all flow thru here after the lambda_hanlder '''
+    if event['DiscoveryAction'] == 'StartDiscovery':
+        response = sf_StartDiscovery()
+
+    elif event['DiscoveryAction'] == 'DiscoverAccountRegion':
+        response = sf_DiscoverAccountRegion(event)
+
+    elif event['DiscoveryAction'] == 'OrganizeDiscovery':
+        response = sf_OrganizeDiscovery(event)
+
+    # return json to step function
+    return json.dumps(response, default=str)
 
 

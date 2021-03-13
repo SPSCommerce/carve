@@ -1,0 +1,55 @@
+{
+  "Comment": "Carve Network Discovery",
+  "StartAt": "StartDiscovery",
+  "States": {
+    "StartDiscovery": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${CarveFunction}",
+        "Payload": {
+          "DiscoveryAction": "StartDiscovery",
+          "Input.$": "$"
+        }
+      },
+      "Next": "ConcurrentAccountDiscovery",
+      "TimeoutSeconds": 30
+    },
+    "ConcurrentAccountDiscovery": {
+      "Type": "Map",
+      "Next": "OrganizeDiscovery",
+      "MaxConcurrency": 0,
+      "Iterator": {
+        "StartAt": "DiscoverAccountRegion",
+        "States": {
+          "DiscoverAccountRegion": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::lambda:invoke",
+            "Parameters": {
+              "FunctionName": "${CarveFunction}",
+              "Payload": {
+                "DiscoveryAction": "DiscoverAccountRegion",
+                "Input.$": "$"
+              }
+            },
+            "End": true,
+            "TimeoutSeconds": 60
+          }
+        }
+      }
+    },
+    "OrganizeDiscovery": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${CarveFunction}",
+        "Payload": {
+          "DiscoveryAction": "OrganizeDiscovery",
+          "Input.$": "$"
+        }
+      },
+      "End": true,
+      "TimeoutSeconds": 30
+    }
+  }
+}
