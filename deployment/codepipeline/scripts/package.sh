@@ -12,9 +12,9 @@ LATESTSHA=$(curl --location --request GET $GITHUBCURL --header "Authorization: B
 # # clean up previous deployment files
 echo "cleaning up prevous deployments"
 aws s3 rm s3://$DEPLOYMENT_BUCKET/carve/packages/ --recursive --exclude "${LATESTSHA}/*"
-# aws s3 rm s3://$DEPLOYMENT_BUCKET/carve/layer_packages/ --recursive --exclude "${LATESTSHA}/*"
-# aws s3 rm s3://$DEPLOYMENT_BUCKET/carve/graph_layer_packages/ --recursive --exclude "${LATESTSHA}/*"
-# aws s3 rm s3://$DEPLOYMENT_BUCKET/carve/graph_layer_package/ --recursive --exclude "${LATESTSHA}/*"
+aws s3 rm s3://$DEPLOYMENT_BUCKET/carve/layer_packages/ --recursive --exclude "${LATESTSHA}/*"
+aws s3 rm s3://$DEPLOYMENT_BUCKET/carve/graph_layer_packages/ --recursive --exclude "${LATESTSHA}/*"
+aws s3 rm s3://$DEPLOYMENT_BUCKET/carve/graph_layer_package/ --recursive --exclude "${LATESTSHA}/*"
 
 # future
 # aws s3 rm s3://$DEPLOYMENT_BUCKET/requirements_packages/ --recursive --exclude "${LATESTSHA}/*"
@@ -30,17 +30,13 @@ aws s3 cp "$BUILDPATH/deployment/steps-carve-discovery.json" \
     s3://$DEPLOYMENT_BUCKET/step_functions/$GITSHA/ \
     --metadata GIT_SHA=$CODEBUILD_SOURCE_VERSION
 
-# copy carve endpoint deployment templates into deployment folder in lambda src
-mkdir "$BUILDPATH/src/deployment"
+# copy carve IAM template into deployment folder in lambda src
 cp "$BUILDPATH/deployment/carve-iam.cfn.yml" "$BUILDPATH/src/deployment/"
-cp "$BUILDPATH/deployment/carve-vpc.sam.yml" "$BUILDPATH/src/deployment/"
-cp "$BUILDPATH/deployment/carve-vpc-endpoint-bootstrap.cfn.yml" "$BUILDPATH/src/deployment/"
-cp "$BUILDPATH/deployment/delete_carve_endpoints.json" "$BUILDPATH/src/deployment/"
 
 # package lambda
 echo "packaging lambda"
 cd "$BUILDPATH/src"
-# python3.8 -m pip install --upgrade pip 
+
 # pip install -r requirements.txt -t .
 zip -r "package.zip" * > /dev/null
 
