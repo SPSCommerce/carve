@@ -19,7 +19,7 @@ aws s3 rm s3://$DEPLOYMENT_BUCKET/carve/graph_layer_package/ --recursive --exclu
 # future
 # aws s3 rm s3://$DEPLOYMENT_BUCKET/requirements_packages/ --recursive --exclude "${LATESTSHA}/*"
 # aws s3 rm s3://$DEPLOYMENT_BUCKET/lambda_packages/ --recursive --exclude "${LATESTSHA}/*"
-# aws s3 rm s3://$DEPLOYMENT_BUCKET/step_functions/ --recursive --exclude "${LATESTSHA}/*"
+aws s3 rm s3://$DEPLOYMENT_BUCKET/step_functions/ --recursive --exclude "${LATESTSHA}/*"
 
 # upload deployment state machine definition
 echo "uploading state machine definitions to S3"

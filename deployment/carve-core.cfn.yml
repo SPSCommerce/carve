@@ -91,7 +91,7 @@ Resources:
     Properties: 
       DefinitionS3Location: 
         Bucket: !Ref CodeBucket
-        Key: !Sub "carve/packages/${GITSHA}/steps-carve-deployment.json"
+        Key: !Sub "step_functions/${GITSHA}/steps-carve-deployment.json"
       DefinitionSubstitutions: 
         CarveFunction: !Ref CarveFunction
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ResourcePrefix}carve-stepfunction-${OrganizationsId}"
@@ -103,7 +103,7 @@ Resources:
     Properties: 
       DefinitionS3Location: 
         Bucket: !Ref CodeBucket
-        Key: !Sub "carve/packages/${GITSHA}/steps-carve-discovery.json"
+        Key: !Sub "step_functions/${GITSHA}/steps-carve-discovery.json"
       DefinitionSubstitutions: 
         CarveFunction: !Ref CarveFunction
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ResourcePrefix}carve-stepfunction-${OrganizationsId}"
