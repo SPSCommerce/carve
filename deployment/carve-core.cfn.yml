@@ -19,6 +19,9 @@ Parameters:
     Type: String
     Description: "Prefix all carve resources with this"
     Default: ""
+  CarveVersion:
+    Type: String
+    Default: "0"
 
 Resources:
 
@@ -36,9 +39,11 @@ Resources:
           CarveS3Bucket: !Sub "${ResourcePrefix}carve-${OrganizationsId}-${AWS::Region}"
           CodeBucket: !Ref CodeBucket
           GITSHA: !Ref GITSHA
+          CarveSNSTopicArn: !GetAtt SNSTopic.Arn
           MPLCONFIGDIR: /tmp/matplotlib
           ResourcePrefix: !Ref ResourcePrefix
           CarveDeployStepFunction: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ResourcePrefix}carve-deployment-statemachine"
+          CarveVersion: !Ref CarveVersion
       Handler: c_entrypoint.lambda_handler
       Runtime: python3.8
       MemorySize: 1024
@@ -159,6 +164,14 @@ Resources:
       Bucket: !Ref CarveS3Bucket
       PolicyDocument:
         Statement:
+          - Sid: WTF
+            Effect: Allow 
+            Action:
+              - "s3:*"
+            Resource: !GetAtt CarveS3Bucket.Arn
+            Principal:
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ResourcePrefix}carve-lambda-${OrganizationsId}"
+
           - Sid: CarveCoreLambda
             Effect: Allow 
             Action:

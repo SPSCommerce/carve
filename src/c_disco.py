@@ -143,7 +143,12 @@ def _discover_vpcs(region, account_id, account_name, credentials, default_vpcs=F
     # create graph structure for VPCs
     G = nx.Graph()
 
-    # get all VPCs in this region
+    paginator = client.get_paginator('describe_subnets')
+    subnets = []
+    for page in paginator.paginate():
+        for subnet in pages['Subnets']:
+            subnets.append(subnet)
+
     paginator = client.get_paginator('describe_vpcs')
     for pages in paginator.paginate():
         for vpc in pages['Vpcs']:
@@ -165,6 +170,14 @@ def _discover_vpcs(region, account_id, account_name, credentials, default_vpcs=F
                         name = tag['Value']
                         break
 
+            vpc_subnets = []
+            for subnet in subnets:
+                if subnet['VpcId'] == vpc['VpcId']:
+                    vpc_subnets.append({
+                        "AvailabilityZoneId": subnet['AvailabilityZoneId'],
+                        "SubnetId": subnet['SubnetId']
+                    })
+
             # create graph node
             G.add_node(
                 vpc['VpcId'],
@@ -173,6 +186,7 @@ def _discover_vpcs(region, account_id, account_name, credentials, default_vpcs=F
                 AccountName=account_name,
                 Region=region,
                 CidrBlock=vpc['CidrBlock'],
+                Subnets=vpc_subnets,
                 PrivateEndpoint=None,
                 ApiGatewayUrl=None
                 )

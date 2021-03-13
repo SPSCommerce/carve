@@ -59,15 +59,21 @@ def deploy_carve_endpoints(event, context):
     else:
         graph_name = f'c_deployed_{int(time.time())}'
 
+    subnets = subnet_rank(G)
+
     deployment_targets = []
     for vpc in list(G.nodes):
         vpc_data = G.nodes().data()[vpc]
         target = {}
+        for subnet in vpc_data['Subnets']:
+            target['SubnetId'] = subnet
+            break
         target['Account'] = vpc_data['Account']
         target['GraphName'] = graph_name
         target['Region'] = vpc_data['Region']
         target['VpcId'] = vpc
         target['VpcName'] = vpc_data['Name']
+
         # target['Credentials'] = credentials[vpc_data['Account']]
         target['Role'] = carve_role_arn(vpc_data['Account'])
         deployment_targets.append(target)
@@ -80,17 +86,16 @@ def deploy_carve_endpoints(event, context):
     # mock_stepfunction(os.environ['CarveDeployStepFunction'], deployment_targets)
 
 
-# def mock_stepfunction(arn, deployment_targets):
-#     # mock state machine activity, except sequentially
-#     print(f'mock invoke of {arn}')
-#     from c_entrypoint import lambda_hander
-#     for target in deployment_targets:
-#         event = {
-#             "Input": target
-#             "DeployAction": "CreateStack"
-#             }
-
-#         lambda_hander({}, event)
+def subnet_rank(G):
+    subnets = {}
+    for vpc in list(G.nodes)
+        vpc_data = G.nodes().data()[vpc]
+        for subnet in vpc_data['Subnets']:
+            if subnet in subnets:
+                subnets[subnets] = subnets[subnets] += 1
+            else:
+                subnets[subnet] = 1
+    return subnet(sorted(subnets.items(), key=lambda item: item[1]))
 
 
 def seed_deployment_files():
@@ -114,8 +119,8 @@ def carve_role_arn(account):
     role = f"arn:aws:iam::{account}:role/{role_name}"
     return role
 
-def sf_ExecuteChangeSet(event):
 
+def sf_ExecuteChangeSet(event):
     response = aws_execute_change_set(
         change_set_name=event['Input']['ChangeSetName'],
         region=event['Input']['Region'],
@@ -158,15 +163,23 @@ def sf_DescribeChangeSet(event):
 
 
 def sf_CreateChangeSet(event):
+    credentials = aws_assume_role(carve_role_arn(account), f"carve-cleanup-{region}")
     template_url = f"https://s3.amazonaws.com/{os.environ['CarveS3Bucket']}/deploy_templates/carve-vpc.sam.yml"
-    parameters = {"OrganizationsId": os.environ['OrganizationsId']}
+    parameters = {
+        "VpcId": event['Input']['VpcId'],
+        "VpcEndpointSubnetIds": event['Input']['SubnetId'],
+        "CarveSNSTopicArn": os.environ['CarveSNSTopicArn'],
+        "OrganizationsId": os.environ['OrganizationsId'],
+        "CarveVersion": os.environ['CarveVersion'],
+        }
+
     changeset_name = aws_create_changeset(
         stackname=event['Input']['StackName'],
         region=event['Input']['Region'],
         template_url=template_url,
         parameters=parameters,
-        credentials=event['Input']['Credentials'],
-        tags=tags)
+        credentials=credentials,
+        tags=aws_get_carve_tags(context.invoked_function_arn))
 
     # create payload for next step in state machine
     payload = deepcopy(event['Input'])
@@ -308,7 +321,6 @@ def sf_DiscoverCarveStacks(event):
 def sf_CreateCarveStack(event, context):
     ''' deploy a carve endpoint/api '''
 
-    tags = aws_get_carve_tags(context.invoked_function_arn)
     # check if stack already exists
     stackname = f"{os.environ['ResourcePrefix']}carve-endpoint-{event['Input']['VpcId']}"
     print(f"Deploy {stackname} to {event['Input']['Account']} in {event['Input']['Region']}")
@@ -330,19 +342,16 @@ def sf_CreateCarveStack(event, context):
             {
                 "ParameterKey": "OrganizationsId",
                 "ParameterValue": os.environ['OrganizationsId']
-            },
-            {
-                "ParameterKey": "VpcName",
-                "ParameterValue": event['Input']['VpcName']
             }
         ]
+        print(template_url)
         stack = aws_create_stack(
             stackname=stackname,
             region=event['Input']['Region'],
             template_url=template_url,
             parameters=parameters,
             credentials=credentials,
-            tags=tags
+            tags=aws_get_carve_tags(context.invoked_function_arn)
             )
 
     # create payload for next step in state machine
