@@ -263,6 +263,7 @@
       "Type": "Map",
       "Next": "OrganizeDeletions",
       "MaxConcurrency": 100,
+      "ItemsPath": "$.Payload",
       "Iterator": {
         "StartAt": "DiscoverCarveStacks",
         "States": {
@@ -298,6 +299,7 @@
       "Type": "Map",
       "End": true,
       "MaxConcurrency": 0,
+      "ItemsPath": "$.Payload",
       "Iterator": {
         "StartAt": "DeleteStack",
         "States": {

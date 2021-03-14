@@ -244,8 +244,7 @@ def sf_CleanupDeployments(event, context):
     # need all accounts in the org
     accounts = discover_org_accounts()
 
-    # get all regions
-    regions = Session().get_available_regions('cloudformation')
+    regions = aws_all_regions()
 
     # create discovery list of all accounts/regions for step function
     discover_stacks = []

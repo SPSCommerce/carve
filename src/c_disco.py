@@ -72,7 +72,7 @@ def discover_vpcs(region, account_id, account_name, credentials):
     # create graph structure for VPCs
     G = nx.Graph()
 
-    subnets = aws_describe_subnets(region, credentials)
+    subnets = aws_describe_subnets(region, credentials, account_id)
 
     for vpc in aws_describe_vpcs(region, credentials):
 
@@ -182,8 +182,7 @@ def sf_StartDiscovery():
 
     # discover AWS Organizations accounts/regions
     accounts = discover_org_accounts()
-    regions = Session().get_available_regions('cloudformation')
-
+    regions = aws_all_regions()
     discovery_targets = []
     for account_id, account_name in accounts.items():
         for region in regions:
@@ -267,6 +266,7 @@ def discovery_steps_entrypoint(event, context):
         response = sf_OrganizeDiscovery(event)
 
     # return json to step function
-    return json.dumps(response, default=str)
+    return response
+    # return json.dumps(response, default=str)
 
 

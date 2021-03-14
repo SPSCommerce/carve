@@ -13,7 +13,14 @@ boto_config = Config(retries=dict(max_attempts=10))
 
 def aws_assume_role(role_arn, session_name, token_life=900):
     # a function for this lambda to assume a given role
-    sts_client = boto3.client('sts', config=boto_config)
+    region = os.environ['AWS_REGION']
+    sts_client = boto3.client(
+        'sts',
+        region_name=region,
+        endpoint_url=f'https://sts.{region}.amazonaws.com',
+        config=boto_config
+        )
+
     try:
         assumed_role_object = sts_client.assume_role(
             RoleArn=role_arn,
@@ -67,6 +74,17 @@ def aws_parallel_role_creation(accounts, role):
         credentials[account_creds['account']] = account_creds['credentials']
 
     return credentials
+
+
+def aws_all_regions():
+    # get all regions
+    all_regions = Session().get_available_regions('cloudformation')
+    unavailable = ['af-south-1', 'eu-south-1', 'ap-east-1', 'me-south-1']
+    regions = []
+    for region in regions:
+        if region not in unavailable:
+            regions.append(region)
+    return regions
 
 
 def aws_start_stepfunction(sf_arn, sf_input):
@@ -368,13 +386,13 @@ def aws_describe_peers(region, credentials):
 
     paginator = client.get_paginator('describe_vpc_peering_connections')
     pcxs = []
-    for pages in paginator.paginate():
-        for pcx in pages['VpcPeeringConnections']:
+    for page in paginator.paginate():
+        for pcx in page['VpcPeeringConnections']:
             pcxs.append(pcx)
     return pcxs
 
 
-def aws_describe_subnets(region, credentials):
+def aws_describe_subnets(region, credentials, account_id):
     client = boto3.client(
         'ec2',
         config=boto_config,
@@ -383,14 +401,16 @@ def aws_describe_subnets(region, credentials):
         aws_secret_access_key = credentials['SecretAccessKey'],
         aws_session_token = credentials['SessionToken']
         )
-
-    paginator = client.get_paginator('describe_subnets')
-    subnets = []
-    for page in paginator.paginate():
-        for subnet in pages['Subnets']:
-            subnets.append(subnet)
-    return subnets
-
+    try:
+        paginator = client.get_paginator('describe_subnets')
+        subnets = []
+        for page in paginator.paginate():
+            for subnet in page['Subnets']:
+                subnets.append(subnet)
+        return subnets
+    except ClientError as e:
+        print(f"error descibing subnets in {region} in {account_id}: {e}")
+        return []
 
 def aws_describe_vpcs(region, credentials):
     client = boto3.client(
@@ -404,9 +424,9 @@ def aws_describe_vpcs(region, credentials):
 
     paginator = client.get_paginator('describe_vpcs')
     vpcs = []
-    for pages in paginator.paginate():
-        for vpc in pages['Vpcs']:
-            vpcs.apped(vpc)
+    for page in paginator.paginate():
+        for vpc in page['Vpcs']:
+            vpcs.append(vpc)
     return vpcs
 
 
