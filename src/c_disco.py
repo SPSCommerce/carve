@@ -160,12 +160,12 @@ def discover_resources(resource, region, account_id, account_name, credentials):
     return {resource: f'discovery/accounts/{name}.json'}
 
 
-def sf_DiscoverAccountRegion(event, context):
+def sf_DiscoverAccountRegion(event):
     ''' second step function task for discovery, per region/account '''
 
     region = event['Input']['region']
-    account_id = event['Input']['region']
-    account_name = event['Input']['region']
+    account_id = event['Input']['account_id']
+    account_name = event['Input']['account_name']
 
     credentials = aws_assume_role(carve_role_arn(account_id), f"carve-discovery-{region}")
 
@@ -258,6 +258,7 @@ def discovery_steps_entrypoint(event, context):
     ''' step function tasks for deployment all flow thru here after the lambda_hanlder '''
     if event['DiscoveryAction'] == 'StartDiscovery':
         response = sf_StartDiscovery()
+        # need to return an array?
 
     elif event['DiscoveryAction'] == 'DiscoverAccountRegion':
         response = sf_DiscoverAccountRegion(event)

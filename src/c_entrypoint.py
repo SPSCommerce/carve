@@ -61,12 +61,12 @@ def lambda_handler(event, context):
         # return verify_steps_entrypoint(event)
     
     elif 'DiscoveryAction' in event:
-        print('Starting discovery process')
+        print('TRIGGERED by Discovery Step Function')
         return discovery_steps_entrypoint(event, context)
 
-    elif 'Discovery' in event:
-        print('Starting discovery process')
-        return discovery_steps_entrypoint(event, context)
+    # elif 'Discovery' in event:
+    #     print('Starting discovery process')
+    #     return discovery_steps_entrypoint(event, context)
 
     elif 'ResourceProperties' in event:
         return custom_resource_entrypoint(event, context)

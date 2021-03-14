@@ -18,6 +18,7 @@
       "Type": "Map",
       "Next": "OrganizeDiscovery",
       "MaxConcurrency": 0,
+      "ItemsPath": "$.Payload",
       "Iterator": {
         "StartAt": "DiscoverAccountRegion",
         "States": {
