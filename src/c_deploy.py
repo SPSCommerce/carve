@@ -9,7 +9,6 @@ from c_carve import load_graph, save_graph, carve_role_arn
 from c_disco import discover_org_accounts
 from c_aws import *
 from multiprocessing import Process, Pipe
-from boto3.session import Session
 from crhelper import CfnResource
 import time
 

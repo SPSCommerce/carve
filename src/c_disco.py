@@ -3,13 +3,12 @@ from networkx.readwrite import json_graph
 import boto3
 import json
 from botocore.exceptions import ClientError
-from boto3.session import Session
 import pylab as plt
 import os
 import sys
 import time
 from c_aws import *
-from c_carve import carve_role_arn, save_graph
+from c_carve import carve_role_arn, save_graph, load_graph
 
 
 def build_org_graph(vpcs, pcxs):
@@ -160,39 +159,36 @@ def discover_resources(resource, region, account_id, account_name, credentials):
     return {resource: f'discovery/accounts/{name}.json'}
 
 
-def sf_DiscoverAccountRegion(event):
+def sf_DiscoverAccount(event):
     ''' second step function task for discovery, per region/account '''
 
-    region = event['Input']['region']
-    account_id = event['Input']['account_id']
-    account_name = event['Input']['account_name']
-
-    credentials = aws_assume_role(carve_role_arn(account_id), f"carve-discovery-{region}")
-
+    regions = aws_all_regions()
     discovered = []
 
-    for resource in ['vpcs', 'pcxs']:
-        discovered.append(discover_resources(resource, region, account_id, account_name, credentials))
+    for region in regions:
+        account_id = event['Input']['account_id']
+        account_name = event['Input']['account_name']
+
+        credentials = aws_assume_role(carve_role_arn(account_id), f"carve-discovery-{region}")
+
+        for resource in ['vpcs', 'pcxs']:
+            discovered.append(discover_resources(resource, region, account_id, account_name, credentials))
 
     return discovered
 
 
 def sf_StartDiscovery():
-    ''' first step function task to build accounts/region list for discovery '''
-
-    # discover AWS Organizations accounts/regions
+    # discover AWS Organizations accounts to pass to next step
     accounts = discover_org_accounts()
-    regions = aws_all_regions()
     discovery_targets = []
     for account_id, account_name in accounts.items():
         for region in regions:
             discovery_targets.append({
                 "account_id": account_id,
-                "account_name": account_name,
-                "region": region
+                "account_name": account_name
             })
 
-    print(f"discovering VPCs/PCXs in {len(accounts)} accounts in {len(regions)} regions")
+    print(f"discovering VPCs/PCXs in {len(accounts)} accounts")
 
     # need to purge S3 discovery folder before starting new discovery
     aws_purge_s3_path('discovery/accounts/')
@@ -201,33 +197,35 @@ def sf_StartDiscovery():
 
 
 def sf_OrganizeDiscovery(event):
-    pass
 
     vpcs = []
     pcxs = []
-    for task in event:
-        if 'vpc' in task:
-            vpcs.append(task['vpc'])
-        elif 'pcxs' in task:
-            pcxs.append(task['pcxs'])
+
+    for payload in event['Input']:
+        for s3_path in payload['Payload']:
+            if 'vpcs' in s3_path:
+                vpcs.append(s3_path['vpcs'])
+            elif 'pcxs' in s3_path:
+                vpcs.append(s3_path['pcxs'])
 
     # Load all VPCs into discovered graph G
-    g_name = f"carve-discovered-{int(time.time())}"
-    G = nx.Graph(Name=g_name)
+    name = f"carve-discovered-{int(time.time())}"
+    G = nx.Graph(Name=name)
     for vpc in vpcs:
-        name = vpc.split('/')[-1]
-        if not os.path.isfile(f"/tmp/{name}"):
-            aws_get_carve_s3(vpc, f"/tmp/{name}")
-        V = load_graph(name)
+        path = f"/tmp/{vpc.split('/')[-1]}"
+        if not os.path.isfile(path):
+            aws_get_carve_s3(vpc, path)
+
+        V = load_graph(path)
         G.add_nodes_from(V.nodes.data())
 
     # Load all peering connections into temp P
     P = nx.Graph()
     for pcx in pcxs:
-        name = pcx.split('/')[-1]
-        if not os.path.isfile(f"/tmp/{name}"):
-            aws_get_carve_s3(pcx, f"/tmp/{name}")
-        X = load_graph(name)
+        path = f"/tmp/{vpc.split('/')[-1]}"
+        if not os.path.isfile(path):
+            aws_get_carve_s3(pcx, path)
+        X = load_graph(path)
         P.add_nodes_from(X.nodes.data())
 
     # add edges to G by looking at all peering connections
@@ -246,11 +244,11 @@ def sf_OrganizeDiscovery(event):
             RequesterVPCName=G.nodes[pcx[1]['RequesterVpcId']]['Name']
             )
 
-    save_graph(G, f"/tmp/{g_name}.json")
+    save_graph(G, f"/tmp/{name}.json")
 
-    aws_upload_file_carve_s3(f'discovered/{g_name}.json', f"/tmp/{g_name}.json")
+    aws_upload_file_carve_s3(f'discovered/{name}.json', f"/tmp/{name}.json")
 
-    return {'discovery': f's3://a-carve-o-dvdaw54vmt-us-east-1/discovered/{g_name}.json'}
+    return {'discovery': f's3://a-carve-o-dvdaw54vmt-us-east-1/discovered/{name}.json'}
 
 
 def discovery_steps_entrypoint(event, context):
@@ -259,8 +257,8 @@ def discovery_steps_entrypoint(event, context):
         response = sf_StartDiscovery()
         # need to return an array?
 
-    elif event['DiscoveryAction'] == 'DiscoverAccountRegion':
-        response = sf_DiscoverAccountRegion(event)
+    elif event['DiscoveryAction'] == 'DiscoverAccount':
+        response = sf_DiscoverAccount(event)
 
     elif event['DiscoveryAction'] == 'OrganizeDiscovery':
         response = sf_OrganizeDiscovery(event)

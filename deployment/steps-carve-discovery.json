@@ -20,15 +20,18 @@
       "MaxConcurrency": 0,
       "ItemsPath": "$.Payload",
       "Iterator": {
-        "StartAt": "DiscoverAccountRegion",
+        "StartAt": "DiscoverAccount",
         "States": {
-          "DiscoverAccountRegion": {
+          "DiscoverAccount": {
             "Type": "Task",
             "Resource": "arn:aws:states:::lambda:invoke",
+            "ResultSelector": {
+              "Payload.$": "$.Payload"
+            },
             "Parameters": {
               "FunctionName": "${CarveFunction}",
               "Payload": {
-                "DiscoveryAction": "DiscoverAccountRegion",
+                "DiscoveryAction": "DiscoverAccount",
                 "Input.$": "$"
               }
             },

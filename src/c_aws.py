@@ -7,8 +7,7 @@ import os
 from multiprocessing import Process, Pipe
 import time
 import shelve
-
-boto_config = Config(retries=dict(max_attempts=10))
+from boto3.session import Session
 
 
 def aws_assume_role(role_arn, session_name, token_life=900):
@@ -81,7 +80,7 @@ def aws_all_regions():
     all_regions = Session().get_available_regions('cloudformation')
     unavailable = ['af-south-1', 'eu-south-1', 'ap-east-1', 'me-south-1']
     regions = []
-    for region in regions:
+    for region in all_regions:
         if region not in unavailable:
             regions.append(region)
     return regions
