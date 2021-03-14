@@ -8,7 +8,7 @@ import pylab as plt
 import os
 import sys
 import time
-from c_aws import aws_upload_file_carve_s3, boto_config
+from c_aws import *
 from c_carve import carve_role_arn, save_graph
 
 
@@ -185,7 +185,7 @@ def sf_StartDiscovery():
     regions = Session().get_available_regions('cloudformation')
 
     discovery_targets = []
-    for account_id, account_name in accounts:
+    for account_id, account_name in accounts.items():
         for region in regions:
             discovery_targets.append({
                 "account_id": account_id,

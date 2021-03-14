@@ -8,8 +8,7 @@
       "Parameters": {
         "FunctionName": "${CarveFunction}",
         "Payload": {
-          "DiscoveryAction": "StartDiscovery",
-          "Input.$": "$"
+          "DiscoveryAction": "StartDiscovery"
         }
       },
       "Next": "ConcurrentAccountDiscovery",
