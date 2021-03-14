@@ -11,39 +11,41 @@ from c_aws import *
 from c_carve import carve_role_arn, save_graph, load_graph
 
 
-def build_org_graph(vpcs, pcxs):
+# def build_org_graph(vpcs, pcxs):
 
-    G = nx.Graph(Name=f"carve-discovered-{int(time.time())}")
+#     G = nx.Graph(Name=f"carve-discovered-{int(time.time())}")
 
-    # process responses from vpc discovery processes
-    for parent_connection in v_parent_connections:
-        R = parent_connection.recv()        
-        G.add_nodes_from(R.nodes.data())
+#     # process responses from vpc discovery processes
+#     for parent_connection in v_parent_connections:
+#         R = parent_connection.recv()        
+#         G.add_nodes_from(R.nodes.data())
 
 
-    # process responses from peering discovery processes
-    P = nx.Graph()
-    for parent_connection in p_parent_connections:
-        R = parent_connection.recv()        
-        P.add_nodes_from(R.nodes.data())
+#     # process responses from peering discovery processes
+#     P = nx.Graph()
+#     for parent_connection in p_parent_connections:
+#         R = parent_connection.recv()        
+#         P.add_nodes_from(R.nodes.data())
 
-    # add edges by looking at all peering connections
-    for pcx in P.nodes.data():
-        G.add_edge(
-            pcx[1]['AccepterVpcId'],
-            pcx[1]['RequesterVpcId'],
-            Account=pcx[1]['Account'],
-            VpcPeeringConnectionId=pcx[1]['VpcPeeringConnectionId'],
-            AccountName=accounts[pcx[1]['Account']],
-            AccepterAccount=pcx[1]['AccepterAccount'],
-            AccepterAccountName=accounts[pcx[1]['AccepterAccount']],
-            AccepterVPCName=G.nodes[pcx[1]['AccepterVpcId']]['Name'],
-            RequesterAccount=pcx[1]['RequesterAccount'],
-            RequesterAccountName=accounts[pcx[1]['RequesterAccount']],
-            RequesterVPCName=G.nodes[pcx[1]['RequesterVpcId']]['Name']
-            )
-    print('discovery complete')
-    return G
+#     accounts = discover_org_accounts()
+
+#     # add edges by looking at all peering connections
+#     for pcx in P.nodes.data():
+#         G.add_edge(
+#             pcx[1]['AccepterVpcId'],
+#             pcx[1]['RequesterVpcId'],
+#             Account=pcx[1]['Account'],
+#             VpcPeeringConnectionId=pcx[1]['VpcPeeringConnectionId'],
+#             AccountName=accounts[pcx[1]['Account']],
+#             AccepterAccount=pcx[1]['AccepterAccount'],
+#             AccepterAccountName=accounts[pcx[1]['AccepterAccount']],
+#             AccepterVPCName=G.nodes[pcx[1]['AccepterVpcId']]['Name'],
+#             RequesterAccount=pcx[1]['RequesterAccount'],
+#             RequesterAccountName=accounts[pcx[1]['RequesterAccount']],
+#             RequesterVPCName=G.nodes[pcx[1]['RequesterVpcId']]['Name']
+#             )
+#     print('discovery complete')
+#     return G
 
 
 def discover_org_accounts():
@@ -115,7 +117,7 @@ def discover_vpcs(region, account_id, account_name, credentials):
     return G
 
 
-def discover_pcxs(region, account_id, credentials):
+def discover_pcxs(region, account_id, account_name, credentials):
     ''' get peering conns in account/region, returns nx.Graph object of peering connection nodes'''
 
     G = nx.Graph()
@@ -147,7 +149,7 @@ def discover_resources(resource, region, account_id, account_name, credentials):
     if resource == 'vpcs':
         G = discover_vpcs(region, account_id, account_name, credentials)
     if resource == 'pcxs':
-        G = discover_pcxs(region, account_id, credentials)
+        G = discover_pcxs(region, account_id, account_name, credentials)
 
     name = f'{resource}_{account_id}_{region}_{int(time.time())}'
     G.graph['Name'] = name
@@ -162,30 +164,33 @@ def discover_resources(resource, region, account_id, account_name, credentials):
 def sf_DiscoverAccount(event):
     ''' second step function task for discovery, per region/account '''
 
-    regions = aws_all_regions()
+    # regions = aws_all_regions()
     discovered = []
 
-    for region in regions:
-        account_id = event['Input']['account_id']
-        account_name = event['Input']['account_name']
+    # for region in regions:
+    account_id = event['Input']['account_id']
+    account_name = event['Input']['account_name']
+    region = event['Input']['region']
 
-        credentials = aws_assume_role(carve_role_arn(account_id), f"carve-discovery-{region}")
+    credentials = aws_assume_role(carve_role_arn(account_id), f"carve-discovery-{region}")
 
-        for resource in ['vpcs', 'pcxs']:
-            discovered.append(discover_resources(resource, region, account_id, account_name, credentials))
+    for resource in ['vpcs', 'pcxs']:
+        discovered.append(discover_resources(resource, region, account_id, account_name, credentials))
 
     return discovered
 
 
 def sf_StartDiscovery():
-    # discover AWS Organizations accounts to pass to next step
+    # discover AWS Organizations accounts/regions to pass to next step
     accounts = discover_org_accounts()
+    regions = aws_all_regions()
     discovery_targets = []
     for account_id, account_name in accounts.items():
         for region in regions:
             discovery_targets.append({
                 "account_id": account_id,
-                "account_name": account_name
+                "account_name": account_name,
+                "region": region
             })
 
     print(f"discovering VPCs/PCXs in {len(accounts)} accounts")
@@ -206,7 +211,7 @@ def sf_OrganizeDiscovery(event):
             if 'vpcs' in s3_path:
                 vpcs.append(s3_path['vpcs'])
             elif 'pcxs' in s3_path:
-                vpcs.append(s3_path['pcxs'])
+                pcxs.append(s3_path['pcxs'])
 
     # Load all VPCs into discovered graph G
     name = f"carve-discovered-{int(time.time())}"
@@ -222,13 +227,14 @@ def sf_OrganizeDiscovery(event):
     # Load all peering connections into temp P
     P = nx.Graph()
     for pcx in pcxs:
-        path = f"/tmp/{vpc.split('/')[-1]}"
+        path = f"/tmp/{pcx.split('/')[-1]}"
         if not os.path.isfile(path):
             aws_get_carve_s3(pcx, path)
         X = load_graph(path)
         P.add_nodes_from(X.nodes.data())
 
     # add edges to G by looking at all peering connections
+    accounts = discover_org_accounts()
     for pcx in P.nodes.data():
         G.add_edge(
             pcx[1]['AccepterVpcId'],

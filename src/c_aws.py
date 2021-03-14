@@ -9,6 +9,7 @@ import time
 import shelve
 from boto3.session import Session
 
+boto_config = Config(retries=dict(max_attempts=10))
 
 def aws_assume_role(role_arn, session_name, token_life=900):
     # a function for this lambda to assume a given role

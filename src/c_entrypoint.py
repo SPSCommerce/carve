@@ -61,7 +61,7 @@ def lambda_handler(event, context):
         # return verify_steps_entrypoint(event)
     
     elif 'DiscoveryAction' in event:
-        print('TRIGGERED by Discovery Step Function')
+        print('TRIGGERED by Discovery Step Function')g
         return discovery_steps_entrypoint(event, context)
 
     # elif 'Discovery' in event:

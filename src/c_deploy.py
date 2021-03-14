@@ -26,7 +26,7 @@ def deploy_carve_endpoints(event, context):
     #   - vpc name
     #   - temporary IAM credentials
 
-    # read graph from s3 event
+    # read graph from s3 key in event
     key = event['Records'][0]['s3']['object']['key']
     print(f'deploying graph: {key}')
 
@@ -39,7 +39,7 @@ def deploy_carve_endpoints(event, context):
         print(f'error loading graph: {e}')
         sys.exit()
 
-    # move deployment object immediately
+    # move deployment object to deploy_started path
     filename = key.split('/')[-1]
     deploy_key = f"deploy_started/{filename}"
     aws_copy_s3_object(key, deploy_key, region)
@@ -49,25 +49,35 @@ def deploy_carve_endpoints(event, context):
     for file in os.listdir('deployment'):
         aws_upload_file_carve_s3(f'deploy_templates/{file}', f'{os.getcwd()}/deployment/{file}')
 
-    # create all IAM assumed role sessions for deployment now, and store their credentials
+    # determine accounts carve will deploy to
     accounts = set()
     for vpc in list(G.nodes):
         accounts.add(G.nodes().data()[vpc]['Account'])
 
+    # use the graph name if it contains one
     if 'Name' in G.graph:
         graph_name = G.graph['Name']
     else:
         graph_name = f'c_deployed_{int(time.time())}'
 
-    subnets = subnet_rank(G)
+    # create a ranking of AZ from most to least occuring
+    azs_ranked = az_rank(G)
 
     deployment_targets = []
     for vpc in list(G.nodes):
         vpc_data = G.nodes().data()[vpc]
         target = {}
-        for subnet in vpc_data['Subnets']:
-            target['SubnetId'] = subnet
-            break
+
+        # select the subnet in the most occuring AZ
+        s = False
+        while not s:
+            for ranked_az in azs_ranked:
+                for subnet in vpc_data['Subnets']:
+                    az = subnet['AvailabilityZoneId']
+                    if az == ranked_az[0]:
+                        target['SubnetId'] = subnet['SubnetId']
+                        s = True
+
         target['Account'] = vpc_data['Account']
         target['GraphName'] = graph_name
         target['Region'] = vpc_data['Region']
@@ -86,16 +96,18 @@ def deploy_carve_endpoints(event, context):
     # mock_stepfunction(os.environ['CarveDeployStepFunction'], deployment_targets)
 
 
-def subnet_rank(G):
-    subnets = {}
+def az_rank(G):
+    # sort all AZs in graph by most to least used
+    azs = {}
     for vpc in list(G.nodes):
         vpc_data = G.nodes().data()[vpc]
         for subnet in vpc_data['Subnets']:
-            if subnet in subnets:
-                subnets[subnet] = subnets[subnet] + 1
+            az = subnet['AvailabilityZoneId']
+            if az in azs.keys():
+                azs[az] = azs[az] + 1
             else:
-                subnets[subnet] = 1
-    return subnet(sorted(subnets.items(), key=lambda item: item[1]))
+                azs[az] = 1
+    return sorted(azs.items(), key=lambda x: x[1], reverse=True)
 
 
 def seed_deployment_files():
@@ -144,11 +156,14 @@ def sf_DescribeChangeSetExecution(event):
 
 
 def sf_DescribeChangeSet(event):
-    stackname = f"carve-endpoint-{event['VpcId']}"
+    account = event['Input']['Payload']['Account']
+    region = event['Input']['Payload']['Region']
+
+    credentials = aws_assume_role(carve_role_arn(account), f"carve-changeset-{region}")
     response = aws_describe_change_set(
-        stackname=event['Input']['StackName'],
-        region=event['Input']['Region'],
-        credentials=event['Input']['Credentials']
+        stackname=event['Input']['Payload']['StackName'],
+        region=region,
+        credentials=credentials
         )
     # create payload for next step in state machine
     payload = deepcopy(event['Input'])
@@ -158,19 +173,23 @@ def sf_DescribeChangeSet(event):
 
 
 def sf_CreateChangeSet(event):
-    credentials = aws_assume_role(carve_role_arn(account), f"carve-cleanup-{region}")
+    account = event['Input']['Payload']['Account']
+
+    credentials = aws_assume_role(carve_role_arn(account), f"carve-changeset-{region}")
+
     template_url = f"https://s3.amazonaws.com/{os.environ['CarveS3Bucket']}/deploy_templates/carve-vpc.sam.yml"
+
     parameters = {
-        "VpcId": event['Input']['VpcId'],
-        "VpcEndpointSubnetIds": event['Input']['SubnetId'],
+        "VpcId": event['Input']['Payload']['VpcId'],
+        "VpcEndpointSubnetIds": event['Input']['Payload']['SubnetId'],
         "CarveSNSTopicArn": os.environ['CarveSNSTopicArn'],
         "OrganizationsId": os.environ['OrganizationsId'],
         "CarveVersion": os.environ['CarveVersion'],
         }
 
     changeset_name = aws_create_changeset(
-        stackname=event['Input']['StackName'],
-        region=event['Input']['Region'],
+        stackname=event['Input']['Payload']['StackName'],
+        region=event['Input']['Payload']['Region'],
         template_url=template_url,
         parameters=parameters,
         credentials=credentials,
@@ -185,15 +204,19 @@ def sf_CreateChangeSet(event):
 
 
 def sf_DescribeStack(event):
-    stackname = f"carve-endpoint-{event['VpcId']}"
+    stackname = f"carve-endpoint-{event['Input']['Payload']['VpcId']}"
+    account = event['Input']['Payload']['Account']
+
+    credentials = aws_assume_role(carve_role_arn(account), f"carve-deploy-{event['Input']['Payload']['Region']}")
+
     response = aws_describe_stack(
-        stackname=event['Input']['StackName'],
-        region=event['Input']['Region'],
-        credentials=event['Input']['Credentials']
+        stackname=event['Input']['Payload']['StackName'],
+        region=event['Input']['Payload']['Region'],
+        credentials=credentials
         )
 
     # create payload for next step in state machine
-    payload = deepcopy(event['Input'])
+    payload = deepcopy(event['Input']['Payload'])
     payload['StackStatus'] = response['StackStatus']
 
     return payload
@@ -201,14 +224,15 @@ def sf_DescribeStack(event):
 
 def sf_DeleteStack(event):
 
-    account = event['Input']['Account']
+    account = event['Input']['Payload']['Account']
+    region = event['Input']['Payload']['Region']
 
     credentials = aws_assume_role(carve_role_arn(account), f"carve-cleanup-{region}")
 
     aws_delete_stack(
-        stackname=event['Input']['StackName'],
-        region=event['Input']['Region'],
-        credentials=account)
+        stackname=event['Input']['Payload']['StackName'],
+        region=event['Input']['Payload']['Region'],
+        credentials=credentials)
 
     payload = deepcopy(event['Input'])
     return payload
@@ -216,11 +240,12 @@ def sf_DeleteStack(event):
 
 def sf_OrganizeDeletions(event):
     delete_stacks = []
-    for task in event:
+    for task in event['Input']['Payload']:
         if 'StackName' in task:
-            delete_stacks.append(task)
+            delete_stacks.append(deepcopy(task))
 
     return delete_stacks
+
 
 
 def sf_CleanupDeployments(event, context):
@@ -229,10 +254,9 @@ def sf_CleanupDeployments(event, context):
 
     # swipe the GraphName from one of the tasks, need to load deployed graph from S3
     graph_name = None
-    for task in event:
+    for task in event['Input']['Payload']:
         if 'GraphName' in task:
             graph_name = task['GraphName']
-            role = task['Role']
             break
 
     if graph_name is None:
@@ -240,9 +264,8 @@ def sf_CleanupDeployments(event, context):
         sys.exit()
 
 
-    # need all accounts in the org
+    # need all accounts & regions
     accounts = discover_org_accounts()
-
     regions = aws_all_regions()
 
     # create discovery list of all accounts/regions for step function
@@ -276,9 +299,9 @@ def sf_DeploymentComplete(event):
 
 def sf_DiscoverCarveStacks(event):
 
-    account = event['Input']['Account']
-    region = event['Input']['Region']
-    graph_name = event['Input']['GraphName']
+    account = event['Input']['Payload']['Account']
+    region = event['Input']['Payload']['Region']
+    graph_name = event['Input']['Payload']['GraphName']
 
     credentials = aws_assume_role(carve_role_arn(account), f"carve-cleanup-{region}")
 
@@ -318,7 +341,11 @@ def sf_CreateCarveStack(event, context):
     stackname = f"{os.environ['ResourcePrefix']}carve-endpoint-{event['Input']['VpcId']}"
     print(f"Deploy {stackname} to {event['Input']['Account']} in {event['Input']['Region']}")
 
-    credentials = aws_assume_role(event['Input']['Role'], f"carve-deploy-{event['Input']['VpcId']}")
+    account = event['Input']['Account']
+
+    credentials = aws_assume_role(carve_role_arn(account), f"carve-deploy-{event['Input']['VpcId']}")
+
+    tags = aws_get_carve_tags(context.invoked_function_arn)
 
     response = aws_describe_stack(
         stackname=stackname,
@@ -344,13 +371,12 @@ def sf_CreateCarveStack(event, context):
             template_url=template_url,
             parameters=parameters,
             credentials=credentials,
-            tags=aws_get_carve_tags(context.invoked_function_arn)
+            tags=tags
             )
 
     # create payload for next step in state machine
     payload = deepcopy(event['Input'])
     payload['StackName'] = stackname
-    payload['Tags'] = tags
 
     return payload
 

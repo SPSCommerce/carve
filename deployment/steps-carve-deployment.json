@@ -12,6 +12,9 @@
           "CreateCarveStack": {
             "Type": "Task",
             "Resource":"arn:aws:states:::lambda:invoke",
+            "ResultSelector": {
+              "Payload.$": "$.Payload"
+            },
             "Parameters": {
               "FunctionName": "${CarveFunction}",
               "Payload": {
@@ -25,6 +28,9 @@
           "DescribeStackCreation": {
             "Type": "Task",
             "Resource":"arn:aws:states:::lambda:invoke",
+            "ResultSelector": {
+              "Payload.$": "$.Payload"
+            },
             "Parameters": {
               "FunctionName": "${CarveFunction}",
               "Payload": {
@@ -50,18 +56,18 @@
             "Type": "Choice",
             "Choices": [
               {
-                "Variable": "$.StackStatus",
+                "Variable": "$.Payload.StackStatus",
                 "StringEquals": "CREATE_COMPLETE",
                 "Next": "CreateChangeSet"
               },
               {
                 "Or": [
                   {
-                    "Variable": "$.StackStatus",
+                    "Variable": "$.Payload.StackStatus",
                     "StringEquals": "CREATE_PENDING"
                   },
                   {
-                    "Variable": "$.StackStatus",
+                    "Variable": "$.Payload.StackStatus",
                     "StringEquals": "CREATE_IN_PROGRESS"
                   }
                 ],
@@ -70,23 +76,23 @@
               {
                 "Or": [
                   {
-                    "Variable": "$.StackStatus",
+                    "Variable": "$.Payload.StackStatus",
                     "StringEquals": "DELETE_PENDING"
                   },
                   {
-                    "Variable": "$.StackStatus",
+                    "Variable": "$.Payload.StackStatus",
                     "StringEquals": "DELETE_IN_PROGRESS"
                   },
                   {
-                    "Variable": "$.StackStatus",
+                    "Variable": "$.Payload.StackStatus",
                     "StringEquals": "DELETE_COMPLETE"
                   },
                   {
-                    "Variable": "$.StackStatus",
+                    "Variable": "$.Payload.StackStatus",
                     "StringEquals": "DELETE_FAILED"
                   },
                   {
-                    "Variable": "$.StackStatus",
+                    "Variable": "$.Payload.StackStatus",
                     "StringEquals": "FAILED"
                   }
                 ],
@@ -97,6 +103,9 @@
           "CreateChangeSet": {
             "Type": "Task",
             "Resource":"arn:aws:states:::lambda:invoke",
+            "ResultSelector": {
+              "Payload.$": "$.Payload"
+            },
             "Parameters": {
               "FunctionName": "${CarveFunction}",
               "Payload": {
@@ -110,6 +119,9 @@
           "DescribeChangeSet": {
             "Type": "Task",
             "Resource":"arn:aws:states:::lambda:invoke",
+            "ResultSelector": {
+              "Payload.$": "$.Payload"
+            },
             "Parameters": {
               "FunctionName": "${CarveFunction}",
               "Payload": {
@@ -131,11 +143,11 @@
               {
                 "Or": [
                   {
-                    "Variable": "$.ChangeSetStatus",
+                    "Variable": "$.Payload.ChangeSetStatus",
                     "StringEquals": "CREATE_PENDING"
                   },
                   {
-                    "Variable": "$.ChangeSetStatus",
+                    "Variable": "$.Payload.ChangeSetStatus",
                     "StringEquals": "CREATE_IN_PROGRESS"
                   }
                 ],
@@ -144,23 +156,23 @@
               {
                 "Or": [
                   {
-                    "Variable": "$.ChangeSetStatus",
+                    "Variable": "$.Payload.ChangeSetStatus",
                     "StringEquals": "DELETE_PENDING"
                   },
                   {
-                    "Variable": "$.ChangeSetStatus",
+                    "Variable": "$.Payload.ChangeSetStatus",
                     "StringEquals": "DELETE_IN_PROGRESS"
                   },
                   {
-                    "Variable": "$.ChangeSetStatus",
+                    "Variable": "$.Payload.ChangeSetStatus",
                     "StringEquals": "DELETE_COMPLETE"
                   },
                   {
-                    "Variable": "$.ChangeSetStatus",
+                    "Variable": "$.Payload.ChangeSetStatus",
                     "StringEquals": "DELETE_FAILED"
                   },
                   {
-                    "Variable": "$.ChangeSetStatus",
+                    "Variable": "$.Payload.ChangeSetStatus",
                     "StringEquals": "FAILED"
                   }
                 ],
@@ -176,6 +188,9 @@
           "ExecuteChangeSet": {
             "Type": "Task",
             "Resource":"arn:aws:states:::lambda:invoke",
+            "ResultSelector": {
+              "Payload.$": "$.Payload"
+            },
             "Parameters": {
               "FunctionName": "${CarveFunction}",
               "Payload": {
@@ -189,6 +204,9 @@
           "DescribeChangeSetExecution": {
             "Type": "Task",
             "Resource":"arn:aws:states:::lambda:invoke",
+            "ResultSelector": {
+              "Payload.$": "$.Payload"
+            },
             "Parameters": {
               "FunctionName": "${CarveFunction}",
               "Payload": {
@@ -208,18 +226,18 @@
             "Type": "Choice",
             "Choices": [
               {
-                "Variable": "$.ExecuteChangeSetStatus",
+                "Variable": "$.Payload.ExecuteChangeSetStatus",
                 "StringEquals": "EXECUTE_COMPLETE",
                 "Next": "Succeed"
               },
               {
                 "Or": [
                   {
-                    "Variable": "$.ExecuteChangeSetStatus",
+                    "Variable": "$.Payload.ExecuteChangeSetStatus",
                     "StringEquals": "AVAILABLE"
                   },
                   {
-                    "Variable": "$.ExecuteChangeSetStatus",
+                    "Variable": "$.Payload.ExecuteChangeSetStatus",
                     "StringEquals": "EXECUTE_IN_PROGRESS"
                   }
                 ],
@@ -228,15 +246,15 @@
               {
                 "Or": [
                   {
-                    "Variable": "$.ExecuteChangeSetStatus",
+                    "Variable": "$.Payload.ExecuteChangeSetStatus",
                     "StringEquals": "UNAVAILABLE"
                   },
                   {
-                    "Variable": "$.ExecuteChangeSetStatus",
+                    "Variable": "$.Payload.ExecuteChangeSetStatus",
                     "StringEquals": "EXECUTE_FAILED"
                   },
                   {
-                    "Variable": "$.ExecuteChangeSetStatus",
+                    "Variable": "$.Payload.ExecuteChangeSetStatus",
                     "StringEquals": "OBSOLETE"
                   }
                 ],
@@ -250,6 +268,9 @@
     "CleanupDeployments": {
       "Type": "Task",
       "Resource":"arn:aws:states:::lambda:invoke",
+      "ResultSelector": {
+        "Payload.$": "$.Payload"
+      },
       "Parameters": {
         "FunctionName": "${CarveFunction}",
         "Payload": {
@@ -270,6 +291,9 @@
           "DiscoverCarveStacks": {
             "Type": "Task",
             "Resource":"arn:aws:states:::lambda:invoke",
+            "ResultSelector": {
+              "Payload.$": "$.Payload"
+            },
             "Parameters": {
               "FunctionName": "${CarveFunction}",
               "Payload": {
@@ -286,6 +310,9 @@
     "OrganizeDeletions": {
       "Type": "Task",
       "Resource":"arn:aws:states:::lambda:invoke",
+      "ResultSelector": {
+        "Payload.$": "$.Payload"
+      },
       "Parameters": {
         "FunctionName": "${CarveFunction}",
         "Payload": {
@@ -306,6 +333,9 @@
           "DeleteStack": {
             "Type": "Task",
             "Resource":"arn:aws:states:::lambda:invoke",
+            "ResultSelector": {
+              "Payload.$": "$.Payload"
+            },
             "Parameters": {
               "FunctionName": "${CarveFunction}",
               "Payload": {
@@ -319,6 +349,9 @@
           "DescribeDeleteStack": {
             "Type": "Task",
             "Resource":"arn:aws:states:::lambda:invoke",
+            "ResultSelector": {
+              "Payload.$": "$.Payload"
+            },
             "Parameters": {
               "FunctionName": "${CarveFunction}",
               "Payload": {
@@ -344,18 +377,18 @@
             "Type": "Choice",
             "Choices": [
               {
-                "Variable": "$.StackStatus",
+                "Variable": "$.Payload.StackStatus",
                 "StringEquals": "DELETE_COMPLETE",
                 "Next": "DeleteSucceed"
               },
               {
                 "Or": [
                   {
-                    "Variable": "$.StackStatus",
+                    "Variable": "$.Payload.StackStatus",
                     "StringEquals": "DELETE_PENDING"
                   },
                   {
-                    "Variable": "$.StackStatus",
+                    "Variable": "$.Payload.StackStatus",
                     "StringEquals": "DELETE_IN_PROGRESS"
                   }
                 ],
@@ -364,23 +397,23 @@
               {
                 "Or": [
                   {
-                    "Variable": "$.StackStatus",
+                    "Variable": "$.Payload.StackStatus",
                     "StringEquals": "CREATE_COMPLETE"
                   },
                   {
-                    "Variable": "$.StackStatus",
+                    "Variable": "$.Payload.StackStatus",
                     "StringEquals": "CREATE_IN_PROGRESS"
                   },
                   {
-                    "Variable": "$.StackStatus",
+                    "Variable": "$.Payload.StackStatus",
                     "StringEquals": "CREATE_PENDING"
                   },
                   {
-                    "Variable": "$.StackStatus",
+                    "Variable": "$.Payload.StackStatus",
                     "StringEquals": "DELETE_FAILED"
                   },
                   {
-                    "Variable": "$.StackStatus",
+                    "Variable": "$.Payload.StackStatus",
                     "StringEquals": "FAILED"
                   }
                 ],
