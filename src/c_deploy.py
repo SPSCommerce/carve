@@ -156,12 +156,14 @@ def sf_DescribeChangeSetExecution(event):
 
 
 def sf_DescribeChangeSet(event):
-    account = event['Input']['Payload']['Account']
-    region = event['Input']['Payload']['Region']
+    payload = json.loads(event['Input']['Payload'])
+
+    account = payload['Account']
+    region = payload['Region']
 
     credentials = aws_assume_role(carve_role_arn(account), f"carve-changeset-{region}")
     response = aws_describe_change_set(
-        stackname=event['Input']['Payload']['StackName'],
+        stackname=payload['StackName'],
         region=region,
         credentials=credentials
         )
@@ -173,23 +175,25 @@ def sf_DescribeChangeSet(event):
 
 
 def sf_CreateChangeSet(event):
-    account = event['Input']['Payload']['Account']
+    payload = json.loads(payload)
+
+    account = payload['Account']
 
     credentials = aws_assume_role(carve_role_arn(account), f"carve-changeset-{region}")
 
     template_url = f"https://s3.amazonaws.com/{os.environ['CarveS3Bucket']}/deploy_templates/carve-vpc.sam.yml"
 
     parameters = {
-        "VpcId": event['Input']['Payload']['VpcId'],
-        "VpcEndpointSubnetIds": event['Input']['Payload']['SubnetId'],
+        "VpcId": payload['VpcId'],
+        "VpcEndpointSubnetIds": payload['SubnetId'],
         "CarveSNSTopicArn": os.environ['CarveSNSTopicArn'],
         "OrganizationsId": os.environ['OrganizationsId'],
         "CarveVersion": os.environ['CarveVersion'],
         }
 
     changeset_name = aws_create_changeset(
-        stackname=event['Input']['Payload']['StackName'],
-        region=event['Input']['Payload']['Region'],
+        stackname=payload['StackName'],
+        region=payload['Region'],
         template_url=template_url,
         parameters=parameters,
         credentials=credentials,
@@ -204,34 +208,37 @@ def sf_CreateChangeSet(event):
 
 
 def sf_DescribeStack(event):
-    stackname = f"carve-endpoint-{event['Input']['Payload']['VpcId']}"
-    account = event['Input']['Payload']['Account']
+    payload = json.loads(event['Input']['Payload'])
 
-    credentials = aws_assume_role(carve_role_arn(account), f"carve-deploy-{event['Input']['Payload']['Region']}")
+    stackname = f"carve-endpoint-{payload['VpcId']}"
+    account = payload['Account']
+
+    credentials = aws_assume_role(carve_role_arn(account), f"carve-deploy-{payload['Region']}")
 
     response = aws_describe_stack(
-        stackname=event['Input']['Payload']['StackName'],
-        region=event['Input']['Payload']['Region'],
+        stackname=payload['StackName'],
+        region=payload['Region'],
         credentials=credentials
         )
 
     # create payload for next step in state machine
-    payload = deepcopy(event['Input']['Payload'])
+    payload = deepcopy(payload)
     payload['StackStatus'] = response['StackStatus']
 
     return payload
 
 
 def sf_DeleteStack(event):
+    payload = json.loads(event['Input']['Payload'])
 
-    account = event['Input']['Payload']['Account']
-    region = event['Input']['Payload']['Region']
+    account = payload['Account']
+    region = payload['Region']
 
     credentials = aws_assume_role(carve_role_arn(account), f"carve-cleanup-{region}")
 
     aws_delete_stack(
-        stackname=event['Input']['Payload']['StackName'],
-        region=event['Input']['Payload']['Region'],
+        stackname=payload['StackName'],
+        region=payload['Region'],
         credentials=credentials)
 
     payload = deepcopy(event['Input'])
@@ -239,8 +246,9 @@ def sf_DeleteStack(event):
 
 
 def sf_OrganizeDeletions(event):
+    payload = json.loads(event['Input']['Payload'])
     delete_stacks = []
-    for task in event['Input']['Payload']:
+    for task in payload:
         if 'StackName' in task:
             delete_stacks.append(deepcopy(task))
 
@@ -253,8 +261,10 @@ def sf_CleanupDeployments(event, context):
     # event will be a json array of all final DescribeChangeSetExecution tasks
 
     # swipe the GraphName from one of the tasks, need to load deployed graph from S3
+    payload = json.loads(event['Input']['Payload'])
+
     graph_name = None
-    for task in event['Input']['Payload']:
+    for task in payload:
         if 'GraphName' in task:
             graph_name = task['GraphName']
             break
@@ -298,10 +308,11 @@ def sf_DeploymentComplete(event):
 
 
 def sf_DiscoverCarveStacks(event):
+    payload = json.loads(event['Input']['Payload'])
 
-    account = event['Input']['Payload']['Account']
-    region = event['Input']['Payload']['Region']
-    graph_name = event['Input']['Payload']['GraphName']
+    account = payload['Account']
+    region = payload['Region']
+    graph_name = payload['GraphName']
 
     credentials = aws_assume_role(carve_role_arn(account), f"carve-cleanup-{region}")
 
