@@ -13,7 +13,7 @@
             "Type": "Task",
             "Resource":"arn:aws:states:::lambda:invoke",
             "ResultSelector": {
-              "Payload.$": "$.Payload"
+              "Payload.$": "States.StringToJson($.Payload)"
             },
             "Parameters": {
               "FunctionName": "${CarveFunction}",
@@ -29,7 +29,7 @@
             "Type": "Task",
             "Resource":"arn:aws:states:::lambda:invoke",
             "ResultSelector": {
-              "Payload.$": "$.Payload"
+              "Payload.$": "States.StringToJson($.Payload)"
             },
             "Parameters": {
               "FunctionName": "${CarveFunction}",
@@ -54,20 +54,21 @@
           },
           "CreateStackStatusChoice": {
             "Type": "Choice",
+            "InputPath": "$.Payload",
             "Choices": [
               {
-                "Variable": "$.Payload.StackStatus",
+                "Variable": "$.StackStatus",
                 "StringEquals": "CREATE_COMPLETE",
                 "Next": "CreateChangeSet"
               },
               {
                 "Or": [
                   {
-                    "Variable": "$.Payload.StackStatus",
+                    "Variable": "$.StackStatus",
                     "StringEquals": "CREATE_PENDING"
                   },
                   {
-                    "Variable": "$.Payload.StackStatus",
+                    "Variable": "$.StackStatus",
                     "StringEquals": "CREATE_IN_PROGRESS"
                   }
                 ],
@@ -76,23 +77,23 @@
               {
                 "Or": [
                   {
-                    "Variable": "$.Payload.StackStatus",
+                    "Variable": "$.StackStatus",
                     "StringEquals": "DELETE_PENDING"
                   },
                   {
-                    "Variable": "$.Payload.StackStatus",
+                    "Variable": "$.StackStatus",
                     "StringEquals": "DELETE_IN_PROGRESS"
                   },
                   {
-                    "Variable": "$.Payload.StackStatus",
+                    "Variable": "$.StackStatus",
                     "StringEquals": "DELETE_COMPLETE"
                   },
                   {
-                    "Variable": "$.Payload.StackStatus",
+                    "Variable": "$.StackStatus",
                     "StringEquals": "DELETE_FAILED"
                   },
                   {
-                    "Variable": "$.Payload.StackStatus",
+                    "Variable": "$.StackStatus",
                     "StringEquals": "FAILED"
                   }
                 ],
@@ -104,7 +105,7 @@
             "Type": "Task",
             "Resource":"arn:aws:states:::lambda:invoke",
             "ResultSelector": {
-              "Payload.$": "$.Payload"
+              "Payload.$": "States.StringToJson($.Payload)"
             },
             "Parameters": {
               "FunctionName": "${CarveFunction}",
@@ -120,7 +121,7 @@
             "Type": "Task",
             "Resource":"arn:aws:states:::lambda:invoke",
             "ResultSelector": {
-              "Payload.$": "$.Payload"
+              "Payload.$": "States.StringToJson($.Payload)"
             },
             "Parameters": {
               "FunctionName": "${CarveFunction}",
@@ -189,7 +190,7 @@
             "Type": "Task",
             "Resource":"arn:aws:states:::lambda:invoke",
             "ResultSelector": {
-              "Payload.$": "$.Payload"
+              "Payload.$": "States.StringToJson($.Payload)"
             },
             "Parameters": {
               "FunctionName": "${CarveFunction}",
@@ -205,7 +206,7 @@
             "Type": "Task",
             "Resource":"arn:aws:states:::lambda:invoke",
             "ResultSelector": {
-              "Payload.$": "$.Payload"
+              "Payload.$": "States.StringToJson($.Payload)"
             },
             "Parameters": {
               "FunctionName": "${CarveFunction}",
@@ -269,7 +270,7 @@
       "Type": "Task",
       "Resource":"arn:aws:states:::lambda:invoke",
       "ResultSelector": {
-        "Payload.$": "$.Payload"
+        "Payload.$": "States.StringToJson($.Payload)"
       },
       "Parameters": {
         "FunctionName": "${CarveFunction}",
@@ -292,7 +293,7 @@
             "Type": "Task",
             "Resource":"arn:aws:states:::lambda:invoke",
             "ResultSelector": {
-              "Payload.$": "$.Payload"
+              "Payload.$": "States.StringToJson($.Payload)"
             },
             "Parameters": {
               "FunctionName": "${CarveFunction}",
@@ -311,7 +312,7 @@
       "Type": "Task",
       "Resource":"arn:aws:states:::lambda:invoke",
       "ResultSelector": {
-        "Payload.$": "$.Payload"
+        "Payload.$": "States.StringToJson($.Payload)"
       },
       "Parameters": {
         "FunctionName": "${CarveFunction}",
@@ -334,7 +335,7 @@
             "Type": "Task",
             "Resource":"arn:aws:states:::lambda:invoke",
             "ResultSelector": {
-              "Payload.$": "$.Payload"
+              "Payload.$": "States.StringToJson($.Payload)"
             },
             "Parameters": {
               "FunctionName": "${CarveFunction}",
@@ -350,7 +351,7 @@
             "Type": "Task",
             "Resource":"arn:aws:states:::lambda:invoke",
             "ResultSelector": {
-              "Payload.$": "$.Payload"
+              "Payload.$": "States.StringToJson($.Payload)"
             },
             "Parameters": {
               "FunctionName": "${CarveFunction}",

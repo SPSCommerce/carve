@@ -156,7 +156,8 @@ def sf_DescribeChangeSetExecution(event):
 
 
 def sf_DescribeChangeSet(event):
-    payload = json.loads(event['Input']['Payload'])
+    payload = event['Input']['Payload']
+    # payload = json.loads(event['Input']['Payload'])
 
     account = payload['Account']
     region = payload['Region']
@@ -175,7 +176,8 @@ def sf_DescribeChangeSet(event):
 
 
 def sf_CreateChangeSet(event):
-    payload = json.loads(payload)
+    # payload = json.loads(event['Input']['Payload'])
+    payload = event['Input']['Payload']
 
     account = payload['Account']
 
@@ -208,7 +210,8 @@ def sf_CreateChangeSet(event):
 
 
 def sf_DescribeStack(event):
-    payload = json.loads(event['Input']['Payload'])
+    # payload = json.loads(event['Input']['Payload'])
+    payload = event['Input']['Payload']
 
     stackname = f"carve-endpoint-{payload['VpcId']}"
     account = payload['Account']
@@ -229,7 +232,8 @@ def sf_DescribeStack(event):
 
 
 def sf_DeleteStack(event):
-    payload = json.loads(event['Input']['Payload'])
+    payload = event['Input']['Payload']
+    # payload = json.loads(event['Input']['Payload'])
 
     account = payload['Account']
     region = payload['Region']
@@ -246,7 +250,8 @@ def sf_DeleteStack(event):
 
 
 def sf_OrganizeDeletions(event):
-    payload = json.loads(event['Input']['Payload'])
+    payload = event['Input']['Payload']
+    # payload = json.loads(event['Input']['Payload'])
     delete_stacks = []
     for task in payload:
         if 'StackName' in task:
@@ -261,7 +266,8 @@ def sf_CleanupDeployments(event, context):
     # event will be a json array of all final DescribeChangeSetExecution tasks
 
     # swipe the GraphName from one of the tasks, need to load deployed graph from S3
-    payload = json.loads(event['Input']['Payload'])
+    # payload = json.loads(event['Input']['Payload'])
+    payload = event['Input']['Payload']
 
     graph_name = None
     for task in payload:
@@ -308,7 +314,8 @@ def sf_DeploymentComplete(event):
 
 
 def sf_DiscoverCarveStacks(event):
-    payload = json.loads(event['Input']['Payload'])
+    payload = event['Input']['Payload']
+    # payload = json.loads(event['Input']['Payload'])
 
     account = payload['Account']
     region = payload['Region']
