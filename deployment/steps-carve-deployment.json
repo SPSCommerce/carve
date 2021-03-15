@@ -144,11 +144,11 @@
               {
                 "Or": [
                   {
-                    "Variable": "$.Payload.ChangeSetStatus",
+                    "Variable": "$.ChangeSetStatus",
                     "StringEquals": "CREATE_PENDING"
                   },
                   {
-                    "Variable": "$.Payload.ChangeSetStatus",
+                    "Variable": "$.ChangeSetStatus",
                     "StringEquals": "CREATE_IN_PROGRESS"
                   }
                 ],
@@ -157,23 +157,23 @@
               {
                 "Or": [
                   {
-                    "Variable": "$.Payload.ChangeSetStatus",
+                    "Variable": "$.ChangeSetStatus",
                     "StringEquals": "DELETE_PENDING"
                   },
                   {
-                    "Variable": "$.Payload.ChangeSetStatus",
+                    "Variable": "$.ChangeSetStatus",
                     "StringEquals": "DELETE_IN_PROGRESS"
                   },
                   {
-                    "Variable": "$.Payload.ChangeSetStatus",
+                    "Variable": "$.ChangeSetStatus",
                     "StringEquals": "DELETE_COMPLETE"
                   },
                   {
-                    "Variable": "$.Payload.ChangeSetStatus",
+                    "Variable": "$.ChangeSetStatus",
                     "StringEquals": "DELETE_FAILED"
                   },
                   {
-                    "Variable": "$.Payload.ChangeSetStatus",
+                    "Variable": "$.ChangeSetStatus",
                     "StringEquals": "FAILED"
                   }
                 ],
@@ -227,18 +227,18 @@
             "Type": "Choice",
             "Choices": [
               {
-                "Variable": "$.Payload.ExecuteChangeSetStatus",
+                "Variable": "$.ExecuteChangeSetStatus",
                 "StringEquals": "EXECUTE_COMPLETE",
                 "Next": "Succeed"
               },
               {
                 "Or": [
                   {
-                    "Variable": "$.Payload.ExecuteChangeSetStatus",
+                    "Variable": "$.ExecuteChangeSetStatus",
                     "StringEquals": "AVAILABLE"
                   },
                   {
-                    "Variable": "$.Payload.ExecuteChangeSetStatus",
+                    "Variable": "$.ExecuteChangeSetStatus",
                     "StringEquals": "EXECUTE_IN_PROGRESS"
                   }
                 ],
@@ -247,15 +247,15 @@
               {
                 "Or": [
                   {
-                    "Variable": "$.Payload.ExecuteChangeSetStatus",
+                    "Variable": "$.ExecuteChangeSetStatus",
                     "StringEquals": "UNAVAILABLE"
                   },
                   {
-                    "Variable": "$.Payload.ExecuteChangeSetStatus",
+                    "Variable": "$.ExecuteChangeSetStatus",
                     "StringEquals": "EXECUTE_FAILED"
                   },
                   {
-                    "Variable": "$.Payload.ExecuteChangeSetStatus",
+                    "Variable": "$.ExecuteChangeSetStatus",
                     "StringEquals": "OBSOLETE"
                   }
                 ],
@@ -378,18 +378,18 @@
             "Type": "Choice",
             "Choices": [
               {
-                "Variable": "$.Payload.StackStatus",
+                "Variable": "$.StackStatus",
                 "StringEquals": "DELETE_COMPLETE",
                 "Next": "DeleteSucceed"
               },
               {
                 "Or": [
                   {
-                    "Variable": "$.Payload.StackStatus",
+                    "Variable": "$.StackStatus",
                     "StringEquals": "DELETE_PENDING"
                   },
                   {
-                    "Variable": "$.Payload.StackStatus",
+                    "Variable": "$.StackStatus",
                     "StringEquals": "DELETE_IN_PROGRESS"
                   }
                 ],
@@ -398,23 +398,23 @@
               {
                 "Or": [
                   {
-                    "Variable": "$.Payload.StackStatus",
+                    "Variable": "$.StackStatus",
                     "StringEquals": "CREATE_COMPLETE"
                   },
                   {
-                    "Variable": "$.Payload.StackStatus",
+                    "Variable": "$.StackStatus",
                     "StringEquals": "CREATE_IN_PROGRESS"
                   },
                   {
-                    "Variable": "$.Payload.StackStatus",
+                    "Variable": "$.StackStatus",
                     "StringEquals": "CREATE_PENDING"
                   },
                   {
-                    "Variable": "$.Payload.StackStatus",
+                    "Variable": "$.StackStatus",
                     "StringEquals": "DELETE_FAILED"
                   },
                   {
-                    "Variable": "$.Payload.StackStatus",
+                    "Variable": "$.StackStatus",
                     "StringEquals": "FAILED"
                   }
                 ],
