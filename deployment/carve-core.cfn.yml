@@ -38,12 +38,15 @@ Resources:
           OrganizationsId: !Ref OrganizationsId
           CarveS3Bucket: !Sub "${ResourcePrefix}carve-${OrganizationsId}-${AWS::Region}"
           CodeBucket: !Ref CodeBucket
+          CodeKey: !Sub "lambda_packages/${GITSHA}/package.zip"
           GITSHA: !Ref GITSHA
-          CarveSNSTopic: !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${SNSTopic}"
+          CarveSNSTopicArn: !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${SNSTopic}"
           MPLCONFIGDIR: /tmp/matplotlib
           ResourcePrefix: !Ref ResourcePrefix
-          CarveDeployStepFunction: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ResourcePrefix}carve-deployment-statemachine"
-          CarveDiscoveryStepFunction: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ResourcePrefix}carve-deployment-statemachine"
+          CleanupStateMachine: !Sub "${ResourcePrefix}carve-cleanup-statemachine"
+          DeployEndpointsStateMachine: !Sub "${ResourcePrefix}carve-deploy-endpoints-statemachine"
+          DeployStacksStateMachine: !Sub "${ResourcePrefix}carve-deploy-stacks-statemachine"
+          DiscoveryStateMachine: !Sub "${ResourcePrefix}carve-discovery-statemachine"
           CarveVersion: !Ref CarveVersion
       Handler: c_entrypoint.lambda_handler
       Runtime: python3.8
@@ -86,17 +89,42 @@ Resources:
       FunctionName: !GetAtt CarveFunction.Arn
 
 
-  CarveDeployStepFunction:
+  CarveDeployStacksStepFunction:
     Type: AWS::StepFunctions::StateMachine
     Properties: 
       DefinitionS3Location: 
         Bucket: !Ref CodeBucket
-        Key: !Sub "step_functions/${GITSHA}/steps-carve-deployment.json"
+        Key: !Sub "step_functions/${GITSHA}/steps-carve-deploy-stacks.json"
       DefinitionSubstitutions: 
         CarveFunction: !Ref CarveFunction
-      RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ResourcePrefix}carve-stepfunction-${OrganizationsId}"
-      StateMachineName: !Sub "${ResourcePrefix}carve-deployment-statemachine"
+      RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ResourcePrefix}carve-stepfunctions-${OrganizationsId}"
+      StateMachineName: !Sub "${ResourcePrefix}carve-deploy-stacks-statemachine"
       StateMachineType: STANDARD
+
+
+  CarveDeployEndpointsStepFunction:
+    Type: AWS::StepFunctions::StateMachine
+    Properties: 
+      DefinitionS3Location: 
+        Bucket: !Ref CodeBucket
+        Key: !Sub "step_functions/${GITSHA}/steps-carve-deploy-endpoints.json"
+      DefinitionSubstitutions: 
+        CarveFunction: !Ref CarveFunction
+      RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ResourcePrefix}carve-stepfunctions-${OrganizationsId}"
+      StateMachineName: !Sub "${ResourcePrefix}carve-deploy-endpoints-statemachine"
+      StateMachineType: STANDARD
+
+  # CarveCleanupStepFunction:
+  #   Type: AWS::StepFunctions::StateMachine
+  #   Properties: 
+  #     DefinitionS3Location: 
+  #       Bucket: !Ref CodeBucket
+  #       Key: !Sub "step_functions/${GITSHA}/steps-carve-cleanup.json"
+  #     DefinitionSubstitutions: 
+  #       CarveFunction: !Ref CarveFunction
+  #     RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ResourcePrefix}carve-stepfunctions-${OrganizationsId}"
+  #     StateMachineName: !Sub "${ResourcePrefix}carve-cleanup-statemachine"
+  #     StateMachineType: STANDARD
 
   CarveDiscoveryStepFunction:
     Type: AWS::StepFunctions::StateMachine
@@ -106,7 +134,7 @@ Resources:
         Key: !Sub "step_functions/${GITSHA}/steps-carve-discovery.json"
       DefinitionSubstitutions: 
         CarveFunction: !Ref CarveFunction
-      RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ResourcePrefix}carve-stepfunction-${OrganizationsId}"
+      RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ResourcePrefix}carve-stepfunctions-${OrganizationsId}"
       StateMachineName: !Sub "${ResourcePrefix}carve-discovery-statemachine"
       StateMachineType: STANDARD
 
@@ -114,7 +142,7 @@ Resources:
   StepFunctionRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub "${ResourcePrefix}carve-stepfunction-${OrganizationsId}"
+      RoleName: !Sub "${ResourcePrefix}carve-stepfunctions-${OrganizationsId}"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -141,6 +169,12 @@ Resources:
       BucketName: !Sub "${ResourcePrefix}carve-${OrganizationsId}-${AWS::Region}"
       VersioningConfiguration:
         Status: Enabled
+      AccessControl: Private
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: 'aws:kms'
+              KMSMasterKeyID: KMS-KEY-ARN
 
 
   S3InvokeCarvePermission:

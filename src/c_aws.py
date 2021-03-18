@@ -162,7 +162,7 @@ def aws_execute_change_set(change_set_name, region, credentials):
     return response
 
 
-def aws_create_stack(stackname, region, template_url, parameters, credentials, tags):
+def aws_create_stack(stackname, region, template, parameters, credentials, tags):
 
     client = boto3.client(
         'cloudformation',
@@ -175,7 +175,7 @@ def aws_create_stack(stackname, region, template_url, parameters, credentials, t
 
     response = client.create_stack(
         StackName=stackname,
-        TemplateURL=template_url,
+        TemplateBody=template,
         Parameters=parameters,
         Capabilities=['CAPABILITY_NAMED_IAM'],
         Tags=tags
@@ -200,9 +200,8 @@ def aws_delete_stack(stackname, region, credentials):
     return response
 
 
-def aws_create_changeset(stackname, region, template_url, parameters, credentials, tags):
+def aws_create_changeset(stackname, changeset_name, region, template_url, parameters, credentials, tags):
     '''deploy SAM template thru changesets'''
-    changeset_name = f"stackname-{int(time.time())}"
 
     client = boto3.client(
         'cloudformation',
@@ -227,7 +226,7 @@ def aws_create_changeset(stackname, region, template_url, parameters, credential
     #     'StackId': 'string'
     # }
 
-    return changeset_name
+    return response
 
 
 def aws_describe_change_set(change_set_name, stackname, region, credentials):
@@ -280,16 +279,14 @@ def aws_read_s3_direct(key, region):
         return None
 
 
-def aws_copy_s3_object(key, target, region):
-    # get graph from S3
+def aws_copy_s3_object(key, target_key, region, source_bucket=os.environ['CarveS3Bucket'], target_bucket=os.environ['CarveS3Bucket']):
     resource = boto3.resource('s3', config=boto_config)
     src = {
-        "Bucket": os.environ['CarveS3Bucket'],
+        "Bucket": source_bucket,
         "Key": key
     }
-    bucket = resource.Bucket(os.environ['CarveS3Bucket'])
-    response = bucket.copy(src, target)
-    # response = resource.Object(os.environ['CarveS3Bucket'], target).copy_from(CopySource=key)
+    bucket = resource.Bucket(target_bucket)
+    response = bucket.copy(src, target_key)
     return response
 
 def aws_delete_s3_object(key, region):
@@ -442,17 +439,16 @@ def aws_purge_s3_path(path):
     bucket.objects.filter(Prefix=path).delete()
 
 
-# def aws_put_bucket_policy(path, function_arn):
-#     client = boto3.client('s3', config=boto_config)
-#     try:
-#         response = client.put_bucket_notification_configuration(
-#             Bucket=os.environ['CarveS3Bucket'],
-#             Policy='policy'
-#         )
-#         return response
-#     except ClientError as e:
-#         print(f'error putting bucket policy: {e}')
-
+def aws_put_bucket_policy(bucket, function_arn):
+    client = boto3.client('s3', config=boto_config)
+    try:
+        response = client.put_bucket_notification_configuration(
+            Bucket=os.environ['CarveS3Bucket'],
+            Policy='policy'
+        )
+        return response
+    except ClientError as e:
+        print(f'error putting bucket policy: {e}')
 
 
 def aws_put_bucket_notification(path, notification_id, function_arn):

@@ -9,35 +9,15 @@ from c_carve import load_graph, save_graph, carve_role_arn
 from c_disco import discover_org_accounts
 from c_aws import *
 from multiprocessing import Process, Pipe
-from crhelper import CfnResource
 import time
 
-def deploy_carve_endpoints(event, context):
-    # event must include:
-    #   event['graph_path'] = graph path in the carve-org-* controlled S3 bucket
-    #   event['role'] = role pattern to use across all accounts
-    # begin the workflow to deploy endpoints to all VPCs in the graph_path
-    # use G to create a payload to start to the carve deployment step function
-    # the step function starts with a list of lambda invoke payloads
-    # - each lamba payload in the list must contain:
-    #   - account
-    #   - region
-    #   - vpc id
-    #   - vpc name
-    #   - temporary IAM credentials
-
+def start_carve_deployment(event, context):
     # read graph from s3 key in event
     key = event['Records'][0]['s3']['object']['key']
+    region = os.environ['AWS_REGION']
     print(f'deploying graph: {key}')
 
-    region = os.environ['AWS_REGION']
-    try:
-        graph_data = aws_read_s3_direct(key, region)
-        print(graph_data)
-        G = json_graph.node_link_graph(json.loads(graph_data))
-    except Exception as e:
-        print(f'error loading graph: {e}')
-        sys.exit()
+    G = load_graph(key, local=False)
 
     # move deployment object to deploy_started path
     filename = key.split('/')[-1]
@@ -45,14 +25,63 @@ def deploy_carve_endpoints(event, context):
     aws_copy_s3_object(key, deploy_key, region)
     aws_delete_s3_object(key, region)
 
+    # get all regions where buckets are needed
+    regions = set()
+    for vpc in list(G.nodes):
+        r = G.nodes().data()[vpc]['Region']
+        if r not region:
+            regions.add(r)
+
+    # create deploy buckets in all required regions
+    for r in regions:
+
+        stackname = f"{os.environ['ResourcePrefix']}carve-{os.environ['ResourcePrefix']}-s3-us-east-1"
+        parameters = [
+            {
+                "ParameterKey": "OrganizationsId",
+                "ParameterValue": os.environ['OrganizationsId']
+            },
+            {
+                "ParameterKey": "ResourcePrefix",
+                "ParameterValue": os.environ['ResourcePrefix']
+            }
+        ]
+        deploy_buckets.append({
+            "StackName": stackname,
+            "Parameters": parameters,
+            "Account": context.invoked_function_arn.split(":")[4],
+            "Region": r,
+            "DeployKey": deploy_key,
+            "Template": 'deployment/carve-regional-s3.cfn.yaml'
+        })
+
+    aws_start_stepfunction(os.environ['DeployEndpointsStateMachine'], deploy_buckets)
+
+
+
+def sf_DeployPrep(event, context):
+    # input will be the completion of all the deploy buckets
+    # need to use above logic to load G and determine 
+
+    if 'Payload' in event['Input']:
+        payload = event['Input']['Payload']
+    else:
+        payload = event['Input']
+
+    print(payload)
+
+    # key = payload['Records'][0]['s3']['object']['key']
+
+    # need to get the bucket names from the payloads
+    sys.exit()
+
+    G = load_graph(key, local=False)
+
+    update_bucket_policies(G)
+
     # push CFN deployment files to S3
     for file in os.listdir('deployment'):
         aws_upload_file_carve_s3(f'deploy_templates/{file}', f'{os.getcwd()}/deployment/{file}')
-
-    # determine accounts carve will deploy to
-    accounts = set()
-    for vpc in list(G.nodes):
-        accounts.add(G.nodes().data()[vpc]['Account'])
 
     # use the graph name if it contains one
     if 'Name' in G.graph:
@@ -97,7 +126,9 @@ def deploy_carve_endpoints(event, context):
 
 
 def az_rank(G):
-    # sort all AZs in graph by most to least used
+    # sort all AZs in graph by most to least used 
+
+    ### NEED TO UPDATE SO IT DOES THIS for each region
     azs = {}
     for vpc in list(G.nodes):
         vpc_data = G.nodes().data()[vpc]
@@ -110,7 +141,43 @@ def az_rank(G):
     return sorted(azs.items(), key=lambda x: x[1], reverse=True)
 
 
-def prepS3template(account, accounts):
+
+def update_bucket_policies(G)
+    # careve_s3_policy(region, accounts):
+    # generate an S3 deploy policy bucket
+
+    # determine which accounts have resources in each region in the graph
+    regions = {}
+    for vpc in list(G.nodes):
+        region = G.nodes().data()[vpc]['Region']
+        account = G.nodes().data()[vpc]['Account']
+        if region in regions:
+            if account not in regions[region]:
+                regions[region].append(account)
+        else:
+            regions[region] = [account]
+
+    arns = []
+    for a in accounts:
+        arns.append(f"arn:aws:iam::{a}:root")
+
+    policy = {
+        "Statement": [
+            {
+                "Sid": f"carve-{a}-deploy",
+                "Effect": "Allow",
+                "Action": ["s3:Get"],
+                "Resource":  f"arn:aws:s3:::{os.environ['ResourcePrefix']}carve-{os.environ['OrganizationsId']}-{region}",
+                "Principal": {"AWS": arns}
+            }
+        ]
+    }
+
+    # return json.dumps(policy)
+    return
+
+
+def create_s3_template(account, accounts):
     try:
         with open('deployment/carve-regional-s3.cfn.json') as f:
             template = (json.load(f))
@@ -121,7 +188,7 @@ def prepS3template(account, accounts):
     fileout = f'deployment/carve-{account}-s3.cfn.json'
 
     for a in accounts:
-        # append an S3 deploy policy per account to statement in CFN template
+        # generate an S3 deploy policy per account
         template['Resources']['CarveS3BucketPolicy']['Properties']['PolicyDocument']['Statement'].append({
             "Sid": f"carve-{a}-deploy",
             "Effect": "Allow",
@@ -150,7 +217,7 @@ def prepS3template(account, accounts):
 
 
 
-def seed_deployment_files():
+def seed_deployment_files(account, accounts):
     # seed the same lambda package that created this deployment to the carve s3 bucket
 
     prepS3template(account, accounts)
@@ -173,151 +240,8 @@ def seed_deployment_files():
     # unzip package
 
 def delete_carve_endpoints():
-    deploy_carve_endpoints(event, context)
+    start_carve_deployment(event, context)
 
-
-
-
-def sf_ExecuteChangeSet(event):
-    response = aws_execute_change_set(
-        change_set_name=event['Input']['ChangeSetName'],
-        region=event['Input']['Region'],
-        credentials=event['Input']['Credentials'])
-
-    # create payload for next step in state machine
-    payload = deepcopy(event['Input'])
-    del payload['ChangeSetStatus']
-
-    return payload
-
-
-def sf_DescribeChangeSetExecution(event):
-    response = aws_describe_change_set(
-        change_set_name=event['Input']['ChangeSetName'],
-        stackname=event['Input']['StackName'],
-        region=event['Input']['Region'],
-        credentials=event['Input']['Credentials']
-        )
-    # create payload for next step in state machine
-    payload = deepcopy(event['Input'])
-    payload['ExecuteChangeSetStatus'] = response['Status']
-
-    return payload
-
-
-
-def sf_DescribeChangeSet(event):
-    # payload = json.loads(event['Input']['Payload'])
-    if 'Payload' in event['Input']:
-        payload = event['Input']['Payload']
-    else:
-        payload = event['Input']
-
-    account = payload['Account']
-    region = payload['Region']
-
-    credentials = aws_assume_role(carve_role_arn(account), f"carve-changeset-{region}")
-
-    response = aws_describe_change_set(
-        change_set_name=payload['ChangeSetName'],
-        stackname=payload['StackName'],
-        region=region,
-        credentials=credentials
-        )
-
-    # create payload for next step in state machine
-    result = deepcopy(payload)
-    result['ChangeSetStatus'] = response
-    return result
-
-
-def sf_CreateChangeSet(event, context):
-    # payload = json.loads(event['Input']['Payload'])
-    if 'Payload' in event['Input']:
-        payload = event['Input']['Payload']
-    else:
-        payload = event['Input']
-
-    account = payload['Account']
-    region = payload['Region']
-
-    credentials = aws_assume_role(carve_role_arn(account), f"carve-changeset-{region}")
-
-    template_url = f"https://s3.amazonaws.com/{os.environ['CarveS3Bucket']}/deploy_templates/carve-vpc.sam.yml"
-
-    parameters = [
-        {
-            "ParameterKey": "VpcId",
-            "ParameterValue": payload['VpcId'],
-            "UsePreviousValue": False
-        },
-        {
-            "ParameterKey": "VpcEndpointSubnetIds",
-            "ParameterValue": payload['SubnetId'],
-            "UsePreviousValue": False
-        },
-        {
-            "ParameterKey": "CarveSNSTopicArn",
-            "ParameterValue": os.environ['CarveSNSTopicArn'],
-            "UsePreviousValue": False
-        },
-        {
-            "ParameterKey": "OrganizationsId",
-            "ParameterValue": os.environ['OrganizationsId'],
-            "UsePreviousValue": False
-        },
-        {
-            "ParameterKey": "CarveVersion",
-            "ParameterValue": os.environ['CarveVersion'],
-            "UsePreviousValue": False
-        },
-        {
-            "ParameterKey": "ResourcePrefix",
-            "ParameterValue": os.environ['ResourcePrefix'],
-            "UsePreviousValue": False
-        }
-    ]
-
-    changeset_name = f"{payload['StackName']}-{int(time.time())}"
-
-    response = aws_create_changeset(
-        stackname=payload['StackName'],
-        changeset_name=changeset_name,
-        region=region,
-        template_url=template_url,
-        parameters=parameters,
-        credentials=credentials,
-        tags=aws_get_carve_tags(context.invoked_function_arn))
-
-    print(response)
-
-    # create payload for next step in state machine
-    result = deepcopy(payload)
-    result['ChangeSetName'] = changeset_name
-    del result['StackStatus']
-    return result
-
-
-def sf_DescribeStack(event):
-    # payload = json.loads(event['Input']['Payload'])
-    payload = event['Input']['Payload']
-
-    stackname = f"carve-endpoint-{payload['VpcId']}"
-    account = payload['Account']
-
-    credentials = aws_assume_role(carve_role_arn(account), f"carve-deploy-{payload['Region']}")
-
-    response = aws_describe_stack(
-        stackname=payload['StackName'],
-        region=payload['Region'],
-        credentials=credentials
-        )
-
-    # create payload for next step in state machine
-    payload = deepcopy(payload)
-    payload['StackStatus'] = response['StackStatus']
-
-    return payload
 
 
 def sf_DeleteStack(event):
@@ -440,41 +364,6 @@ def sf_DiscoverCarveStacks(event):
         return delete_stacks
 
 
-def sf_CreateStack(event, context):
-    stackname = event['Input']['StackName']
-    region = event['Input']['Region']
-    account = event['Input']['Account']
-    tags = event['Input']['Tags']
-
-    credentials = aws_assume_role(carve_role_arn(account), f"carve-deploy-{event['Input']['VpcId']}")
-
-
-    response = aws_describe_stack(
-        stackname=stackname,
-        region= region,
-        credentials=credentials
-        )
-
-    if response is not None:
-        stack = {'StackId': response['StackId']}
-    else:
-        # create bootstrap stack so a changeset can be created for SAM deploy
-        template_url = f"https://s3.amazonaws.com/{os.environ['CarveS3Bucket']}/deploy_templates/carve-bootstrap.cfn.yml"
-        stack = aws_create_stack(
-            stackname=stackname,
-            region=region,
-            template_url=template_url,
-            parameters=event['Input']['Parameters'],
-            credentials=credentials,
-            tags=tags
-            )
-
-    # create payload for next step in state machine
-    payload = deepcopy(event['Input'])
-    payload['StackName'] = stackname
-
-    return payload
-
 
 
 
@@ -527,7 +416,7 @@ def sf_CreateCarveStack(event, context):
 
 def deploy_steps_entrypoint(event, context):
     ''' step function tasks for deployment all flow thru here after the lambda_hanlder '''
-    if event['DeployAction'] == 'DescribeStack':
+    if event['DeployAction'] == 'CreateS3DeployBuckets':
         response = sf_DescribeStack(event)
 
     elif event['DeployAction'] == 'DescribeChangeSet':
@@ -560,48 +449,4 @@ def deploy_steps_entrypoint(event, context):
 
     # return json to step function
     return json.dumps(response, default=str)
-
-
-### CFN custom resource setup the Carve bucket for deply
-helper = CfnResource()
-
-def custom_resource_entrypoint(event, context):
-    # need to deal with DeleteStackCleanup vs SetupCarveBucket
-    helper(event, context)
-
-@helper.create
-def deploy_CfnCreate(event, context):
-    if 'DeployEventPath' in event['ResourceProperties']:
-        path = event['ResourceProperties']['DeployEventPath']
-        notification_id = event['ResourceProperties']['NotificationId']
-        aws_create_s3_path(path)
-        aws_put_bucket_notification(path, notification_id, context.invoked_function_arn)
-        helper.Data['Path'] = path
-        helper.Data['Notification'] = notification_id
-
-    else:
-        pass
-
-@helper.update
-def deploy_CfnUpdate(event, context):
-    deploy_CfnDelete(event, context)
-    deploy_CfnCreate(event, context)
-
-
-@helper.delete
-def deploy_CfnDeletePoll(event, context):
-    if len(aws_states_list_executions(os.environ['CarveDeployStepFunction'])) > 0:
-        return None
-    else:
-        return True
-
-
-@helper.poll_delete
-def deploy_CfnDelete(event, context):
-    # elif 'OrganizationsId' in event['ResourceProperties']:
-    #     delete_carve_endpoints(event, context)
-    # pass
-    aws_delete_bucket_notification()
-    aws_purge_s3_bucket()
-    return True
 

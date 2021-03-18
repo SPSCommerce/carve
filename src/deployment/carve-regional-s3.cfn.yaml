@@ -1,0 +1,41 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Regional S3 Deploy Bucket for Carve
+
+Parameters:
+  
+  OrganizationsId:
+    Type: String
+    Description: AWS Organizations Id
+    Default: ""
+  ResourcePrefix:
+    Type: String
+    Description: "Prefix all carve resources with this"
+    Default: ""
+
+Resources:
+  CarveS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${ResourcePrefix}carve-${OrganizationsId}-${AWS::Region}"
+      VersioningConfiguration:
+        Status: Enabled
+      AccessControl: Private
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: 'aws:kms'
+              KMSMasterKeyID: KMS-KEY-ARN
+
+  CarveS3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref CarveS3Bucket
+      PolicyDocument:
+        Statement:
+          - Sid: CarveCoreLambda
+            Effect: Allow 
+            Action:
+              - "s3:*"
+            Resource: !GetAtt CarveS3Bucket.Arn
+            Principal:
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ResourcePrefix}carve-lambda-${OrganizationsId}"

@@ -257,7 +257,7 @@ def sf_OrganizeDiscovery(event):
     return {'discovery': f's3://a-carve-o-dvdaw54vmt-us-east-1/discovered/{name}.json'}
 
 
-def discovery_steps_entrypoint(event, context):
+def disco_entrypoint(event, context):
     ''' step function tasks for deployment all flow thru here after the lambda_hanlder '''
     if event['DiscoveryAction'] == 'StartDiscovery':
         response = sf_StartDiscovery()

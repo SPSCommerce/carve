@@ -1,7 +1,9 @@
 import json
 import os
-from c_deploy import deploy_steps_entrypoint, deploy_carve_endpoints, custom_resource_entrypoint
-from c_disco import discovery_steps_entrypoint
+from c_deploy_endpoints import deploy_steps_entrypoint, start_carve_deployment
+from c_custom_resource import custom_resource_entrypoint
+from c_deploy_stack import deploy_stack_entrypoint
+from c_disco import disco_entrypoint
 import logging
 
 logger = logging.getLogger()
@@ -42,7 +44,7 @@ def lambda_handler(event, context):
         elif 'eventSource' in event['Records'][0]:
             if event['Records'][0]['eventSource'] == "aws:s3":
                 if event['Records'][0]['s3']['bucket']['name'] == os.environ['CarveS3Bucket']:
-                    deploy_carve_endpoints(event, context)
+                    start_carve_deployment(event, context)
 
     elif 'queryStringParameters' in event:
         print(f'TRIGGERED by API Gateway: {event["requestContext"]["apiId"]}')
@@ -50,7 +52,7 @@ def lambda_handler(event, context):
 
     elif 'DeployStart' in event:
         print('Starting deployment process')
-        return deploy_carve_endpoints(event, context)
+        return start_carve_deployment(event, context)
 
     elif 'DeployAction' in event:
         print('TRIGGERED by Deployment Step Function')
@@ -62,11 +64,11 @@ def lambda_handler(event, context):
     
     elif 'DiscoveryAction' in event:
         print('TRIGGERED by Discovery Step Function')
-        return discovery_steps_entrypoint(event, context)
+        return c_disco_entrypoint(event, context)
 
     # elif 'Discovery' in event:
     #     print('Starting discovery process')
-    #     return discovery_steps_entrypoint(event, context)
+    #     return c_disco_entrypoint(event, context)
 
     elif 'ResourceProperties' in event:
         return custom_resource_entrypoint(event, context)

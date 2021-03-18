@@ -21,16 +21,25 @@ Parameters:
   CarveVersion:
     Type: String
     Default: "0"
-
+  ResourcePrefix:
+    Type: String
+    Description: "Prefix all carve resources with this"
+    Default: ""
 
 Resources:
+
+### NEED TO FIX THIS TEMPLATE FINALLY
+# Copy lambda package to carve folder and update CodeUri
 
   CarveFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       FunctionName: !Sub "carve-${VpcId}"
       Description: Continuous AWS Route Verification Engine
-      CodeUri: !Sub "s3://carve-${OrganizationsId}/deployment/Lambda-package.zip"
+      PackageType: Zip
+      FunctionCode: 
+        Bucket: !Sub "${ResourcePrefix}carve-${OrganizationsId}"
+        Key: "deployment/lambda_packages/${GITSHA}.zip"
       Handler: c_entrypoint.lambda_handler
       Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/carve-${OrganizationsId}"
       Runtime: python3.8
@@ -39,8 +48,8 @@ Resources:
       ReservedConcurrentExecutions: 2
       Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
         Variables:
-          # S3Bucket: !Sub "carve-${OrganizationsId}"
-          # VpcEndpointId: !Ref CarveAPIAccessEndpoint
+          S3Bucket: !Sub "carve-${OrganizationsId}"
+          VpcEndpointId: !Ref CarveAPIAccessEndpoint
           VpcId: !Ref VpcId
       VpcConfig :
         SecurityGroupIds:

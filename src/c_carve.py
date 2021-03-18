@@ -4,6 +4,7 @@ import pylab as plt
 import json
 import sys
 import os
+from aws import aws_read_s3_direct
 
 # from c_disco import discovery
 # from pprint import pprint
@@ -14,7 +15,7 @@ def carve_role_arn(account):
     role_name = f"{os.environ['ResourcePrefix']}carve-lambda-{os.environ['OrganizationsId']}"
     role = f"arn:aws:iam::{account}:role/{role_name}"
     return role
-    
+
 
 def run_test(G, c_context):
     targets = []
@@ -141,15 +142,22 @@ def draw_vpc(Graph, vpc):
 
 
 
-def load_graph(graph):
+def load_graph(graph, local=True):
     try:
-        with open(graph) as f:
-            G = json_graph.node_link_graph(json.load(f))
-            G.graph['Name'] = graph.split('/')[-1].split('.')[0]
+        if local:
+            with open(graph) as f:
+                G = json_graph.node_link_graph(json.load(f))
+                G.graph['Name'] = graph.split('/')[-1].split('.')[0]
+                return G
+        else:
+            region = os.environ['AWS_REGION']
+            graph_data = aws_read_s3_direct(graph, region)
+            G = json_graph.node_link_graph(json.loads(graph_data))
             return G
+
     except Exception as e:
         print(f'error opening json_graph {json_graph}: {e}')
-        return False
+        sys.exit()
 
 
 def save_graph(G, file_path):

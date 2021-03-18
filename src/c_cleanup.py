@@ -448,7 +448,6 @@ def sf_CreateStack(event, context):
 
     credentials = aws_assume_role(carve_role_arn(account), f"carve-deploy-{event['Input']['VpcId']}")
 
-
     response = aws_describe_stack(
         stackname=stackname,
         region= region,
