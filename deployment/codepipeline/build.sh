@@ -17,12 +17,7 @@ aws s3 rm s3://$DEPLOYMENT_BUCKET/step_functions/ --recursive --exclude "${LATES
 
 # upload deployment state machine definitions
 echo "uploading state machine definitions to S3"
-aws s3 cp "$BUILDPATH/deployment/steps*.json" \
-    s3://$DEPLOYMENT_BUCKET/step_functions/$GITSHA/ \
-    --metadata GIT_SHA=$CODEBUILD_SOURCE_VERSION
-# aws s3 cp "$BUILDPATH/deployment/steps-carve-discovery.json" \
-#     s3://$DEPLOYMENT_BUCKET/step_functions/$GITSHA/ \
-#     --metadata GIT_SHA=$CODEBUILD_SOURCE_VERSION
+aws s3 sync "$BUILDPATH/deployment/step_functions" s3://$DEPLOYMENT_BUCKET/step_functions/$GITSHA/
 
 # copy carve IAM template into deployment folder in lambda src
 cp "$BUILDPATH/deployment/carve-iam.cfn.yml" "$BUILDPATH/src/deployment/"
