@@ -15,14 +15,14 @@ echo "cleaning up prevous deployments"
 aws s3 rm s3://$DEPLOYMENT_BUCKET/lambda_packages/ --recursive --exclude "${LATESTSHA}/*"
 aws s3 rm s3://$DEPLOYMENT_BUCKET/step_functions/ --recursive --exclude "${LATESTSHA}/*"
 
-# upload deployment state machine definition
+# upload deployment state machine definitions
 echo "uploading state machine definitions to S3"
-aws s3 cp "$BUILDPATH/deployment/steps-carve-deployment.json" \
+aws s3 cp "$BUILDPATH/deployment/steps*.json" \
     s3://$DEPLOYMENT_BUCKET/step_functions/$GITSHA/ \
     --metadata GIT_SHA=$CODEBUILD_SOURCE_VERSION
-aws s3 cp "$BUILDPATH/deployment/steps-carve-discovery.json" \
-    s3://$DEPLOYMENT_BUCKET/step_functions/$GITSHA/ \
-    --metadata GIT_SHA=$CODEBUILD_SOURCE_VERSION
+# aws s3 cp "$BUILDPATH/deployment/steps-carve-discovery.json" \
+#     s3://$DEPLOYMENT_BUCKET/step_functions/$GITSHA/ \
+#     --metadata GIT_SHA=$CODEBUILD_SOURCE_VERSION
 
 # copy carve IAM template into deployment folder in lambda src
 cp "$BUILDPATH/deployment/carve-iam.cfn.yml" "$BUILDPATH/src/deployment/"
