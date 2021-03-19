@@ -161,7 +161,13 @@ Resources:
                   - "lambda:InvokeFunction"
                 Resource:
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ResourcePrefix}carve-*"
-
+              - Effect: Allow
+                Action:
+                  - events:PutTargets
+                  - events:PutRule
+                  - events:DescribeRule
+                Resource: 
+                  - !Sub arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/StepFunctionsGetEventsForStepFunctionsExecutionRule
 
   CarveS3Bucket:
     Type: AWS::S3::Bucket

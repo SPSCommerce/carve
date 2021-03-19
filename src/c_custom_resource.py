@@ -22,16 +22,17 @@ def deploy_CfnCreate(event, context):
 
 @helper.update
 def deploy_CfnUpdate(event, context):
-    deploy_CfnDelete(event, context)
-    deploy_CfnCreate(event, context)
-
+    # deploy_CfnDelete(event, context)
+    # deploy_CfnCreate(event, context)
+    return True
+    
 
 @helper.delete
 def deploy_CfnDeletePoll(event, context):
-    if len(aws_states_list_executions(os.environ['CarveDeployStepFunction'])) > 0:
-        return None
-    else:
-        return True
+    # if len(aws_states_list_executions(os.environ['CarveDeployStepFunction'])) > 0:
+    #     return None
+    # else:
+    return True
 
 
 @helper.poll_delete
