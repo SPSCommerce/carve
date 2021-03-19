@@ -7,11 +7,12 @@
       "Next": "DeployPrep",
       "MaxConcurrency": 0,
       "Iterator": {
-        "StartAt": "DeployS3Stack",
+        "StartAt": "DeployS3Buckets",
         "States": {
-          "DeployS3Stack": {
+          "DeployS3Buckets": {
             "Comment": "Create S3 Buckets in each region for deployments",
             "Type": "Task",
+            "End": true,
             "Resource": "arn:aws:states:::states:startExecution.sync",
             "Parameters": {
               "StateMachineArn": "${CarveDeployStacksStepFunction}",
@@ -35,206 +36,27 @@
           "DeployAction": "DeployPrep"
         }
       },
-      "Next": "CreateStackIterator",
+      "Next": "DeployCarveEndpoints",
       "TimeoutSeconds": 900
     },
-    "CreateStackIterator": {
-      "Type": "Map",
-      "Next": "CleanupDeployments",
-      "MaxConcurrency": 0,
-      "Iterator": {
-        "StartAt": "DeployCarveStack",
-        "States": {
-          "DeployCarveStack": {
-            "Type": "Task",
-            "Resource":"arn:aws:states:::lambda:invoke",
-            "ResultSelector": {
-              "Payload.$": "States.StringToJson($.Payload)"
-            },
-            "Parameters": {
-              "FunctionName": "${CarveFunction}",
-              "Payload": {
-                "DeployAction": "DeployCarveStack",
-                "Input.$": "$"
-              }
-            },
-            "Next": "DeployChangeSet",
-            "TimeoutSeconds": 20
-          },
-          "DeployChangeSet": {
-            "Type": "Task",
-            "Resource":"arn:aws:states:::lambda:invoke",
-            "ResultSelector": {
-              "Payload.$": "States.StringToJson($.Payload)"
-            },
-            "Parameters": {
-              "FunctionName": "${CarveFunction}",
-              "Payload": {
-                "DeployAction": "DeployChangeSet",
-                "Input.$": "$"
-              }
-            },
-            "End": true,
-            "TimeoutSeconds": 20
-          }
-        }
-    },
-    "CleanupDeployments": {
-      "Type": "Task",
-      "Resource":"arn:aws:states:::lambda:invoke",
-      "ResultSelector": {
-        "Payload.$": "States.StringToJson($.Payload)"
-      },
-      "Parameters": {
-        "FunctionName": "${CarveFunction}",
-        "Payload": {
-          "DeployAction": "CleanupDeployments"
-        }
-      },
-      "Next": "DiscoverCarveStacksIterator",
-      "TimeoutSeconds": 900
-    },
-    "DiscoverCarveStacksIterator": {
-      "Type": "Map",
-      "Next": "OrganizeDeletions",
-      "MaxConcurrency": 100,
-      "ItemsPath": "$.Payload",
-      "Iterator": {
-        "StartAt": "DiscoverCarveStacks",
-        "States": {
-          "DiscoverCarveStacks": {
-            "Type": "Task",
-            "Resource":"arn:aws:states:::lambda:invoke",
-            "ResultSelector": {
-              "Payload.$": "States.StringToJson($.Payload)"
-            },
-            "Parameters": {
-              "FunctionName": "${CarveFunction}",
-              "Payload": {
-                "DeployAction": "DiscoverCarveStacks",
-                "Input.$": "$"
-              }
-            },
-            "End": true,
-            "TimeoutSeconds": 60
-          }
-        }
-      }
-    },
-    "OrganizeDeletions": {
-      "Type": "Task",
-      "Resource":"arn:aws:states:::lambda:invoke",
-      "ResultSelector": {
-        "Payload.$": "States.StringToJson($.Payload)"
-      },
-      "Parameters": {
-        "FunctionName": "${CarveFunction}",
-        "Payload": {
-          "DeployAction": "OrganizeDeletions"
-        }
-      },
-      "Next": "DeleteStacksIterator",
-      "TimeoutSeconds": 20
-    },
-    "DeleteStacksIterator": {
+    "DeployCarveEndpoints": {
       "Type": "Map",
       "End": true,
       "MaxConcurrency": 0,
-      "ItemsPath": "$.Payload",
       "Iterator": {
-        "StartAt": "DeleteStack",
+        "StartAt": "DeployCarveStacks",
         "States": {
-          "DeleteStack": {
+          "DeployCarveStacks": {
+            "Comment": "Create one Carve stack per VPC",
             "Type": "Task",
-            "Resource":"arn:aws:states:::lambda:invoke",
-            "ResultSelector": {
-              "Payload.$": "States.StringToJson($.Payload)"
-            },
+            "End": true,
+            "Resource": "arn:aws:states:::states:startExecution.sync",
             "Parameters": {
-              "FunctionName": "${CarveFunction}",
-              "Payload": {
-                "DeployAction": "DeleteStack",
-                "Input.$": "$"
+              "StateMachineArn": "${CarveDeployStacksStepFunction}",
+              "Input": {
+                "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id"
               }
-            },
-            "Next": "DescribeDeleteStack",
-            "TimeoutSeconds": 20
-          },
-          "DescribeDeleteStack": {
-            "Type": "Task",
-            "Resource":"arn:aws:states:::lambda:invoke",
-            "ResultSelector": {
-              "Payload.$": "States.StringToJson($.Payload)"
-            },
-            "Parameters": {
-              "FunctionName": "${CarveFunction}",
-              "Payload": {
-                "DeployAction": "DescribeStack",
-                "Input.$": "$"
-              }
-            },
-            "Next": "DeleteStackStatusChoice",
-            "TimeoutSeconds": 30
-          },
-          "DeleteStackWait": {
-            "Type": "Wait",
-            "Seconds": 10,
-            "Next": "DescribeDeleteStack"
-          },
-          "DeleteFailure": {
-            "Type": "Fail"
-          },
-          "DeleteSucceed": {
-            "Type": "Succeed"
-          },
-          "DeleteStackStatusChoice": {
-            "Type": "Choice",
-            "InputPath": "$.Payload",
-            "Choices": [
-              {
-                "Variable": "$.StackStatus",
-                "StringEquals": "DELETE_COMPLETE",
-                "Next": "DeleteSucceed"
-              },
-              {
-                "Or": [
-                  {
-                    "Variable": "$.StackStatus",
-                    "StringEquals": "DELETE_PENDING"
-                  },
-                  {
-                    "Variable": "$.StackStatus",
-                    "StringEquals": "DELETE_IN_PROGRESS"
-                  }
-                ],
-                "Next": "DeleteStackWait"
-              },
-              {
-                "Or": [
-                  {
-                    "Variable": "$.StackStatus",
-                    "StringEquals": "CREATE_COMPLETE"
-                  },
-                  {
-                    "Variable": "$.StackStatus",
-                    "StringEquals": "CREATE_IN_PROGRESS"
-                  },
-                  {
-                    "Variable": "$.StackStatus",
-                    "StringEquals": "CREATE_PENDING"
-                  },
-                  {
-                    "Variable": "$.StackStatus",
-                    "StringEquals": "DELETE_FAILED"
-                  },
-                  {
-                    "Variable": "$.StackStatus",
-                    "StringEquals": "FAILED"
-                  }
-                ],
-                "Next": "DeleteFailure"
-              }
-            ]
+            }
           }
         }
       }
