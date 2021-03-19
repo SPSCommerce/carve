@@ -192,13 +192,13 @@ Resources:
       SourceArn: !Sub "arn:aws:s3:::${ResourcePrefix}carve-${OrganizationsId}-${AWS::Region}"
 
 
-  SetupCarveBucket:
-    Type: Custom::SetupCarveBucket
-    Properties:
-      ServiceToken:  !GetAtt CarveFunction.Arn 
-      Bucket: !Ref CarveS3Bucket
-      DeployEventPath: deploy_input/
-      NotificationId: CarveDeploy
+  # SetupCarveBucket:
+  #   Type: Custom::SetupCarveBucket
+  #   Properties:
+  #     ServiceToken:  !GetAtt CarveFunction.Arn 
+  #     Bucket: !Ref CarveS3Bucket
+  #     DeployEventPath: deploy_input/
+  #     NotificationId: CarveDeploy
 
 
   # DeleteStackCleanup:
