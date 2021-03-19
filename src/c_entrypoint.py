@@ -64,7 +64,7 @@ def lambda_handler(event, context):
     
     elif 'DiscoveryAction' in event:
         print('TRIGGERED by Discovery Step Function')
-        return c_disco_entrypoint(event, context)
+        return disco_entrypoint(event, context)
 
     # elif 'Discovery' in event:
     #     print('Starting discovery process')

@@ -15,7 +15,7 @@ def deploy_CfnCreate(event, context):
         path = event['ResourceProperties']['DeployEventPath']
         notification_id = event['ResourceProperties']['NotificationId']
         aws_create_s3_path(path)
-        aws_put_bucket_notification(path, notification_id, context.invoked_function_arn)
+        aws_put_bucket_notification(path, "CarveDeploy", context.invoked_function_arn)
         helper.Data['Path'] = path
         helper.Data['Notification'] = notification_id
 
@@ -25,7 +25,7 @@ def deploy_CfnUpdate(event, context):
     # deploy_CfnDelete(event, context)
     # deploy_CfnCreate(event, context)
     return True
-    
+
 
 @helper.delete
 def deploy_CfnDeletePoll(event, context):

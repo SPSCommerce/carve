@@ -43,10 +43,10 @@ Resources:
           CarveSNSTopicArn: !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${SNSTopic}"
           MPLCONFIGDIR: /tmp/matplotlib
           ResourcePrefix: !Ref ResourcePrefix
-          CleanupStateMachine: !Sub "${ResourcePrefix}carve-cleanup-statemachine"
-          DeployEndpointsStateMachine: !Sub "${ResourcePrefix}carve-deploy-endpoints-statemachine"
-          DeployStacksStateMachine: !Sub "${ResourcePrefix}carve-deploy-stacks-statemachine"
-          DiscoveryStateMachine: !Sub "${ResourcePrefix}carve-discovery-statemachine"
+          CleanupStateMachine: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ResourcePrefix}carve-cleanup-statemachine"
+          DeployEndpointsStateMachine: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ResourcePrefix}carve-deploy-endpoints-statemachine"
+          DeployStacksStateMachine: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ResourcePrefix}carve-deploy-stacks-statemachine"
+          DiscoveryStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ResourcePrefix}carve-discovery-statemachine"
           CarveVersion: !Ref CarveVersion
       Handler: c_entrypoint.lambda_handler
       Runtime: python3.8
@@ -179,8 +179,7 @@ Resources:
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
-              SSEAlgorithm: 'aws:kms'
-              KMSMasterKeyID: KMS-KEY-ARN
+              SSEAlgorithm: 'AES256'
 
 
   S3InvokeCarvePermission:

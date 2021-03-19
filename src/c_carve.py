@@ -4,7 +4,7 @@ import pylab as plt
 import json
 import sys
 import os
-from aws import aws_read_s3_direct
+from c_aws import aws_read_s3_direct
 
 # from c_disco import discovery
 # from pprint import pprint

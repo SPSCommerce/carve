@@ -70,7 +70,7 @@ Resources:
                   - states:Get*
                   - states:List*
                 Resource:
-                  - !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ResourcePrefix}carve-deployment-statemachine"
+                  - !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ResourcePrefix}carve-*-statemachine"
               # - Effect: "Allow"
               #   Action:
               #     - "sns:Subscribe"

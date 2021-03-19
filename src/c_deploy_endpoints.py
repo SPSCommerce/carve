@@ -29,10 +29,11 @@ def start_carve_deployment(event, context):
     regions = set()
     for vpc in list(G.nodes):
         r = G.nodes().data()[vpc]['Region']
-        if r not region:
+        if r not in regions:
             regions.add(r)
 
-    # create deploy buckets in all required regions
+    # create deploy buckets in all required regions    
+    deploy_buckets = []
     for r in regions:
 
         stackname = f"{os.environ['ResourcePrefix']}carve-{os.environ['ResourcePrefix']}-s3-us-east-1"
@@ -56,7 +57,6 @@ def start_carve_deployment(event, context):
         })
 
     aws_start_stepfunction(os.environ['DeployEndpointsStateMachine'], deploy_buckets)
-
 
 
 def sf_DeployPrep(event, context):
@@ -142,7 +142,7 @@ def az_rank(G):
 
 
 
-def update_bucket_policies(G)
+def update_bucket_policies(G):
     # careve_s3_policy(region, accounts):
     # generate an S3 deploy policy bucket
 
@@ -217,27 +217,27 @@ def create_s3_template(account, accounts):
 
 
 
-def seed_deployment_files(account, accounts):
-    # seed the same lambda package that created this deployment to the carve s3 bucket
+# def seed_deployment_files(account, accounts):
+#     # seed the same lambda package that created this deployment to the carve s3 bucket
 
-    prepS3template(account, accounts)
+#     prepS3template(account, accounts)
 
-    aws_copy_s3_object(
-        key=os.environ['CodeKey'], 
-        target_key="deployment/lambda_packages/${GITSHA}.zip",
-        region=, 
-        source_bucket=, 
-        target_bucket=
-        )
+#     aws_copy_s3_object(
+#         key=os.environ['CodeKey'], 
+#         target_key="deployment/lambda_packages/${GITSHA}.zip",
+#         region=, 
+#         source_bucket=, 
+#         target_bucket=
+#         )
 
-    aws_get_carve_s3(
-        key=os.environ['CodeKey'],
-        file_path='package.zip',
-        bucket=os.environ['CodeBucket']
-        )
-    # push package to carve deployment folder
+#     aws_get_carve_s3(
+#         key=os.environ['CodeKey'],
+#         file_path='package.zip',
+#         bucket=os.environ['CodeBucket']
+#         )
+#     # push package to carve deployment folder
 
-    # unzip package
+#     # unzip package
 
 def delete_carve_endpoints():
     start_carve_deployment(event, context)

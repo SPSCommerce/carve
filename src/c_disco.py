@@ -268,6 +268,8 @@ def disco_entrypoint(event, context):
 
     elif event['DiscoveryAction'] == 'OrganizeDiscovery':
         response = sf_OrganizeDiscovery(event)
+        # keep this here until the s3 bucket custom resource works
+        aws_put_bucket_notification("deploy_input/", "CarveDeploy", context.invoked_function_arn)
 
     # return json to step function
     return response
