@@ -7,7 +7,7 @@ phases:
   build:
     commands:
       - export BUILDPATH=$(pwd)
-      - cd deployment/codepipeline/scripts/
+      - cd deployment/codepipeline/
       - chmod 443 build.sh
       # Build carve lambda packages and send to s3
       - ./build.sh
