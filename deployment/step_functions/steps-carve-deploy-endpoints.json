@@ -7,9 +7,9 @@
       "Next": "DeployPrep",
       "MaxConcurrency": 0,
       "Iterator": {
-        "StartAt": "DeployS3Buckets",
+        "StartAt": "DeployS3Bucket",
         "States": {
-          "DeployS3Buckets": {
+          "DeployS3Bucket": {
             "Comment": "Create S3 Buckets in each region for deployments",
             "Type": "Task",
             "End": true,
@@ -17,8 +17,9 @@
             "Parameters": {
               "StateMachineArn": "${CarveDeployStacksStepFunction}",
               "Input": {
-                "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id"
-              }
+                "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id",
+                 "Input.$": "$"
+             }
             }
           }
         }
@@ -54,7 +55,8 @@
             "Parameters": {
               "StateMachineArn": "${CarveDeployStacksStepFunction}",
               "Input": {
-                "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id"
+                "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id",
+                "Input.$": "$"
               }
             }
           }

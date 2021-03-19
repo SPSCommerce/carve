@@ -169,6 +169,14 @@ Resources:
                   - events:DescribeRule
                 Resource: 
                   - !Sub arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/StepFunctionsGetEventsForStepFunctionsExecutionRule
+              - Effect: Allow
+                Action:
+                  - states:StartExecution
+                  - states:Describe*
+                  - states:Get*
+                  - states:List*
+                Resource:
+                  - !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ResourcePrefix}carve-*-statemachine"
 
   CarveS3Bucket:
     Type: AWS::S3::Bucket
