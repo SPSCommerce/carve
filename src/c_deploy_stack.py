@@ -51,7 +51,10 @@ def sf_DescribeChangeSet(event, status):
 
     # create payload for next step in state machine
     result = deepcopy(payload)
-    result[status] = response
+    if response['StatusReason'] contains "The submitted information didn't contain changes."
+        result[status] = "EXECUTE_COMPLETE"
+    else:
+        result[status] = response['Status']
     return result
 
 

@@ -231,7 +231,7 @@ def aws_create_changeset(stackname, changeset_name, region, template, parameters
     return response
 
 
-def aws_describe_change_set(changesetname, stackname, region, credentials):
+def aws_describe_change_set(changesetname, region, credentials):
     client = boto3.client(
         'cloudformation',
         config=boto_config,
@@ -241,11 +241,8 @@ def aws_describe_change_set(changesetname, stackname, region, credentials):
         aws_session_token = credentials['SessionToken']
         )
 
-    response = client.describe_change_set(
-      ChangeSetName=changesetname,
-      StackName=stackname
-    )
-    return response['Status']
+    response = client.describe_change_set(ChangeSetName=changesetname)
+    return response
 
 
 
