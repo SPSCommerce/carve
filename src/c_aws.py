@@ -148,7 +148,7 @@ def aws_get_orgid():
     return(response['Organization']['MasterAccountId'])
 
 
-def aws_execute_change_set(change_set_name, region, credentials):
+def aws_execute_change_set(changesetname, stackname, region, credentials):
     client = boto3.client(
         'cloudformation',
         config=boto_config,
@@ -158,7 +158,9 @@ def aws_execute_change_set(change_set_name, region, credentials):
         aws_session_token = credentials['SessionToken']
         )
 
-    response = client.execute_change_set(ChangeSetName=change_set_name)
+    response = client.execute_change_set(
+        ChangeSetName=changesetname,
+        StackName=stackname)
     return response
 
 

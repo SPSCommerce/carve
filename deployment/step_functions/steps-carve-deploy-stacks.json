@@ -58,8 +58,16 @@
             "InputPath": "$.Payload",
             "Choices": [
               {
-                "Variable": "$.StackStatus",
-                "StringEquals": "CREATE_COMPLETE",
+                "Or": [
+                  {
+                    "Variable": "$.StackStatus",
+                    "StringEquals": "CREATE_COMPLETE"
+                  },
+                  {
+                    "Variable": "$.StackStatus",
+                    "StringEquals": "UPDATE_COMPLETE"
+                  }
+                ],
                 "Next": "CreateChangeSet"
               },
               {

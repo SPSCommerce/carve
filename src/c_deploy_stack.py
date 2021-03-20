@@ -18,14 +18,15 @@ def sf_ExecuteChangeSet(event):
     credentials = aws_assume_role(carve_role_arn(account), f"carve-changeset-{region}")
 
     response = aws_execute_change_set(
-        change_set_name=payload['ChangeSetName'],
+        changesetname=payload['ChangeSetName'],
+        stackname=payload['StackName'],
         region=region,
         credentials=credentials)
 
     # create payload for next step in state machine
     result = deepcopy(payload)
-    del result['ChangeSetStatus']
-
+    if 'DescribeChangeSet' in result:
+        del result['DescribeChangeSet']
     return result
 
 

@@ -180,7 +180,8 @@ def delete_carve_endpoints():
 
 def sf_ExecuteChangeSet(event):
     response = aws_execute_change_set(
-        change_set_name=event['Input']['ChangeSetName'],
+        changesetname=event['Input']['ChangeSetName'],
+        stackname=event['Input']['StackName'],
         region=event['Input']['Region'],
         credentials=event['Input']['Credentials'])
 

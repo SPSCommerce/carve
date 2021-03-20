@@ -36,7 +36,7 @@ def start_carve_deployment(event, context):
     deploy_buckets = []
     for r in regions:
 
-        stackname = f"{os.environ['ResourcePrefix']}carve-{os.environ['ResourcePrefix']}-s3-us-east-1"
+        stackname = f"{os.environ['ResourcePrefix']}carve-{os.environ['OrganizationsId']}-s3-us-east-1"
         parameters = [
             {
                 "ParameterKey": "OrganizationsId",
