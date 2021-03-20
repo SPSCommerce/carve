@@ -39,3 +39,16 @@ Resources:
             Resource: !GetAtt CarveS3Bucket.Arn
             Principal:
               AWS: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ResourcePrefix}carve-lambda-${OrganizationsId}"
+          - Sid: DeploymentAccess
+            Effect: Allow 
+            Action:
+              - "s3:Get*"
+            Resource: !GetAtt CarveS3Bucket.Arn
+            Principal:
+              AWS: "*"
+            # Condition:
+            #   ForAnyValue:StringEquals:
+            #     aws:PrincipalOrgID: !Sub '${OrganizationsId}'
+            Condition:
+              StringEquals:
+                aws:PrincipalOrgID: !Ref OrganizationsId

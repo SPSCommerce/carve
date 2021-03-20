@@ -278,7 +278,7 @@ def aws_read_s3_direct(key, region):
         return None
 
 
-def aws_copy_s3_object(key, target_key, region, source_bucket=os.environ['CarveS3Bucket'], target_bucket=os.environ['CarveS3Bucket']):
+def aws_copy_s3_object(key, target_key, source_bucket=os.environ['CarveS3Bucket'], target_bucket=os.environ['CarveS3Bucket']):
     resource = boto3.resource('s3', config=boto_config)
     src = {
         "Bucket": source_bucket,
@@ -441,13 +441,23 @@ def aws_purge_s3_path(path):
 def aws_put_bucket_policy(bucket, function_arn):
     client = boto3.client('s3', config=boto_config)
     try:
-        response = client.put_bucket_notification_configuration(
+        response = client.put_bucket_policy(
             Bucket=os.environ['CarveS3Bucket'],
             Policy='policy'
         )
         return response
     except ClientError as e:
         print(f'error putting bucket policy: {e}')
+
+
+
+def aws_get_bucket_policy(bucket):
+    s3_resource = boto3.resource('s3', config=boto_config)
+    try:
+        policy = s3_resource.BucketPolicy(bucket)
+        return policy
+    except ClientError as e:
+        print(f'error getting bucket policy for {bucket}: {e}')
 
 
 def aws_put_bucket_notification(path, notification_id, function_arn):

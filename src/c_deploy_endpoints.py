@@ -22,7 +22,7 @@ def start_carve_deployment(event, context):
     # move deployment object to deploy_started path
     filename = key.split('/')[-1]
     deploy_key = f"deploy_started/{filename}"
-    aws_copy_s3_object(key, deploy_key, region)
+    aws_copy_s3_object(key, deploy_key)
     aws_delete_s3_object(key, region)
 
     # get all other regions where buckets are needed
@@ -53,7 +53,7 @@ def start_carve_deployment(event, context):
             "Account": context.invoked_function_arn.split(":")[4],
             "Region": r,
             "DeployKey": deploy_key,
-            "Template": 'deployment/carve-regional-s3.cfn.yaml'
+            "Template": 'deployment/carve-regional-s3.cfn.yml'
         })
 
     aws_start_stepfunction(os.environ['DeployEndpointsStateMachine'], deploy_buckets)
@@ -63,26 +63,29 @@ def sf_DeployPrep(event, context):
     # input will be the completion of all the deploy buckets
     # need to use above logic to load G and determine 
 
-    if 'Payload' in event['Input']:
-        payload = event['Input']['Payload']
-    else:
-        payload = event['Input']
+    # get the deploy key from the first input
+    deploykey = event['Input']['Payload']['Input'][0]['DeployKey']
 
-    print(payload)
+    G = load_graph(deploykey, local=False)
 
-    key = payload['Records'][0]['s3']['object']['key']
+    # update_bucket_policies(G)
 
+    # push lambda deployment package to regional S3 buckets
+    # get all other regions where buckets are needed
+    regions = set()
+    for vpc in list(G.nodes):
+        r = G.nodes().data()[vpc]['Region']
+        if r != region:
+            if r not in regions:
+                regions.add(r)
 
-    G = load_graph(key, local=False)
-
-    update_bucket_policies(G)
-
-    # need to get the bucket names from the payloads
-    sys.exit()
-
-    # push CFN deployment files to S3
-    for file in os.listdir('deployment'):
-        aws_upload_file_carve_s3(f'deploy_templates/{file}', f'{os.getcwd()}/deployment/{file}')
+    for r in regions:
+        aws_copy_s3_object(
+            key=os.environ['CodeKey'],
+            target_key=os.environ['CodeKey'],
+            source_bucket=os.environ['CodeBucket'],
+            target_bucket=f"{os.environ['ResourcePrefix']}carve-{os.environ['OrganizationsId']}-{r}"
+            )
 
     # use the graph name if it contains one
     if 'Name' in G.graph:
@@ -92,6 +95,10 @@ def sf_DeployPrep(event, context):
 
     # create a ranking of AZ from most to least occuring
     azs_ranked = az_rank(G)
+
+    print(azs_ranked)
+
+    sys.exit()
 
     deployment_targets = []
     for vpc in list(G.nodes):
@@ -127,29 +134,37 @@ def sf_DeployPrep(event, context):
 
 
 def az_rank(G):
-    # sort all AZs in graph by most to least used 
+    # sort all AZs in graph by most to least used per region
+    # returns regions with sorted list of AZs = {<region>: [<az>, <az>, <az>]}
 
     ### NEED TO UPDATE SO IT DOES THIS for each region
-    azs = {}
+    regions = {}
     for vpc in list(G.nodes):
-        vpc_data = G.nodes().data()[vpc]
-        for subnet in vpc_data['Subnets']:
+        region = G.nodes().data()[vpc]['Region']
+        for subnet in G.nodes().data()[vpc]['Subnets']:
             az = subnet['AvailabilityZoneId']
-            if az in azs.keys():
-                azs[az] = azs[az] + 1
+            if region in regions:
+                regions[region] = {az: 1}
             else:
-                azs[az] = 1
-    return sorted(azs.items(), key=lambda x: x[1], reverse=True)
+                if az in regions[region].keys():
+                    regions[region][az] = regions[region][az] + 1
+                else:
+                    regions[region][az] = 1
+
+    sorted_regions = {}
+    for region, azs in regions.items():
+        sorted_regions[region] = sorted(regions[region].items(), key=lambda x: x[1], reverse=True)
+
+    return sorted_regions
 
 
 
 def update_bucket_policies(G):
-    # careve_s3_policy(region, accounts):
-    # generate an S3 deploy policy bucket
 
     # determine which accounts have resources in each region in the graph
     regions = {}
     for vpc in list(G.nodes):
+        print(vpc)
         region = G.nodes().data()[vpc]['Region']
         account = G.nodes().data()[vpc]['Account']
         if region in regions:
@@ -158,21 +173,32 @@ def update_bucket_policies(G):
         else:
             regions[region] = [account]
 
-    arns = []
-    for a in accounts:
-        arns.append(f"arn:aws:iam::{a}:root")
+    # update the policy of each regional bucket
+    for region, accounts in regions.items():
+        bucket = f"{os.environ['ResourcePrefix']}carve-{os.environ['OrganizationsId']}-{region}"
+        policy = aws_get_bucket_policy(bucket)
+        # get all account arns that need to deploy thru this region
+        arns = []
+        for a in accounts:
+            arns.append(f"arn:aws:iam::{a}:root")
 
-    policy = {
-        "Statement": [
+        statement = []
+
+        # copy existing statements, omitting existing carve-deploy Sid
+        for s in template['Resources']['CarveS3BucketPolicy']['Properties']['PolicyDocument']['Statement']:
+            if s['Sid'] != 'DeploymentAccess':
+                statement.append(deepcopy(s))
+
+        statement.append(
             {
-                "Sid": f"carve-{a}-deploy",
+                "Sid": f"DeploymentAccess",
                 "Effect": "Allow",
                 "Action": ["s3:Get"],
                 "Resource":  f"arn:aws:s3:::{os.environ['ResourcePrefix']}carve-{os.environ['OrganizationsId']}-{region}",
                 "Principal": {"AWS": arns}
             }
-        ]
-    }
+        )
+        policy = "PolicyDocument": {"Statement": deepcopy(statement)}
 
     # return json.dumps(policy)
     return
@@ -226,7 +252,6 @@ def create_s3_template(account, accounts):
 #     aws_copy_s3_object(
 #         key=os.environ['CodeKey'], 
 #         target_key="deployment/lambda_packages/${GITSHA}.zip",
-#         region=, 
 #         source_bucket=, 
 #         target_bucket=
 #         )
@@ -323,7 +348,7 @@ def sf_DeploymentComplete(event):
     # move deployment object immediately
     filename = key.split('/')[-1]
     deploy_key = f"deploy_started/{filename}"
-    aws_copy_s3_object(key, deploy_key, region)
+    aws_copy_s3_object(key, deploy_key)
     aws_delete_s3_object(key, region)
 
 
