@@ -43,8 +43,8 @@ def sf_DescribeChangeSet(event, status):
     credentials = aws_assume_role(carve_role_arn(account), f"carve-changeset-{region}")
 
     response = aws_describe_change_set(
-        changesetname=payload['ChangeSetName'],
-        stackname=payload['StackName'],
+        changesetname=payload['ChangeSetId'],
+        # stackname=payload['StackName'],
         region=region,
         credentials=credentials
         )
@@ -67,7 +67,6 @@ def sf_CreateChangeSet(event, context):
     parameters = payload['Parameters']
 
     with open(payload['Template']) as f:
-        # template = (json.load(f))
         template = f.read()
 
     credentials = aws_assume_role(carve_role_arn(account), f"carve-changeset-{region}")
@@ -86,6 +85,7 @@ def sf_CreateChangeSet(event, context):
     # create payload for next step in state machine
     result = deepcopy(payload)
     result['ChangeSetName'] = changeset_name
+    result['ChangeSetId'] = response['Id']
     del result['StackStatus']
     return result
 
