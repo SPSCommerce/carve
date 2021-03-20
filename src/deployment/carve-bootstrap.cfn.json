@@ -1,0 +1,25 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Carve bootstrap stack",
+    "Parameters": {
+        "OrganizationsId": {
+            "Type": "String",
+            "Description": "AWS Organizations Id"
+        }
+    },
+    "Resources": {
+        "SSMParameter": {
+            "Type": "AWS::SSM::Parameter",
+            "Properties": {
+                "Name": {
+                    "Fn::Sub": "/carve-${OrganizationsId}/${AWS::StackName}"
+                },
+                "Description": "bootstrap carve API deployment",
+                "Type": "String",
+                "Value": {
+                    "Fn::Sub": "${AWS::StackId}"
+                }
+            }
+        }
+    }
+}

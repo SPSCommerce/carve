@@ -145,7 +145,7 @@ def sf_CreateStack(event, context):
     account = event['Input']['Account']
     # tags = event['Input']['Tags']
 
-    credentials = aws_assume_role(carve_role_arn(account), f"carve-deploy-{event['Input']['VpcId']}")
+    credentials = aws_assume_role(carve_role_arn(account), f"carve-create-{stackname}")
 
     response = aws_describe_stack(
         stackname=stackname,
