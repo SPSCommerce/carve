@@ -16,7 +16,7 @@ def aws_assume_role(role_arn, session_name, token_life=900):
     # a function for this lambda to assume a given role
     sts_client = boto3.client(
         'sts',
-        region_name=region,
+        region_name=current_region,
         endpoint_url=f'https://sts.{current_region}.amazonaws.com',
         config=boto_config
         )
