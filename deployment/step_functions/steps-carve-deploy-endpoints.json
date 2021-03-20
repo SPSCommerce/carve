@@ -6,13 +6,15 @@
       "Comment": "Create S3 Buckets in each region for deployments",
       "Type": "Task",
       "Next": "EndpointDeployPrep",
+      "ResultSelector": {
+        "Payload.$": "States.StringToJson($.Input)"
+      },
       "Resource": "arn:aws:states:::states:startExecution.sync",
       "Parameters": {
         "StateMachineArn": "${CarveDeployStacksStepFunction}",
         "Input": {
           "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id",
           "Input.$": "$",
-          "DeployAction": "DeployS3BucketStacks"
         }
       }
     },
@@ -25,7 +27,8 @@
       "Parameters": {
         "FunctionName": "${CarveFunction}",
         "Payload": {
-          "DeployAction": "EndpointDeployPrep"
+          "DeployAction": "EndpointDeployPrep",
+          "Input.$": "$"
         }
       },
       "Next": "DeployCarveEndpoints",
@@ -40,7 +43,6 @@
         "StateMachineArn": "${CarveDeployStacksStepFunction}",
         "Input": {
           "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id",
-          "DeployAction": "DeployCarveEndpoints",
           "Input.$": "$"
         }
       }

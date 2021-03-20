@@ -22,7 +22,7 @@ def lambda_handler(event, context):
     # lambda needs to log its info at startup
 
     '''
-    # print(event)
+    print(event)
 
     # c_context = setup_context(context)
 
@@ -59,7 +59,7 @@ def lambda_handler(event, context):
         return deploy_steps_entrypoint(event, context)
 
     elif 'DeployStack' in event:
-        print('TRIGGERED by Endpoint Deployment Step Function')
+        print('TRIGGERED by Deploy Stack Step Function')
         return deploy_stack_entrypoint(event, context)
 
     elif 'VerifyAction' in event:

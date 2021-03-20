@@ -70,14 +70,15 @@ def sf_DeployPrep(event, context):
 
     print(payload)
 
-    # key = payload['Records'][0]['s3']['object']['key']
+    key = payload['Records'][0]['s3']['object']['key']
 
-    # need to get the bucket names from the payloads
-    sys.exit()
 
     G = load_graph(key, local=False)
 
     update_bucket_policies(G)
+
+    # need to get the bucket names from the payloads
+    sys.exit()
 
     # push CFN deployment files to S3
     for file in os.listdir('deployment'):
@@ -416,36 +417,10 @@ def sf_CreateCarveStack(event, context):
 
 def deploy_steps_entrypoint(event, context):
     ''' step function tasks for deployment all flow thru here after the lambda_hanlder '''
-    if event['DeployAction'] == 'CreateS3DeployBuckets':
-        response = sf_DescribeStack(event)
+    response = {}
 
-    elif event['DeployAction'] == 'DescribeChangeSet':
-        response = sf_DescribeChangeSet(event)
-
-    elif event['DeployAction'] == 'DescribeChangeSetExecution':
-        response = sf_DescribeChangeSet(event)
-
-    elif event['DeployAction'] == 'CreateCarveStack':
-        response = sf_CreateCarveStack(event, context)
-
-    elif event['DeployAction'] == 'CreateChangeSet':
-        response = sf_CreateChangeSet(event, context)
-
-    elif event['DeployAction'] == 'ExecuteChangeSet':
-        response = sf_ExecuteChangeSet(event)
-
-    elif event['DeployAction'] == 'DeleteStack':
-        response = sf_DeleteStack(event)
-
-    elif event['DeployAction'] == 'CleanupDeployments':
-        response = sf_CleanupDeployments(event, context)
-
-    elif event['DeployAction'] == 'OrganizeDeletions':
-        response = sf_OrganizeDeletions(event, context)
-
-    elif event['DeployAction'] == 'DiscoverCarveStacks':
-        # response = sf_DiscoverCarveStacks(event, context)
-        response = None
+    if event['DeployAction'] == 'EndpointDeployPrep':
+        response = sf_DeployPrep(event, context)
 
     # return json to step function
     return json.dumps(response, default=str)
