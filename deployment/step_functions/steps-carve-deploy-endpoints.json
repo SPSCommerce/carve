@@ -11,7 +11,8 @@
         "StateMachineArn": "${CarveDeployStacksStepFunction}",
         "Input": {
           "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id",
-           "Input.$": "$"
+          "Input.$": "$",
+          "EndpointTask": "DeployS3BucketStacks"
         }
       }
     },
@@ -24,7 +25,7 @@
       "Parameters": {
         "FunctionName": "${CarveFunction}",
         "Payload": {
-          "DeployAction": "DeployPrep"
+          "EndpointTask": "EndpointDeployPrep"
         }
       },
       "Next": "DeployCarveEndpoints",
@@ -39,6 +40,7 @@
         "StateMachineArn": "${CarveDeployStacksStepFunction}",
         "Input": {
           "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id",
+          "EndpointTask": "DeployCarveEndpoints",
           "Input.$": "$"
         }
       }

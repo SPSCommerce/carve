@@ -54,9 +54,13 @@ def lambda_handler(event, context):
         print('Starting deployment process')
         return start_carve_deployment(event, context)
 
-    elif 'DeployAction' in event:
-        print('TRIGGERED by Deployment Step Function')
+    elif 'EndpointTask' in event:
+        print('TRIGGERED by Endpoint Deployment Step Function')
         return deploy_steps_entrypoint(event, context)
+
+    elif 'DeployAction' in event:
+        print('TRIGGERED by Endpoint Deployment Step Function')
+        return deploy_stack_entrypoint(event, context)
 
     elif 'VerifyAction' in event:
         print('TRIGGERED by Route Verification Step Function')
