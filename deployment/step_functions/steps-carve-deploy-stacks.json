@@ -198,7 +198,6 @@
           "CreateChangeSetChoice": {
             "Type": "Choice",
             "InputPath": "$.Payload",
-            "Next": "ExecuteChangeSet",
             "Choices": [
               {
                 "Variable": "$.DescribeChangeSet",
