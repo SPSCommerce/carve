@@ -1,31 +1,21 @@
 {
   "Comment": "Create Carve endpoint stacks",
-  "StartAt": "CreateS3DeployBuckets",
+  "StartAt": "DeployS3BucketStacks",
   "States": {
-    "CreateS3DeployBuckets": {
-      "Type": "Map",
-      "Next": "DeployPrep",
-      "MaxConcurrency": 0,
-      "Iterator": {
-        "StartAt": "DeployS3Bucket",
-        "States": {
-          "DeployS3Bucket": {
-            "Comment": "Create S3 Buckets in each region for deployments",
-            "Type": "Task",
-            "End": true,
-            "Resource": "arn:aws:states:::states:startExecution.sync",
-            "Parameters": {
-              "StateMachineArn": "${CarveDeployStacksStepFunction}",
-              "Input": {
-                "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id",
-                 "Input.$": "$"
-             }
-            }
-          }
+    "DeployS3BucketStacks": {
+      "Comment": "Create S3 Buckets in each region for deployments",
+      "Type": "Task",
+      "Next": "EndpointDeployPrep",
+      "Resource": "arn:aws:states:::states:startExecution.sync",
+      "Parameters": {
+        "StateMachineArn": "${CarveDeployStacksStepFunction}",
+        "Input": {
+          "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id",
+           "Input.$": "$"
         }
       }
     },
-    "DeployPrep": {
+    "EndpointDeployPrep": {
       "Type": "Task",
       "Resource":"arn:aws:states:::lambda:invoke",
       "ResultSelector": {
@@ -41,25 +31,15 @@
       "TimeoutSeconds": 900
     },
     "DeployCarveEndpoints": {
-      "Type": "Map",
+      "Comment": "Create one Carve stack per VPC",
+      "Type": "Task",
       "End": true,
-      "MaxConcurrency": 0,
-      "Iterator": {
-        "StartAt": "DeployCarveStacks",
-        "States": {
-          "DeployCarveStacks": {
-            "Comment": "Create one Carve stack per VPC",
-            "Type": "Task",
-            "End": true,
-            "Resource": "arn:aws:states:::states:startExecution.sync",
-            "Parameters": {
-              "StateMachineArn": "${CarveDeployStacksStepFunction}",
-              "Input": {
-                "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id",
-                "Input.$": "$"
-              }
-            }
-          }
+      "Resource": "arn:aws:states:::states:startExecution.sync",
+      "Parameters": {
+        "StateMachineArn": "${CarveDeployStacksStepFunction}",
+        "Input": {
+          "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id",
+          "Input.$": "$"
         }
       }
     }
