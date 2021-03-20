@@ -9,7 +9,6 @@ import sys
 import time
 from c_aws import *
 from c_carve import carve_role_arn, save_graph, load_graph
-from c_entrypoint import current_region
 
 
 # def build_org_graph(vpcs, pcxs):

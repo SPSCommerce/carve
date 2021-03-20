@@ -4,8 +4,7 @@ import pylab as plt
 import json
 import sys
 import os
-from c_aws import aws_read_s3_direct
-from c_entrypoint import current_region
+from c_aws import aws_read_s3_direct, current_region
 
 # from c_disco import discovery
 # from pprint import pprint

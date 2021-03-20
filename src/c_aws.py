@@ -8,8 +8,8 @@ from multiprocessing import Process, Pipe
 import time
 import shelve
 from boto3.session import Session
-from c_entrypoint import current_region
 
+current_region = os.environ['AWS_REGION']
 boto_config = Config(retries=dict(max_attempts=10))
 
 def aws_assume_role(role_arn, session_name, token_life=900):
