@@ -19,7 +19,7 @@
             "Parameters": {
               "FunctionName": "${CarveFunction}",
               "Payload": {
-                "DeployAction": "CreateStack",
+                "DeployStack": "CreateStack",
                 "Input.$": "$"
               }
             },
@@ -35,7 +35,7 @@
             "Parameters": {
               "FunctionName": "${CarveFunction}",
               "Payload": {
-                "DeployAction": "DescribeStack",
+                "DeployStack": "DescribeStack",
                 "Input.$": "$"
               }
             },
@@ -111,7 +111,7 @@
             "Parameters": {
               "FunctionName": "${CarveFunction}",
               "Payload": {
-                "DeployAction": "CreateChangeSet",
+                "DeployStack": "CreateChangeSet",
                 "Input.$": "$"
               }
             },
@@ -127,7 +127,7 @@
             "Parameters": {
               "FunctionName": "${CarveFunction}",
               "Payload": {
-                "DeployAction": "DescribeChangeSet",
+                "DeployStack": "DescribeChangeSet",
                 "Input.$": "$"
               }
             },
@@ -197,7 +197,7 @@
             "Parameters": {
               "FunctionName": "${CarveFunction}",
               "Payload": {
-                "DeployAction": "ExecuteChangeSet",
+                "DeployStack": "ExecuteChangeSet",
                 "Input.$": "$"
               }
             },
@@ -213,7 +213,7 @@
             "Parameters": {
               "FunctionName": "${CarveFunction}",
               "Payload": {
-                "DeployAction": "DescribeChangeSetExecution",
+                "DeployStack": "DescribeChangeSetExecution",
                 "Input.$": "$"
               }
             },
