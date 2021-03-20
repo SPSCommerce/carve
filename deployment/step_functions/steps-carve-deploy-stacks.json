@@ -198,11 +198,17 @@
           "CreateChangeSetChoice": {
             "Type": "Choice",
             "InputPath": "$.Payload",
+            "Next": "ExecuteChangeSet",
             "Choices": [
               {
                 "Variable": "$.DescribeChangeSet",
                 "StringEquals": "CREATE_COMPLETE",
                 "Next": "ExecuteChangeSet"
+              },
+              {
+                "Variable": "$.DescribeChangeSet",
+                "StringEquals": "NO_CHANGES",
+                "Next": "Succeed"
               },
               {
                 "Or": [
@@ -291,8 +297,16 @@
             "InputPath": "$.Payload",
             "Choices": [
               {
-                "Variable": "$.DescribeChangeSetExecution",
-                "StringEquals": "EXECUTE_COMPLETE",
+                "Or": [
+                  {
+                    "Variable": "$.DescribeChangeSetExecution",
+                    "StringEquals": "EXECUTE_COMPLETE",
+                  },
+                  {
+                    "Variable": "$.DescribeChangeSetExecution",
+                    "StringEquals": "NO_CHANGES"
+                  }
+                ],
                 "Next": "Succeed"
               },
               {
