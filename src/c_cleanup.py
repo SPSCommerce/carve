@@ -5,7 +5,7 @@ import os
 import sys
 from copy import deepcopy
 from c_carve import load_graph, save_graph, carve_role_arn
-
+from c_entrypoint import current_region
 from c_disco import discover_org_accounts
 from c_aws import *
 from multiprocessing import Process, Pipe
@@ -30,9 +30,8 @@ def deploy_carve_endpoints(event, context):
     key = event['Records'][0]['s3']['object']['key']
     print(f'deploying graph: {key}')
 
-    region = os.environ['AWS_REGION']
     try:
-        graph_data = aws_read_s3_direct(key, region)
+        graph_data = aws_read_s3_direct(key, current_region)
         print(graph_data)
         G = json_graph.node_link_graph(json.loads(graph_data))
     except Exception as e:
@@ -42,8 +41,8 @@ def deploy_carve_endpoints(event, context):
     # move deployment object to deploy_started path
     filename = key.split('/')[-1]
     deploy_key = f"deploy_started/{filename}"
-    aws_copy_s3_object(key, deploy_key, region)
-    aws_delete_s3_object(key, region)
+    aws_copy_s3_object(key, deploy_key, current_region)
+    aws_delete_s3_object(key, current_region)
 
     # push CFN deployment files to S3
     for file in os.listdir('deployment'):

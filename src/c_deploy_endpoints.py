@@ -5,16 +5,15 @@ import os
 import sys
 from copy import deepcopy
 from c_carve import load_graph, save_graph, carve_role_arn
-
 from c_disco import discover_org_accounts
 from c_aws import *
+from c_entrypoint import current_region
 from multiprocessing import Process, Pipe
 import time
 
 def start_carve_deployment(event, context):
     # read graph from s3 key in event
     key = event['Records'][0]['s3']['object']['key']
-    region = os.environ['AWS_REGION']
     print(f'deploying graph: {key}')
 
     G = load_graph(key, local=False)
@@ -23,13 +22,13 @@ def start_carve_deployment(event, context):
     filename = key.split('/')[-1]
     deploy_key = f"deploy_started/{filename}"
     aws_copy_s3_object(key, deploy_key)
-    aws_delete_s3_object(key, region)
+    aws_delete_s3_object(key, current_region)
 
     # get all other regions where buckets are needed
     regions = set()
     for vpc in list(G.nodes):
         r = G.nodes().data()[vpc]['Region']
-        if r != region:
+        if r != current_region:
             if r not in regions:
                 regions.add(r)
 
@@ -75,7 +74,7 @@ def sf_DeployPrep(event, context):
     regions = set()
     for vpc in list(G.nodes):
         r = G.nodes().data()[vpc]['Region']
-        if r != region:
+        if r != current_region:
             if r not in regions:
                 regions.add(r)
 

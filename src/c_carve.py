@@ -5,6 +5,7 @@ import json
 import sys
 import os
 from c_aws import aws_read_s3_direct
+from c_entrypoint import current_region
 
 # from c_disco import discovery
 # from pprint import pprint
@@ -150,8 +151,7 @@ def load_graph(graph, local=True):
                 G.graph['Name'] = graph.split('/')[-1].split('.')[0]
                 return G
         else:
-            region = os.environ['AWS_REGION']
-            graph_data = aws_read_s3_direct(graph, region)
+            graph_data = aws_read_s3_direct(graph, current_region)
             G = json_graph.node_link_graph(json.loads(graph_data))
             return G
 

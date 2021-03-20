@@ -8,16 +8,16 @@ from multiprocessing import Process, Pipe
 import time
 import shelve
 from boto3.session import Session
+from c_entrypoint import current_region
 
 boto_config = Config(retries=dict(max_attempts=10))
 
 def aws_assume_role(role_arn, session_name, token_life=900):
     # a function for this lambda to assume a given role
-    region = os.environ['AWS_REGION']
     sts_client = boto3.client(
         'sts',
         region_name=region,
-        endpoint_url=f'https://sts.{region}.amazonaws.com',
+        endpoint_url=f'https://sts.{current_region}.amazonaws.com',
         config=boto_config
         )
 
@@ -90,7 +90,7 @@ def aws_all_regions():
 def aws_start_stepfunction(sf_arn, sf_input):
     ''' start a step function workflow with the given input '''
 
-    sm_client = boto3.client('stepfunctions', region_name=os.environ['AWS_REGION'])
+    sm_client = boto3.client('stepfunctions', region_name=current_region)
     sm_input = json.dumps(sf_input)
 
     response = sm_client.start_execution(stateMachineArn=sf_arn, input=sm_input)

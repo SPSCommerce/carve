@@ -8,6 +8,7 @@ import logging
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+current_region = os.environ['AWS_REGION']
 
 
 def lambda_handler(event, context):
