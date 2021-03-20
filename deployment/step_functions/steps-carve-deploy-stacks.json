@@ -8,6 +8,7 @@
       "MaxConcurrency": 0,
       "Iterator": {
         "StartAt": "CreateStack",
+        "InputPath": "$.Input",
         "States": {
           "CreateStack": {
             "Type": "Task",
