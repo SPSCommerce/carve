@@ -65,9 +65,9 @@ def sf_CreateChangeSet(event, context):
     region = payload['Region']
     parameters = payload['Parameters']
 
-    # create bootstrap stack to orchestrate all deploys/updates thru changesets
     with open(payload['Template']) as f:
-        template = (json.load(f))
+        # template = (json.load(f))
+        template = f.read()
 
     credentials = aws_assume_role(carve_role_arn(account), f"carve-changeset-{region}")
 
@@ -77,7 +77,7 @@ def sf_CreateChangeSet(event, context):
         stackname=payload['StackName'],
         changeset_name=changeset_name,
         region=region,
-        template_url=template_url,
+        template=template,
         parameters=parameters,
         credentials=credentials,
         tags=aws_get_carve_tags(context.invoked_function_arn))
@@ -90,8 +90,11 @@ def sf_CreateChangeSet(event, context):
 
 
 def sf_DescribeStack(event):
-    # payload = json.loads(event['Input']['Payload'])
-    payload = event['Input']['Payload']
+    if 'Payload' in event['Input']:
+        payload = event['Input']['Payload']
+    else:
+        payload = event['Input']
+
     account = payload['Account']
 
     credentials = aws_assume_role(carve_role_arn(account), f"carve-deploy-{payload['Region']}")
@@ -169,7 +172,7 @@ def sf_CreateStack(event, context):
         stack = aws_create_stack(
             stackname=stackname,
             region=region,
-            template=template,
+            template=str(template),
             parameters=parameters,
             credentials=credentials,
             tags=aws_get_carve_tags(context.invoked_function_arn)

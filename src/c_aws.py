@@ -200,7 +200,7 @@ def aws_delete_stack(stackname, region, credentials):
     return response
 
 
-def aws_create_changeset(stackname, changeset_name, region, template_url, parameters, credentials, tags):
+def aws_create_changeset(stackname, changeset_name, region, template, parameters, credentials, tags):
     '''deploy SAM template thru changesets'''
 
     client = boto3.client(
@@ -215,7 +215,7 @@ def aws_create_changeset(stackname, changeset_name, region, template_url, parame
     response = client.create_change_set(
         StackName=stackname,
         ChangeSetName=changeset_name,
-        TemplateURL=template_url,
+        TemplateBody=template,
         Tags=tags,
         Parameters=parameters
         )
