@@ -6,9 +6,9 @@
       "Type": "Map",
       "End": true,
       "MaxConcurrency": 0,
+      "InputPath": "$.Input",
       "Iterator": {
         "StartAt": "CreateStack",
-        "InputPath": "$.Input",
         "States": {
           "CreateStack": {
             "Type": "Task",
