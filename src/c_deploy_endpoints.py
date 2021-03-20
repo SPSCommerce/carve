@@ -198,7 +198,7 @@ def update_bucket_policies(G):
                 "Principal": {"AWS": arns}
             }
         )
-        policy = "PolicyDocument": {"Statement": deepcopy(statement)}
+        # policy = "PolicyDocument": {"Statement": deepcopy(statement)}
 
     # return json.dumps(policy)
     return

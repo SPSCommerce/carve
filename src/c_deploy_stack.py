@@ -44,17 +44,18 @@ def sf_DescribeChangeSet(event, status):
 
     response = aws_describe_change_set(
         changesetname=payload['ChangeSetId'],
-        # stackname=payload['StackName'],
         region=region,
         credentials=credentials
         )
 
     # create payload for next step in state machine
     result = deepcopy(payload)
-    if "didn't contain changes" in response['StatusReason']: 
-        result[status] = "NO_CHANGES"
+    if 'StatusReason' in response.keys():
+        if "didn't contain changes" in response['StatusReason']: 
+            result[status] = "NO_CHANGES"
     else:
-        result[status] = response['Status']
+        result[status] = response[status]
+
     return result
 
 
@@ -195,10 +196,10 @@ def deploy_stack_entrypoint(event, context):
         response = sf_DescribeStack(event)
 
     elif event['DeployStack'] == 'DescribeChangeSet':
-        response = sf_DescribeChangeSet(event, "DescribeChangeSet")
+        response = sf_DescribeChangeSet(event, "Status")
 
     elif event['DeployStack'] == 'DescribeChangeSetExecution':
-        response = sf_DescribeChangeSet(event, "DescribeChangeSetExecution")
+        response = sf_DescribeChangeSet(event, "ExecutionStatus")
 
     elif event['DeployStack'] == 'CreateStack':
         response = sf_CreateStack(event, context)

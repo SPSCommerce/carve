@@ -200,23 +200,23 @@
             "InputPath": "$.Payload",
             "Choices": [
               {
-                "Variable": "$.DescribeChangeSet",
+                "Variable": "$.Status",
                 "StringEquals": "CREATE_COMPLETE",
                 "Next": "ExecuteChangeSet"
               },
               {
-                "Variable": "$.DescribeChangeSet",
+                "Variable": "$.Status",
                 "StringEquals": "NO_CHANGES",
                 "Next": "Succeed"
               },
               {
                 "Or": [
                   {
-                    "Variable": "$.DescribeChangeSet",
+                    "Variable": "$.Status",
                     "StringEquals": "CREATE_PENDING"
                   },
                   {
-                    "Variable": "$.DescribeChangeSet",
+                    "Variable": "$.Status",
                     "StringEquals": "CREATE_IN_PROGRESS"
                   }
                 ],
@@ -225,23 +225,23 @@
               {
                 "Or": [
                   {
-                    "Variable": "$.DescribeChangeSet",
+                    "Variable": "$.Status",
                     "StringEquals": "DELETE_PENDING"
                   },
                   {
-                    "Variable": "$.DescribeChangeSet",
+                    "Variable": "$.Status",
                     "StringEquals": "DELETE_IN_PROGRESS"
                   },
                   {
-                    "Variable": "$.DescribeChangeSet",
+                    "Variable": "$.Status",
                     "StringEquals": "DELETE_COMPLETE"
                   },
                   {
-                    "Variable": "$.DescribeChangeSet",
+                    "Variable": "$.Status",
                     "StringEquals": "DELETE_FAILED"
                   },
                   {
-                    "Variable": "$.DescribeChangeSet",
+                    "Variable": "$.Status",
                     "StringEquals": "FAILED"
                   }
                 ],
@@ -298,11 +298,11 @@
               {
                 "Or": [
                   {
-                    "Variable": "$.DescribeChangeSetExecution",
+                    "Variable": "$.ExecutionStatus",
                     "StringEquals": "EXECUTE_COMPLETE",
                   },
                   {
-                    "Variable": "$.DescribeChangeSetExecution",
+                    "Variable": "$.ExecutionStatus",
                     "StringEquals": "NO_CHANGES"
                   }
                 ],
@@ -311,11 +311,11 @@
               {
                 "Or": [
                   {
-                    "Variable": "$.DescribeChangeSetExecution",
+                    "Variable": "$.ExecutionStatus",
                     "StringEquals": "AVAILABLE"
                   },
                   {
-                    "Variable": "$.DescribeChangeSetExecution",
+                    "Variable": "$.ExecutionStatus",
                     "StringEquals": "EXECUTE_IN_PROGRESS"
                   }
                 ],
@@ -324,15 +324,15 @@
               {
                 "Or": [
                   {
-                    "Variable": "$.DescribeChangeSetExecution",
+                    "Variable": "$.ExecutionStatus",
                     "StringEquals": "UNAVAILABLE"
                   },
                   {
-                    "Variable": "$.DescribeChangeSetExecution",
+                    "Variable": "$.ExecutionStatus",
                     "StringEquals": "EXECUTE_FAILED"
                   },
                   {
-                    "Variable": "$.DescribeChangeSetExecution",
+                    "Variable": "$.ExecutionStatus",
                     "StringEquals": "OBSOLETE"
                   }
                 ],
