@@ -101,28 +101,57 @@ def sf_DeployPrep(event, context):
 
         # select the subnet in the top ranked AZ for the region
         s = False
+        subnet_id = ""
         while not s:
             for ranked_az in azs_ranked[vpc_data['Region']]:
                 for subnet in vpc_data['Subnets']:
                     az = subnet['AvailabilityZoneId']
                     if az == ranked_az[0]:
-                        target['SubnetId'] = subnet['SubnetId']
+                        subnet_id = subnet['SubnetId']
                         s = True
 
+        target['StackName'] = f"{os.environ['ResourcePrefix']}carve-endpoint-{event['Input']['VpcId']}"
         target['Account'] = vpc_data['Account']
-        target['GraphName'] = graph_name
         target['Region'] = vpc_data['Region']
-        target['VpcId'] = vpc
-        target['VpcName'] = vpc_data['Name']
-        target['Role'] = carve_role_arn(vpc_data['Account'])
+        target['DeployKey'] = deploykey
+        target['DeployTemplate'] = "deployment/carve-vpc.sam.yml"
+        target['Parameters'] = [
+          {
+            "ParameterKey": "VpcId",
+            "ParameterValue": vpc
+          },
+          {
+            "ParameterKey": "VpcEndpointSubnetIds",
+            "ParameterValue": subnet_id
+          },
+          {
+            "ParameterKey": "CarveSNSTopicArn",
+            "ParameterValue": os.environ['CarveSNSTopicArn']
+          },
+          {
+            "ParameterKey": "OrganizationsId",
+            "ParameterValue": os.environ['OrganizationsId']
+          },
+          {
+            "ParameterKey": "CarveVersion",
+            "ParameterValue": os.environ['CarveVersion']
+          },
+          {
+            "ParameterKey": "GITSHA",
+            "ParameterValue": os.environ['GITSHA']
+          },
+          {
+            "ParameterKey": "ResourcePrefix",
+            "ParameterValue": os.environ['ResourcePrefix']
+          }
+        ]
+
         deployment_targets.append(target)
 
-    # cache deployment tags now to local lambda disk to reduce api calls
+    # cache deployment tags to local lambda tmp
     tags = aws_get_carve_tags(context.invoked_function_arn)
 
-    # start deployment state machine with graph
     return deployment_targets
-    # mock_stepfunction(os.environ['CarveDeployStepFunction'], deployment_targets)
 
 
 def az_rank(G):

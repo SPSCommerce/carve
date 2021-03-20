@@ -21,6 +21,10 @@ Parameters:
   CarveVersion:
     Type: String
     Default: "0"
+  GITSHA:
+    Type: String
+    Default: ""
+    Description: latest Git commit SHA determines S3 artifact paths
   ResourcePrefix:
     Type: String
     Description: "Prefix all carve resources with this"
