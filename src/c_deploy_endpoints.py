@@ -25,19 +25,18 @@ def start_carve_deployment(event, context):
     aws_copy_s3_object(key, deploy_key, region)
     aws_delete_s3_object(key, region)
 
-    # get all regions where buckets are needed
+    # get all other regions where buckets are needed
     regions = set()
     for vpc in list(G.nodes):
         r = G.nodes().data()[vpc]['Region']
-        if r not in regions:
-            regions.add(r)
+        if r != region:
+            if r not in regions:
+                regions.add(r)
 
     # create deploy buckets in all required regions    
     deploy_buckets = []
     for r in regions:
-        if r == os.environ['AWS_REGION']:
-            continue
-        stackname = f"{os.environ['ResourcePrefix']}carve-{os.environ['OrganizationsId']}-s3-us-east-1"
+        stackname = f"{os.environ['ResourcePrefix']}carve-{os.environ['OrganizationsId']}-s3-{r}"
         parameters = [
             {
                 "ParameterKey": "OrganizationsId",
