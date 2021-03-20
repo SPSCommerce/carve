@@ -94,19 +94,15 @@ def sf_DeployPrep(event, context):
     # create a ranking of AZ from most to least occuring
     azs_ranked = az_rank(G)
 
-    print(azs_ranked)
-
-    sys.exit()
-
     deployment_targets = []
     for vpc in list(G.nodes):
         vpc_data = G.nodes().data()[vpc]
         target = {}
 
-        # select the subnet in the most occuring AZ
+        # select the subnet in the top ranked AZ for the region
         s = False
         while not s:
-            for ranked_az in azs_ranked:
+            for ranked_az in azs_ranked[vpc_data['Region']]:
                 for subnet in vpc_data['Subnets']:
                     az = subnet['AvailabilityZoneId']
                     if az == ranked_az[0]:
@@ -118,8 +114,6 @@ def sf_DeployPrep(event, context):
         target['Region'] = vpc_data['Region']
         target['VpcId'] = vpc
         target['VpcName'] = vpc_data['Name']
-
-        # target['Credentials'] = credentials[vpc_data['Account']]
         target['Role'] = carve_role_arn(vpc_data['Account'])
         deployment_targets.append(target)
 
@@ -127,7 +121,7 @@ def sf_DeployPrep(event, context):
     tags = aws_get_carve_tags(context.invoked_function_arn)
 
     # start deployment state machine with graph
-    aws_start_stepfunction(os.environ['CarveDeployStepFunction'], deployment_targets)
+    return deployment_targets
     # mock_stepfunction(os.environ['CarveDeployStepFunction'], deployment_targets)
 
 
@@ -141,7 +135,7 @@ def az_rank(G):
         region = G.nodes().data()[vpc]['Region']
         for subnet in G.nodes().data()[vpc]['Subnets']:
             az = subnet['AvailabilityZoneId']
-            if region in regions:
+            if region not in regions:
                 regions[region] = {az: 1}
             else:
                 if az in regions[region].keys():
