@@ -66,6 +66,22 @@
                   {
                     "Variable": "$.StackStatus",
                     "StringEquals": "UPDATE_COMPLETE"
+                  },
+                  {
+                    "Variable": "$.StackStatus",
+                    "StringEquals": "UPDATE_ROLLBACK_COMPLETE"
+                  },
+                  {
+                    "Variable": "$.StackStatus",
+                    "StringEquals": "ROLLBACK_COMPLETE"
+                  },
+                  {
+                    "Variable": "$.StackStatus",
+                    "StringEquals": "IMPORT_COMPLETE"
+                  },
+                  {
+                    "Variable": "$.StackStatus",
+                    "StringEquals": "IMPORT_ROLLBACK_COMPLETE"
                   }
                 ],
                 "Next": "CreateChangeSet"
@@ -74,11 +90,19 @@
                 "Or": [
                   {
                     "Variable": "$.StackStatus",
-                    "StringEquals": "CREATE_PENDING"
+                    "StringEquals": "CREATE_IN_PROGRESS"
                   },
                   {
                     "Variable": "$.StackStatus",
-                    "StringEquals": "CREATE_IN_PROGRESS"
+                    "StringEquals": "UPDATE_IN_PROGRESS"
+                  },
+                  {
+                    "Variable": "$.StackStatus",
+                    "StringEquals": "REVIEW_IN_PROGRESS"
+                  },
+                  {
+                    "Variable": "$.StackStatus",
+                    "StringEquals": "IMPORT_IN_PROGRESS"
                   }
                 ],
                 "Next": "DescribeStackWait"
@@ -87,7 +111,23 @@
                 "Or": [
                   {
                     "Variable": "$.StackStatus",
-                    "StringEquals": "DELETE_PENDING"
+                    "StringEquals": "IMPORT_ROLLBACK_IN_PROGRESS"
+                  },
+                  {
+                    "Variable": "$.StackStatus",
+                    "StringEquals": "UPDATE_ROLLBACK_IN_PROGRESS"
+                  },
+                  {
+                    "Variable": "$.StackStatus",
+                    "StringEquals": "UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS"
+                  },
+                  {
+                    "Variable": "$.StackStatus",
+                    "StringEquals": "UPDATE_COMPLETE_CLEANUP_IN_PROGRESS"
+                  },
+                  {
+                    "Variable": "$.StackStatus",
+                    "StringEquals": "ROLLBACK_IN_PROGRESS"
                   },
                   {
                     "Variable": "$.StackStatus",
@@ -95,7 +135,15 @@
                   },
                   {
                     "Variable": "$.StackStatus",
-                    "StringEquals": "DELETE_COMPLETE"
+                    "StringEquals": "CREATE_FAILED"
+                  },
+                  {
+                    "Variable": "$.StackStatus",
+                    "StringEquals": "IMPORT_ROLLBACK_FAILED"
+                  },
+                  {
+                    "Variable": "$.StackStatus",
+                    "StringEquals": "UPDATE_ROLLBACK_FAILED"
                   },
                   {
                     "Variable": "$.StackStatus",
@@ -103,8 +151,13 @@
                   },
                   {
                     "Variable": "$.StackStatus",
-                    "StringEquals": "FAILED"
+                    "StringEquals": "ROLLBACK_FAILED"
+                  },
+                  {
+                    "Variable": "$.StackStatus",
+                    "StringEquals": "DELETE_COMPLETE"
                   }
+
                 ],
                 "Next": "Failure"
               }

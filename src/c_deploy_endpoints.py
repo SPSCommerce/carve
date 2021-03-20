@@ -35,7 +35,8 @@ def start_carve_deployment(event, context):
     # create deploy buckets in all required regions    
     deploy_buckets = []
     for r in regions:
-
+        if r == os.environ['AWS_REGION']:
+            continue
         stackname = f"{os.environ['ResourcePrefix']}carve-{os.environ['OrganizationsId']}-s3-us-east-1"
         parameters = [
             {

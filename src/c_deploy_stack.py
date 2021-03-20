@@ -43,7 +43,7 @@ def sf_DescribeChangeSet(event, status):
     credentials = aws_assume_role(carve_role_arn(account), f"carve-changeset-{region}")
 
     response = aws_describe_change_set(
-        change_set_name=payload['ChangeSetName'],
+        changesetname=payload['ChangeSetName'],
         stackname=payload['StackName'],
         region=region,
         credentials=credentials
