@@ -11,7 +11,7 @@
       "Parameters": {
         "FunctionName": "${CarveFunction}",
         "Payload": {
-          "DeployAction": "CleanupDeployments"
+          "CleanupAction": "CleanupDeployments"
         }
       },
       "Next": "DiscoverCarveStacksIterator",
@@ -34,7 +34,7 @@
             "Parameters": {
               "FunctionName": "${CarveFunction}",
               "Payload": {
-                "DeployAction": "DiscoverCarveStacks",
+                "CleanupAction": "DiscoverCarveStacks",
                 "Input.$": "$"
               }
             },
@@ -53,7 +53,7 @@
       "Parameters": {
         "FunctionName": "${CarveFunction}",
         "Payload": {
-          "DeployAction": "OrganizeDeletions"
+          "CleanupAction": "OrganizeDeletions"
         }
       },
       "Next": "DeleteStacksIterator",
@@ -76,7 +76,7 @@
             "Parameters": {
               "FunctionName": "${CarveFunction}",
               "Payload": {
-                "DeployAction": "DeleteStack",
+                "CleanupAction": "DeleteStack",
                 "Input.$": "$"
               }
             },
@@ -92,7 +92,7 @@
             "Parameters": {
               "FunctionName": "${CarveFunction}",
               "Payload": {
-                "DeployAction": "DescribeStack",
+                "CleanupAction": "DescribeDeleteStack",
                 "Input.$": "$"
               }
             },

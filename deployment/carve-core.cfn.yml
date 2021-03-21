@@ -101,7 +101,6 @@ Resources:
       StateMachineName: !Sub "${ResourcePrefix}carve-deploy-stacks-statemachine"
       StateMachineType: STANDARD
 
-
   CarveDeployEndpointsStepFunction:
     Type: AWS::StepFunctions::StateMachine
     Properties: 
@@ -115,17 +114,17 @@ Resources:
       StateMachineName: !Sub "${ResourcePrefix}carve-deploy-endpoints-statemachine"
       StateMachineType: STANDARD
 
-  # CarveCleanupStepFunction:
-  #   Type: AWS::StepFunctions::StateMachine
-  #   Properties: 
-  #     DefinitionS3Location: 
-  #       Bucket: !Ref CodeBucket
-  #       Key: !Sub "step_functions/${GITSHA}/steps-carve-cleanup.json"
-  #     DefinitionSubstitutions: 
-  #       CarveFunction: !Ref CarveFunction
-  #     RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ResourcePrefix}carve-stepfunctions-${OrganizationsId}"
-  #     StateMachineName: !Sub "${ResourcePrefix}carve-cleanup-statemachine"
-  #     StateMachineType: STANDARD
+  CarveCleanupStepFunction:
+    Type: AWS::StepFunctions::StateMachine
+    Properties: 
+      DefinitionS3Location: 
+        Bucket: !Ref CodeBucket
+        Key: !Sub "step_functions/${GITSHA}/steps-carve-cleanup.json"
+      DefinitionSubstitutions: 
+        CarveFunction: !Ref CarveFunction
+      RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ResourcePrefix}carve-stepfunctions-${OrganizationsId}"
+      StateMachineName: !Sub "${ResourcePrefix}carve-cleanup-statemachine"
+      StateMachineType: STANDARD
 
   CarveDiscoveryStepFunction:
     Type: AWS::StepFunctions::StateMachine
@@ -262,7 +261,7 @@ Resources:
         Id: Carve SNS Policy
         Version: "2012-10-17"
         Statement:
-          - Sid: Allow VPC Carve Lambdas
+          - Sid: Allow Carve Lambdas
             Effect: "Allow"
             Principal:
               AWS: "*"
