@@ -274,8 +274,8 @@ Resources:
             Condition:
               StringEquals:
                 aws:PrincipalOrgID: !Ref OrganizationsId
-              ArnLike:
-                AWS:SourceArn: !Sub "arn:aws:lambda:*:*:function:${ResourcePrefix}carve-*"
+              # ArnLike:
+              #   AWS:SourceArn: !Sub "arn:aws:lambda:*:*:function:${ResourcePrefix}carve-*"
           # - Sid: Allow Carve Core Lambdas
           #   Effect: "Allow"
           #   Principal:
