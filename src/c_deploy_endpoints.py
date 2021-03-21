@@ -73,9 +73,8 @@ def sf_DeployPrep(event, context):
     regions = set()
     for vpc in list(G.nodes):
         r = G.nodes().data()[vpc]['Region']
-        if r != current_region:
-            if r not in regions:
-                regions.add(r)
+        if r not in regions:
+            regions.add(r)
 
     for r in regions:
         aws_copy_s3_object(
@@ -110,11 +109,11 @@ def sf_DeployPrep(event, context):
                         subnet_id = subnet['SubnetId']
                         s = True
 
-        target['StackName'] = f"{os.environ['ResourcePrefix']}carve-endpoint-{event['Input']['VpcId']}"
+        target['StackName'] = f"{os.environ['ResourcePrefix']}carve-endpoint-{vpc}"
         target['Account'] = vpc_data['Account']
         target['Region'] = vpc_data['Region']
         target['DeployKey'] = deploykey
-        target['DeployTemplate'] = "deployment/carve-vpc.sam.yml"
+        target['Template'] = "deployment/carve-vpc.sam.yml"
         target['Parameters'] = [
           {
             "ParameterKey": "VpcId",

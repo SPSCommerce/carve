@@ -43,7 +43,7 @@
         "StateMachineArn": "${CarveDeployStacksStepFunction}",
         "Input": {
           "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id",
-          "Input.$": "$"
+          "Input.$": "$.Payload"
         }
       }
     }

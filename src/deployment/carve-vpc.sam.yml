@@ -41,11 +41,11 @@ Resources:
       FunctionName: !Sub "carve-${VpcId}"
       Description: Continuous AWS Route Verification Engine
       PackageType: Zip
-      FunctionCode: 
-        Bucket: !Sub "${ResourcePrefix}carve-${OrganizationsId}"
-        Key: "deployment/lambda_packages/${GITSHA}.zip"
+      CodeUri: 
+        Bucket: !Sub "${ResourcePrefix}carve-${OrganizationsId}-${AWS::Region}"
+        Key: !Sub "lambda_packages/${GITSHA}/package.zip"
       Handler: c_entrypoint.lambda_handler
-      Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/carve-${OrganizationsId}"
+      Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ResourcePrefix}carve-lambda-${OrganizationsId}"
       Runtime: python3.8
       Timeout: 20
       MemorySize: 128
@@ -53,7 +53,7 @@ Resources:
       Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
         Variables:
           S3Bucket: !Sub "carve-${OrganizationsId}"
-          VpcEndpointId: !Ref CarveAPIAccessEndpoint
+          # VpcEndpointId: !Ref CarveAPIAccessEndpoint
           VpcId: !Ref VpcId
       VpcConfig :
         SecurityGroupIds:
@@ -86,7 +86,7 @@ Resources:
   CarveApiSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      VpcId: !Ref VpcIdParameter
+      VpcId: !Ref VpcId
       GroupDescription: Allows access over 443 from the entire private network
       SecurityGroupIngress:
         -
@@ -101,7 +101,7 @@ Resources:
     Properties:
       Endpoint: !GetAtt CarveFunction.Arn
       Protocol: Lambda
-      TopicArn: !Ref SNSTopic
+      TopicArn: !Ref CarveSNSTopicArn
 
 
   CarveLambdaSNSInvoke:
@@ -109,7 +109,7 @@ Resources:
     Properties:
       Action: lambda:InvokeFunction
       Principal: sns.amazonaws.com
-      SourceArn: !Ref SNSTopic
+      SourceArn: !Ref CarveSNSTopicArn
       FunctionName: !GetAtt CarveFunction.Arn
 
 
@@ -117,7 +117,7 @@ Resources:
   #   Type: AWS::EC2::VPCEndpoint
   #   Properties:
   #     VpcId:
-  #       Ref: VpcIdParameter
+  #       Ref: VpcId
   #     ServiceName: !Sub "com.amazonaws.${AWS::Region}.execute-api"
   #     VpcEndpointType: Interface
   #     PrivateDnsEnabled: true

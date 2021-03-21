@@ -25,8 +25,8 @@ def sf_ExecuteChangeSet(event):
 
     # create payload for next step in state machine
     result = deepcopy(payload)
-    if 'DescribeChangeSet' in result:
-        del result['DescribeChangeSet']
+    if 'Status' in result:
+        del result['Status']
     return result
 
 
@@ -53,6 +53,10 @@ def sf_DescribeChangeSet(event, status):
     if 'StatusReason' in response.keys():
         if "didn't contain changes" in response['StatusReason']: 
             result[status] = "NO_CHANGES"
+            result['StatusReason'] = response['StatusReason']
+        else:
+            result[status] = response[status]
+            result['StatusReason'] = response['StatusReason']
     else:
         result[status] = response[status]
 

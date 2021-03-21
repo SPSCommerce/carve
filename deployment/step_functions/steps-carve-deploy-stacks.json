@@ -24,7 +24,7 @@
               }
             },
             "Next": "DescribeStackCreation",
-            "TimeoutSeconds": 20
+            "TimeoutSeconds": 30
           },
           "DescribeStackCreation": {
             "Type": "Task",
@@ -44,7 +44,7 @@
           },
           "DescribeStackWait": {
             "Type": "Wait",
-            "Seconds": 10,
+            "Seconds": 30,
             "Next": "DescribeStackCreation"
           },
           "Failure": {
@@ -177,7 +177,7 @@
               }
             },
             "Next": "DescribeChangeSet",
-            "TimeoutSeconds": 20
+            "TimeoutSeconds": 30
           },
           "DescribeChangeSet": {
             "Type": "Task",
@@ -251,7 +251,7 @@
           },
           "CreateChangeSetWait": {
             "Type": "Wait",
-            "Seconds": 10,
+            "Seconds": 30,
             "Next": "DescribeChangeSet"
           },
           "ExecuteChangeSet": {
@@ -288,7 +288,7 @@
           },
           "ExecuteChangeSetWait": {
             "Type": "Wait",
-            "Seconds": 10,
+            "Seconds": 30,
             "Next": "DescribeChangeSetExecution"
           },
           "ExecuteChangeSetChoice": {

@@ -40,7 +40,7 @@ Resources:
           CodeBucket: !Ref CodeBucket
           CodeKey: !Sub "lambda_packages/${GITSHA}/package.zip"
           GITSHA: !Ref GITSHA
-          CarveSNSTopicArn: !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${SNSTopic}"
+          CarveSNSTopicArn: !Ref SNSTopic
           MPLCONFIGDIR: /tmp/matplotlib
           ResourcePrefix: !Ref ResourcePrefix
           CleanupStateMachine: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ResourcePrefix}carve-cleanup-statemachine"
