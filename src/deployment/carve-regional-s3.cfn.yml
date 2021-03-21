@@ -41,8 +41,10 @@ Resources:
           - Sid: DeploymentAccess
             Effect: Allow 
             Action:
-              - "s3:GetObject"
-            Resource: !Sub "arn:aws:s3:::${CarveS3Bucket}/*"
+              - "s3:Get*"
+            Resource: 
+              - !Sub "arn:aws:s3:::${CarveS3Bucket}"
+              - !Sub "arn:aws:s3:::${CarveS3Bucket}/*"
             Principal:
               AWS: "*"
             # Condition:

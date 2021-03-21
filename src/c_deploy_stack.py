@@ -51,7 +51,11 @@ def sf_DescribeChangeSet(event, status):
     # create payload for next step in state machine
     result = deepcopy(payload)
     if 'StatusReason' in response.keys():
-        if "didn't contain changes" in response['StatusReason']: 
+        if response['StatusReason'] == "No updates are to be performed.":
+            # CFN Transform will someumes leave a failed change set for no changes
+            result[status] = "NO_CHANGES"
+            result['StatusReason'] = response['StatusReason']
+        elif "didn't contain changes" in response['StatusReason']: 
             result[status] = "NO_CHANGES"
             result['StatusReason'] = response['StatusReason']
         else:

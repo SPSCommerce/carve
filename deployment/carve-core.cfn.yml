@@ -235,9 +235,11 @@ Resources:
           - Sid: DeploymentAccess
             Effect: Allow
             Action:
-              - "s3:*"
+              - "s3:Get*"
             Principal: "*"
-            Resource: !GetAtt CarveS3Bucket.Arn
+            Resource:
+              - !Sub "arn:aws:s3:::${CarveS3Bucket}"
+              - !Sub "arn:aws:s3:::${CarveS3Bucket}/*"
             Condition:
               StringEquals:
                 aws:PrincipalOrgID: !Ref OrganizationsId
@@ -260,7 +262,7 @@ Resources:
         Id: Carve SNS Policy
         Version: "2012-10-17"
         Statement:
-          - Sid: Allow Org Carve Lambdas
+          - Sid: Allow VPC Carve Lambdas
             Effect: "Allow"
             Principal:
               AWS: "*"
@@ -273,7 +275,21 @@ Resources:
               StringEquals:
                 aws:PrincipalOrgID: !Ref OrganizationsId
               ArnLike:
-                AWS:SourceArn: "arn:aws:lambda:*:*:function:${ResourcePrefix}carve-*"
+                AWS:SourceArn: !Sub "arn:aws:lambda:*:*:function:${ResourcePrefix}carve-*"
+          # - Sid: Allow Carve Core Lambdas
+          #   Effect: "Allow"
+          #   Principal:
+          #     AWS: "*"
+          #   Action:
+          #     - "sns:Subscribe"
+          #     - "sns:Receive"
+          #     - "sns:Publish"
+          #   Resource: !Ref SNSTopic
+          #   Condition:
+          #     StringEquals:
+          #       aws:PrincipalOrgID: !Ref OrganizationsId
+          #     ArnLike:
+          #       AWS:SourceArn: !Sub "arn:aws:lambda:*:*:function:${ResourcePrefix}carve-vpc-*"
 
 
  # CloudWatchInvokeLambda:

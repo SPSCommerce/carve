@@ -38,7 +38,7 @@ Resources:
   CarveFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      FunctionName: !Sub "carve-${VpcId}"
+      FunctionName: !Sub "${ResourcePrefix}carve-${VpcId}"
       Description: Continuous AWS Route Verification Engine
       PackageType: Zip
       CodeUri: 
