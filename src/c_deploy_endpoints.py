@@ -14,15 +14,17 @@ import time
 def start_carve_deployment(event, context):
     # read graph from s3 key in event
     key = event['Records'][0]['s3']['object']['key']
-    print(f'deploying graph: {key}')
 
     G = load_graph(key, local=False)
 
     # move deployment object to deploy_started path
     filename = key.split('/')[-1]
-    deploy_key = f"deploy_started/{filename}"
+    deploy_key = f"deploy_active/{filename}"
+    aws_purge_s3_path("deploy_active/")
     aws_copy_s3_object(key, deploy_key)
     aws_delete_s3_object(key, current_region)
+
+    print(f'deploying graph: {deploy_key}')
 
     # get all other regions where buckets are needed
     regions = set()
@@ -52,7 +54,6 @@ def start_carve_deployment(event, context):
             "Parameters": parameters,
             "Account": context.invoked_function_arn.split(":")[4],
             "Region": r,
-            "DeployKey": deploy_key,
             "Template": 'deployment/carve-regional-s3.cfn.yml'
         })
 
@@ -60,17 +61,19 @@ def start_carve_deployment(event, context):
         aws_start_stepfunction(os.environ['DeployEndpointsStateMachine'], deploy_buckets)
     else:
         # if nothing is being deployed, Run cleanup
-        aws_start_stepfunction(os.environ['CleanupStateMachine'], deploy_key)
+        aws_start_stepfunction(os.environ['CleanupStateMachine'])
+
+
+def get_deploy_key():
+    # get the deploy key from the first input
+    deloykey = aws_list_s3_path('deploy_active/')['Contents'][0]['Key']
 
 
 def sf_DeployPrep(event, context):
     # input will be the completion of all the deploy buckets
     # need to use above logic to load G and determine 
 
-    # get the deploy key from the first input
-    deploykey = event['Input']['Payload']['Input'][0]['DeployKey']
-
-    G = load_graph(deploykey, local=False)
+    G = load_graph(get_deploy_key(), local=False)
 
     # update_bucket_policies(G)
 
@@ -96,9 +99,23 @@ def sf_DeployPrep(event, context):
     else:
         graph_name = f'c_deployed_{int(time.time())}'
 
+    deployment_targets = deploy_list(G)
+
+    # cache deployment tags to local lambda tmp
+    tags = aws_get_carve_tags(context.invoked_function_arn)
+
+    # # add the deploy key if we are deploying nothing
+    # if len(list(G.nodes)) == 0:
+    #     deployment_targets.append({"DeployKey": deploy_key})
+
+    return deployment_targets
+
+
+def deploy_list(G):
     # create a ranking of AZ from most to least occuring
     azs_ranked = az_rank(G)
 
+    # create a list of deployment dicts
     deployment_targets = []
     for vpc in list(G.nodes):
         vpc_data = G.nodes().data()[vpc]
@@ -118,7 +135,6 @@ def sf_DeployPrep(event, context):
         target['StackName'] = f"{os.environ['ResourcePrefix']}carve-endpoint-{vpc}"
         target['Account'] = vpc_data['Account']
         target['Region'] = vpc_data['Region']
-        target['DeployKey'] = deploykey
         target['Template'] = "deployment/carve-vpc.sam.yml"
         target['Parameters'] = [
           {
@@ -156,15 +172,8 @@ def sf_DeployPrep(event, context):
         ]
 
         deployment_targets.append(target)
+        return deployment_targets
 
-    # cache deployment tags to local lambda tmp
-    tags = aws_get_carve_tags(context.invoked_function_arn)
-
-    # # add the deploy key if we are deploying nothing
-    # if len(list(G.nodes)) == 0:
-    #     deployment_targets.append({"DeployKey": deploy_key})
-
-    return deployment_targets
 
 
 def az_rank(G):
@@ -381,8 +390,7 @@ def sf_DeploymentComplete(event):
 
     # move deployment object immediately
     filename = key.split('/')[-1]
-    deploy_key = f"deploy_started/{filename}"
-    aws_copy_s3_object(key, deploy_key)
+    aws_copy_s3_object(key, get_deploy_key())
     aws_delete_s3_object(key, region)
 
 
@@ -392,7 +400,6 @@ def sf_DiscoverCarveStacks(event):
 
     account = payload['Account']
     region = payload['Region']
-    graph_name = payload['GraphName']
 
     credentials = aws_assume_role(carve_role_arn(account), f"carve-cleanup-{region}")
 
@@ -404,8 +411,7 @@ def sf_DiscoverCarveStacks(event):
         return []
     else:
         # load deployment network graph from S3 json file
-        key=f"deploy_active/{graph_name}.json"    
-        graph_data = aws_read_s3_direct(key, region)
+        graph_data = aws_read_s3_direct(get_deploy_key(), region)
         G = json_graph.node_link_graph(json.loads(graph_data))
         # generate a list of all carve stacks not in the graph
         delete_stacks = []

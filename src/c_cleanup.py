@@ -7,6 +7,7 @@ from copy import deepcopy
 from c_carve import load_graph, save_graph, carve_role_arn
 from c_disco import discover_org_accounts
 from c_aws import *
+from c_deploy_endpoints import deploy_list, get_deploy_key
 from multiprocessing import Process, Pipe
 from crhelper import CfnResource
 import time
@@ -75,20 +76,18 @@ def sf_CleanupDeployments(event, context):
     # swipe the GraphName from one of the tasks, need to load deployed graph from S3
     # payload = json.loads(event['Input']['Payload'])
     # payload = event['Input']['Payload']
-    deploykey = event['Input']['Payload']['DeployKey']
 
-    print(f'cleaning up after graph: {deploykey}')
+    print(event)
 
-    graph_name = None
-    for task in payload:
-        if 'GraphName' in task:
-            graph_name = task['GraphName']
-            break
+    G = load_graph(get_deploy_key(), local=False)
 
-    if graph_name is None:
-        print('something went wrong')
-        sys.exit()
+    print(f'cleaning up after graph deploy')
 
+    # do not delete any carve stacks that should be deployed
+    safe_stacks = []
+    stacks = deploy_list(G)
+    for stack in stacks:
+        safe_stacks.append(stack['StackName'])
 
     # need all accounts & regions
     accounts = discover_org_accounts()
@@ -101,7 +100,10 @@ def sf_CleanupDeployments(event, context):
             cleanup = {}
             cleanup['Account'] = account_id
             cleanup['Region'] = region
-            cleanup['DeployKey'] = deploykey
+            cleanup['SafeStacks'] = []
+            for stack in safe_stacks:
+                if stack['Account'] == account_id:
+                    cleanup['SafeStacks'].append(stack['StackName'])
             discover_stacks.append(cleanup)
 
     # returns to a step function iterator
@@ -129,7 +131,7 @@ def sf_DiscoverCarveStacks(event):
 
     account = payload['Account']
     region = payload['Region']
-    deploykey = payload['DeployKey']
+    safe_stacks = payload['SafeStacks']
 
     credentials = aws_assume_role(carve_role_arn(account), f"carve-cleanup-{region}")
 
@@ -140,18 +142,9 @@ def sf_DiscoverCarveStacks(event):
     if len(stacks) == 0:
         return []
     else:
-        # load deployment network graph from S3 json file
-        # graph_data = aws_read_s3_direct(deploykey, region)
-        # G = json_graph.node_link_graph(json.loads(graph_data))
-        G = load_graph(deploykey, local=False)
-
-        # generate a list of all carve stacks not in the graph
         delete_stacks = []
         for stack in stacks:
-            vpc = stack['StackName'].split(startswith)[1]
-            vpc_id = f"vpc-{vpc}"
-            # if carve stack is for a vpc not in the graph, delete it
-            if vpc_id not in list(G.nodes):
+            if stack not in safe_stacks:
                 # create payloads for delete iterator in state machine
                 payload = deepcopy(event['Input'])
                 payload['StackName'] = stack['StackName']
@@ -160,6 +153,28 @@ def sf_DiscoverCarveStacks(event):
                 delete_stacks.append(payload)
 
         return delete_stacks
+
+
+        # # load deployment network graph from S3 json file
+        # # graph_data = aws_read_s3_direct(deploykey, region)
+        # # G = json_graph.node_link_graph(json.loads(graph_data))
+        # G = load_graph(deploykey, local=False)
+
+        # # generate a list of all carve stacks not in the graph
+        # delete_stacks = []
+        # for stack in stacks:
+        #     vpc = stack['StackName'].split(startswith)[1]
+        #     vpc_id = f"vpc-{vpc}"
+        #     # if carve stack is for a vpc not in the graph, delete it
+        #     if vpc_id not in list(G.nodes):
+        #         # create payloads for delete iterator in state machine
+        #         payload = deepcopy(event['Input'])
+        #         payload['StackName'] = stack['StackName']
+        #         payload['Region'] = region
+        #         payload['Account'] = account
+        #         delete_stacks.append(payload)
+
+        # return delete_stacks
 
 
 def  cleanup_steps_entrypoint(event, context):

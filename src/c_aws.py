@@ -438,6 +438,14 @@ def aws_purge_s3_path(path):
     bucket.objects.filter(Prefix=path).delete()
 
 
+def aws_list_s3_path(path, max_keys=1):
+    client = boto3.client("s3")
+    response = client.list_objects_v2(
+            Bucket=os.environ['CarveS3Bucket'],
+            Prefix =path,
+            MaxKeys=max_keys)
+    return response
+
 def aws_put_bucket_policy(bucket, function_arn):
     client = boto3.client('s3', config=boto_config)
     try:

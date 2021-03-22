@@ -37,7 +37,10 @@
     "DeployCarveEndpoints": {
       "Comment": "Create one Carve stack per VPC",
       "Type": "Task",
-      "End": true,
+      "Next": "CleanupCarveEndpoints",
+      "ResultSelector": {
+        "Payload.$": "States.StringToJson($.Payload)"
+      },
       "Resource": "arn:aws:states:::states:startExecution.sync",
       "Parameters": {
         "StateMachineArn": "${CarveDeployStacksStepFunction}",
@@ -46,6 +49,20 @@
           "Input.$": "$.Payload"
         }
       }
+    },
+    "DeployCarveEndpoints": {
+      "Comment": "Create one Carve stack per VPC",
+      "Type": "Task",
+      "End": true,
+      "Resource": "arn:aws:states:::states:startExecution.sync",
+      "Parameters": {
+        "StateMachineArn": "${CarveCleanupStepFunction}",
+        "Input": {
+          "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id",
+          "Input.$": "$.Payload"
+        }
+      }
     }
+
   }
 }
