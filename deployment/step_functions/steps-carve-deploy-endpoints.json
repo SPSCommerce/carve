@@ -50,7 +50,7 @@
         }
       }
     },
-    "DeployCarveEndpoints": {
+    "CleanupCarveEndpoints": {
       "Comment": "Create one Carve stack per VPC",
       "Type": "Task",
       "End": true,
