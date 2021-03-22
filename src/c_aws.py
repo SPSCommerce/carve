@@ -442,7 +442,7 @@ def aws_list_s3_path(path, max_keys=1):
     client = boto3.client("s3")
     response = client.list_objects_v2(
             Bucket=os.environ['CarveS3Bucket'],
-            Prefix =path,
+            Prefix=path,
             MaxKeys=max_keys)
     return response
 

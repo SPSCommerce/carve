@@ -17,12 +17,12 @@ def start_carve_deployment(event, context):
 
     G = load_graph(key, local=False)
 
-    # move deployment object to deploy_started path
-    filename = key.split('/')[-1]
-    deploy_key = f"deploy_active/{filename}"
-    aws_purge_s3_path("deploy_active/")
-    aws_copy_s3_object(key, deploy_key)
-    aws_delete_s3_object(key, current_region)
+    # # move deployment object to deploy_started path
+    # filename = key.split('/')[-1]
+    # deploy_key = f"deploy_active/{filename}"
+    # aws_purge_s3_path("deploy_active/")
+    # aws_copy_s3_object(key, deploy_key)
+    # aws_delete_s3_object(key, current_region)
 
     print(f'deploying graph: {deploy_key}')
 
@@ -61,12 +61,12 @@ def start_carve_deployment(event, context):
         aws_start_stepfunction(os.environ['DeployEndpointsStateMachine'], deploy_buckets)
     else:
         # if nothing is being deployed, Run cleanup
-        aws_start_stepfunction(os.environ['CleanupStateMachine'])
+        aws_start_stepfunction(os.environ['CleanupStateMachine'], [])
 
 
 def get_deploy_key():
     # get the deploy key from the first input
-    deloykey = aws_list_s3_path('deploy_active/')['Contents'][0]['Key']
+    deloykey = aws_list_s3_path('deploy_input/')['Contents'][0]['Key']
 
 
 def sf_DeployPrep(event, context):

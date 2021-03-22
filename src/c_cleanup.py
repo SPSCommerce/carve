@@ -79,7 +79,9 @@ def sf_CleanupDeployments(event, context):
 
     print(event)
 
-    G = load_graph(get_deploy_key(), local=False)
+    deploy_key = get_deploy_key()
+    print(deploy_key)
+    G = load_graph(deploy_key, local=False)
 
     print(f'cleaning up after graph deploy')
 
