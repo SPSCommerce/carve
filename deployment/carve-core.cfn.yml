@@ -105,9 +105,9 @@ Resources:
         Bucket: !Ref CodeBucket
         Key: !Sub "step_functions/${GITSHA}/steps-carve-cleanup.json"
       DefinitionSubstitutions: 
-        # CarveFunction: !GetAtt CarveFunction.Arn - did not work
+        CarveFunction: !GetAtt CarveFunction.Arn
         # CarveFunction: !Ref CarveFunction
-        CarveFunction: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ResourcePrefix}carve-${OrganizationsId}"
+        # CarveFunction: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ResourcePrefix}carve-${OrganizationsId}"
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ResourcePrefix}carve-stepfunctions-${OrganizationsId}"
       StateMachineName: !Sub "${ResourcePrefix}carve-cleanup-statemachine"
       StateMachineType: STANDARD
