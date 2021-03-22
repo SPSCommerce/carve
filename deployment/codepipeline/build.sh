@@ -5,6 +5,10 @@ curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip
 unzip -q awscliv2.zip
 ./aws/install
 
+###
+###  REPLACE LOGIC IMMEDIATELY BELOW BY DETERMINING GITSHA OF CURRENTLY DEPLOYED STACK INSTEAD
+###
+
 GITHUBCURL="https://api.github.com/repos/anotherhobby/carve/commits"
 GITTOKEN=$(aws secretsmanager get-secret-value --secret-id $GIT_TOKEN | jq -r '.SecretString' | jq -r '.token')
 LATESTSHA=$(curl --location --request GET $GITHUBCURL --header "Authorization: Bearer ${GITTOKEN}" | jq -r '.[1].sha')

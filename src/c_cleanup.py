@@ -18,12 +18,8 @@ import time
 
 
 def sf_DescribeDeleteStack(event):
-    payload = event['Payload']
-
     account = payload['Account']
-
     credentials = aws_assume_role(carve_role_arn(account), f"carve-deploy-{payload['Region']}")
-
     response = aws_describe_stack(
         stackname=payload['StackName'],
         region=payload['Region'],
@@ -31,15 +27,13 @@ def sf_DescribeDeleteStack(event):
         )
 
     # create payload for next step in state machine
-    payload = deepcopy(payload)
+    # payload = deepcopy(payload)
     payload['StackStatus'] = response['StackStatus']
 
     return payload
 
 
-def sf_DeleteStack(event):
-    payload = event['Payload']
-
+def sf_DeleteStack(payload):
     account = payload['Account']
     region = payload['Region']
 
@@ -53,13 +47,11 @@ def sf_DeleteStack(event):
     return payload
 
 
-def sf_OrganizeDeletions(event):
-    # payload = json.loads(event['Input']['Payload'])
+def sf_OrganizeDeletions(payload):
     delete_stacks = []
-    for task in event['Payload']['Input']:
-        if 'StackName' in task['Payload']:
-            delete_stacks.append(deepcopy(task))
-
+    for task in payload:
+        for stack in task['Payload']:
+            delete_stacks.append(stack)
     return delete_stacks
 
 
@@ -102,7 +94,7 @@ def sf_CleanupDeployments():
     return discover_stacks
 
 
-def sf_DeploymentComplete(event):
+def sf_DeploymentComplete(payload):
     # not functional yet
     sys.exit()
 
@@ -117,9 +109,7 @@ def sf_DeploymentComplete(event):
     aws_delete_s3_object(key, region)
 
 
-def sf_DiscoverCarveStacks(event):
-    payload = event['Payload']
-
+def sf_DiscoverCarveStacks(payload):
     account = payload['Account']
     region = payload['Region']
     safe_stacks = payload['SafeStacks']
@@ -139,7 +129,6 @@ def sf_DiscoverCarveStacks(event):
             if stack['StackName'] not in safe_stacks:
                 print(f"found {stack['StackName']} for deletion")
                 # create payloads for delete iterator in state machine
-                # del_stack = deepcopy(event['Input'])
                 del_stack = {}
                 del_stack['StackName'] = stack['StackName']
                 del_stack['Region'] = region
@@ -173,20 +162,25 @@ def sf_DiscoverCarveStacks(event):
 
 def  cleanup_steps_entrypoint(event, context):
     ''' step function tasks for deployment all flow thru here after the lambda_hanlder '''
+    try:
+        payload = event['Payload']['Input']
+    except:
+        payload = event['Payload']
+
     if event['Payload']['CleanupAction'] == 'DescribeDeleteStack':
-        response = sf_DescribeDeleteStack(event)
+        response = sf_DescribeDeleteStack(payload)
 
     elif event['Payload']['CleanupAction'] == 'DeleteStack':
-        response = sf_DeleteStack(event)
+        response = sf_DeleteStack(payload)
 
     elif event['Payload']['CleanupAction'] == 'CleanupDeployments':
         response = sf_CleanupDeployments()
 
     elif event['Payload']['CleanupAction'] == 'OrganizeDeletions':
-        response = sf_OrganizeDeletions(event)
+        response = sf_OrganizeDeletions(payload)
 
     elif event['Payload']['CleanupAction'] == 'DiscoverCarveStacks':
-        response = sf_DiscoverCarveStacks(event)
+        response = sf_DiscoverCarveStacks(payload)
 
     # return json to step function
     return json.dumps(response, default=str)

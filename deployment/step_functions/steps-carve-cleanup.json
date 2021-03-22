@@ -6,7 +6,7 @@
       "Type": "Task",
       "Resource":"${CarveFunction}",
       "ResultSelector": {
-        "Payload.$": "States.StringToJson($.Payload)"
+        "Payload.$": "States.StringToJson($)"
       },
       "Parameters": {
         "Payload": {
@@ -27,6 +27,9 @@
           "DiscoverCarveStacks": {
             "Type": "Task",
             "Resource":"${CarveFunction}",
+            "ResultSelector": {
+              "Payload.$": "States.StringToJson($)"
+            },
             "Parameters": {
               "Payload": {
                 "CleanupAction": "DiscoverCarveStacks",
@@ -43,7 +46,7 @@
       "Type": "Task",
       "Resource":"${CarveFunction}",
       "ResultSelector": {
-        "Payload.$": "States.StringToJson($.Payload)"
+        "Payload.$": "States.StringToJson($)"
       },
       "Parameters": {
         "Payload": {
@@ -66,7 +69,7 @@
             "Type": "Task",
             "Resource":"${CarveFunction}",
             "ResultSelector": {
-              "Payload.$": "States.StringToJson($.Payload)"
+              "$": "States.StringToJson($)"
             },
             "Parameters": {
               "Payload": {
@@ -81,7 +84,7 @@
             "Type": "Task",
             "Resource":"${CarveFunction}",
             "ResultSelector": {
-              "Payload.$": "States.StringToJson($.Payload)"
+              "$": "States.StringToJson($)"
             },
             "Parameters": {
               "Payload": {

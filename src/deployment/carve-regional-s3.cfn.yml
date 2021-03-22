@@ -47,9 +47,6 @@ Resources:
               - !Sub "arn:aws:s3:::${CarveS3Bucket}/*"
             Principal:
               AWS: "*"
-            # Condition:
-            #   ForAnyValue:StringEquals:
-            #     aws:PrincipalOrgID: !Sub '${OrganizationsId}'
             Condition:
               StringEquals:
                 aws:PrincipalOrgID: !Ref OrganizationsId

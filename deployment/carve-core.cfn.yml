@@ -93,7 +93,7 @@ Resources:
         Key: !Sub "step_functions/${GITSHA}/steps-carve-deploy-endpoints.json"
       DefinitionSubstitutions: 
         CarveFunction: !Ref CarveFunction
-        CarveDeployStacksStepFunction: !Ref CarveDeployStacksStepFunction
+        CarveCleanupStepFunction: !Ref CarveCleanupStepFunction
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ResourcePrefix}carve-stepfunctions-${OrganizationsId}"
       StateMachineName: !Sub "${ResourcePrefix}carve-deploy-endpoints-statemachine"
       StateMachineType: STANDARD
@@ -106,6 +106,7 @@ Resources:
         Key: !Sub "step_functions/${GITSHA}/steps-carve-cleanup.json"
       DefinitionSubstitutions: 
         CarveFunction: !GetAtt CarveFunction.Arn
+        CarveDeployStacksStepFunction: !Ref CarveDeployStacksStepFunction
         # CarveFunction: !Ref CarveFunction
         # CarveFunction: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ResourcePrefix}carve-${OrganizationsId}"
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ResourcePrefix}carve-stepfunctions-${OrganizationsId}"
