@@ -48,6 +48,7 @@ Resources:
           DeployStacksStateMachine: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ResourcePrefix}carve-deploy-stacks-statemachine"
           DiscoveryStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ResourcePrefix}carve-discovery-statemachine"
           CarveVersion: !Ref CarveVersion
+          Regions: "us-east-1,us-east-2"
       Handler: c_entrypoint.lambda_handler
       Runtime: python3.8
       MemorySize: 1024

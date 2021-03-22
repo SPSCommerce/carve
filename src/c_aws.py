@@ -76,12 +76,20 @@ def aws_parallel_role_creation(accounts, role):
 
 def aws_all_regions():
     # get all regions
-    all_regions = Session().get_available_regions('cloudformation')
+    if 'Regions' in os.environ:
+        all_regions = os.environ['Regions'].split(",")
+        if len(all_regions) == 0:
+            all_regions = Session().get_available_regions('cloudformation')        
+    else:
+        all_regions = Session().get_available_regions('cloudformation')
+    # not all regions support what carve does (SNS and other limitations)
     unavailable = ['af-south-1', 'eu-south-1', 'ap-east-1', 'me-south-1']
     regions = []
     for region in all_regions:
         if region not in unavailable:
             regions.append(region)
+
+    # this will disable regions for testing
     return regions
 
 

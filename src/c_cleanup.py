@@ -85,7 +85,7 @@ def sf_CleanupDeployments():
             cleanup['SafeStacks'] = []
             for stack in safe_stacks:
                 if stack['Account'] == account_id:
-                    if stack['Region'] == region
+                    if stack['Region'] == region:
                         cleanup['SafeStacks'].append(stack['StackName'])
             discover_stacks.append(cleanup)
 
