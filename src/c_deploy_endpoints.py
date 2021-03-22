@@ -33,6 +33,7 @@ def start_carve_deployment(event, context):
 
     # create deploy buckets in all required regions    
     deploy_buckets = []
+
     for r in regions:
         stackname = f"{os.environ['ResourcePrefix']}carve-{os.environ['OrganizationsId']}-s3-{r}"
         parameters = [
@@ -53,6 +54,10 @@ def start_carve_deployment(event, context):
             "DeployKey": deploy_key,
             "Template": 'deployment/carve-regional-s3.cfn.yml'
         })
+
+    # if nothing is being deployed, add the deploy key to pass thru the state machien
+    if len(deploy_buckets) = 0:
+        deploy_buckets.append({"DeployKey": deploy_key})
 
     aws_start_stepfunction(os.environ['DeployEndpointsStateMachine'], deploy_buckets)
 
@@ -132,6 +137,10 @@ def sf_DeployPrep(event, context):
             "ParameterValue": os.environ['OrganizationsId']
           },
           {
+            "ParameterKey": "CarveCoreRegion",
+            "ParameterValue": current_region
+          },          
+          {
             "ParameterKey": "CarveVersion",
             "ParameterValue": os.environ['CarveVersion']
           },
@@ -149,6 +158,10 @@ def sf_DeployPrep(event, context):
 
     # cache deployment tags to local lambda tmp
     tags = aws_get_carve_tags(context.invoked_function_arn)
+
+    # add the deploy key if we are deploying nothing
+    if len(list(G.nodes)) == 0:
+        deployment_targets.append({"DeployKey": deploy_key})
 
     return deployment_targets
 

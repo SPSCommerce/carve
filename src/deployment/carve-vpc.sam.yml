@@ -14,6 +14,10 @@ Parameters:
   CarveSNSTopicArn:
     Type: String
     Description: Carve SNS Topic Arn
+  CarveCoreRegion:
+    Type: String
+    Description: Region carve core is deployed in
+    Default: 'us-east-1'
   OrganizationsId:
     Type: String
     Description: AWS Organizations Id
@@ -102,13 +106,14 @@ Resources:
       Endpoint: !GetAtt CarveFunction.Arn
       Protocol: Lambda
       TopicArn: !Ref CarveSNSTopicArn
+      Region: !Ref CarveCoreRegion
 
 
   CarveLambdaSNSInvoke:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      Principal: sns.amazonaws.com
+      Principal: !Sub "sns.amazonaws.com"
       SourceArn: !Ref CarveSNSTopicArn
       FunctionName: !GetAtt CarveFunction.Arn
 
