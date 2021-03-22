@@ -53,7 +53,8 @@
       "Parameters": {
         "FunctionName": "${CarveFunction}",
         "Payload": {
-          "CleanupAction": "OrganizeDeletions"
+          "CleanupAction": "OrganizeDeletions",
+          "Input.$": "$"
         }
       },
       "Next": "DeleteStacksIterator",

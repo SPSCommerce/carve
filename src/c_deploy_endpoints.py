@@ -24,7 +24,7 @@ def start_carve_deployment(event, context):
     # aws_copy_s3_object(key, deploy_key)
     # aws_delete_s3_object(key, current_region)
 
-    print(f'deploying graph: {deploy_key}')
+    print(f'deploying graph: {key}')
 
     # get all other regions where buckets are needed
     regions = set()
@@ -66,7 +66,7 @@ def start_carve_deployment(event, context):
 
 def get_deploy_key():
     # get the deploy key from the first input
-    deloykey = aws_list_s3_path('deploy_input/')['Contents'][0]['Key']
+    return aws_list_s3_path('deploy_input/')['Contents'][0]['Key']
 
 
 def sf_DeployPrep(event, context):
@@ -99,7 +99,7 @@ def sf_DeployPrep(event, context):
     else:
         graph_name = f'c_deployed_{int(time.time())}'
 
-    deployment_targets = deploy_list(G)
+    deployment_targets = deployment_list(G)
 
     # cache deployment tags to local lambda tmp
     tags = aws_get_carve_tags(context.invoked_function_arn)
@@ -111,7 +111,7 @@ def sf_DeployPrep(event, context):
     return deployment_targets
 
 
-def deploy_list(G):
+def deployment_list(G):
     # create a ranking of AZ from most to least occuring
     azs_ranked = az_rank(G)
 
@@ -172,7 +172,8 @@ def deploy_list(G):
         ]
 
         deployment_targets.append(target)
-        return deployment_targets
+
+    return deployment_targets
 
 
 

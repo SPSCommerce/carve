@@ -7,7 +7,7 @@ from copy import deepcopy
 from c_carve import load_graph, save_graph, carve_role_arn
 from c_disco import discover_org_accounts
 from c_aws import *
-from c_deploy_endpoints import deploy_list, get_deploy_key
+from c_deploy_endpoints import deployment_list, get_deploy_key
 from multiprocessing import Process, Pipe
 from crhelper import CfnResource
 import time
@@ -59,11 +59,10 @@ def sf_DeleteStack(event):
 
 
 def sf_OrganizeDeletions(event):
-    payload = event['Input']['Payload']
     # payload = json.loads(event['Input']['Payload'])
     delete_stacks = []
-    for task in payload:
-        if 'StackName' in task:
+    for task in event['Input']:
+        if 'StackName' in task['Payload']:
             delete_stacks.append(deepcopy(task))
 
     return delete_stacks
@@ -77,18 +76,14 @@ def sf_CleanupDeployments(event, context):
     # payload = json.loads(event['Input']['Payload'])
     # payload = event['Input']['Payload']
 
-    print(event)
-
     deploy_key = get_deploy_key()
-    print(deploy_key)
     G = load_graph(deploy_key, local=False)
 
     print(f'cleaning up after graph deploy')
 
     # do not delete any carve stacks that should be deployed
     safe_stacks = []
-    stacks = deploy_list(G)
-    for stack in stacks:
+    for stack in deployment_list(G):
         safe_stacks.append(stack['StackName'])
 
     # need all accounts & regions
@@ -128,8 +123,7 @@ def sf_DeploymentComplete(event):
 
 
 def sf_DiscoverCarveStacks(event):
-    payload = event['Input']['Payload']
-    # payload = json.loads(event['Input']['Payload'])
+    payload = event['Input']
 
     account = payload['Account']
     region = payload['Region']
@@ -142,17 +136,20 @@ def sf_DiscoverCarveStacks(event):
     stacks = aws_find_stacks(startswith, region, credentials)
 
     if len(stacks) == 0:
+        print(f"found no stacks for deletion in {account} in {region}.")        
         return []
     else:
         delete_stacks = []
         for stack in stacks:
-            if stack not in safe_stacks:
+            if stack['StackName'] not in safe_stacks:
+                print(f"found {stack['StackName']} for deletion")
                 # create payloads for delete iterator in state machine
-                payload = deepcopy(event['Input'])
-                payload['StackName'] = stack['StackName']
-                payload['Region'] = region
-                payload['Account'] = account
-                delete_stacks.append(payload)
+                # del_stack = deepcopy(event['Input'])
+                del_stack = {}
+                del_stack['StackName'] = stack['StackName']
+                del_stack['Region'] = region
+                del_stack['Account'] = account
+                delete_stacks.append(del_stack)
 
         return delete_stacks
 
@@ -191,10 +188,10 @@ def  cleanup_steps_entrypoint(event, context):
         response = sf_CleanupDeployments(event, context)
 
     elif event['CleanupAction'] == 'OrganizeDeletions':
-        response = sf_OrganizeDeletions(event, context)
+        response = sf_OrganizeDeletions(event)
 
     elif event['CleanupAction'] == 'DiscoverCarveStacks':
-        response = sf_DiscoverCarveStacks(event, context)
+        response = sf_DiscoverCarveStacks(event)
         response = None
 
     # return json to step function

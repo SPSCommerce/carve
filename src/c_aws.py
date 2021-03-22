@@ -26,8 +26,6 @@ def aws_assume_role(role_arn, session_name, token_life=900):
             RoleArn=role_arn,
             RoleSessionName=session_name,
             DurationSeconds=int(token_life))
-        # expiration date is not used in carve, remove for smaller payloads
-        del assumed_role_object['Credentials']['Expiration']
         return assumed_role_object['Credentials'] 
     except ClientError as e:
         print(f'Failed to assume {role_arn}: {e}')
@@ -255,15 +253,12 @@ def aws_find_stacks(startswith, region, credentials):
         aws_secret_access_key = credentials['SecretAccessKey'],
         aws_session_token = credentials['SessionToken']
         )
-
-    response = client.get_paginator('list_stacks')
-
+    paginator = client.get_paginator('list_stacks')
     stacks = []
-    for page in response:
+    for page in paginator.paginate():
         for stack in page['StackSummaries']:
             if stack['StackName'].startswith(startswith):
                 stacks.append(stack)
-
     return stacks
 
 
