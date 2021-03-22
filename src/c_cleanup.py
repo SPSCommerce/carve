@@ -75,7 +75,7 @@ def sf_CleanupDeployments(event, context):
     # swipe the GraphName from one of the tasks, need to load deployed graph from S3
     # payload = json.loads(event['Input']['Payload'])
     # payload = event['Input']['Payload']
-    deploykey = event['Input']['Payload']['Input'][0]['DeployKey']
+    deploykey = event['Input']['Payload']['DeployKey']
 
     print(f'cleaning up after graph: {deploykey}')
 

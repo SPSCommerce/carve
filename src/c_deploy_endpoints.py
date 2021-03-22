@@ -10,6 +10,7 @@ from c_aws import *
 from multiprocessing import Process, Pipe
 import time
 
+
 def start_carve_deployment(event, context):
     # read graph from s3 key in event
     key = event['Records'][0]['s3']['object']['key']
@@ -55,11 +56,11 @@ def start_carve_deployment(event, context):
             "Template": 'deployment/carve-regional-s3.cfn.yml'
         })
 
-    # if nothing is being deployed, add the deploy key to pass thru the state machien
-    if len(deploy_buckets) = 0:
-        deploy_buckets.append({"DeployKey": deploy_key})
-
-    aws_start_stepfunction(os.environ['DeployEndpointsStateMachine'], deploy_buckets)
+    if len(deploy_buckets) > 0:
+        aws_start_stepfunction(os.environ['DeployEndpointsStateMachine'], deploy_buckets)
+    else:
+        # if nothing is being deployed, Run cleanup
+        aws_start_stepfunction(os.environ['CleanupStateMachine'], deploy_key)
 
 
 def sf_DeployPrep(event, context):
@@ -159,9 +160,9 @@ def sf_DeployPrep(event, context):
     # cache deployment tags to local lambda tmp
     tags = aws_get_carve_tags(context.invoked_function_arn)
 
-    # add the deploy key if we are deploying nothing
-    if len(list(G.nodes)) == 0:
-        deployment_targets.append({"DeployKey": deploy_key})
+    # # add the deploy key if we are deploying nothing
+    # if len(list(G.nodes)) == 0:
+    #     deployment_targets.append({"DeployKey": deploy_key})
 
     return deployment_targets
 
