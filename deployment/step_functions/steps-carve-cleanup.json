@@ -4,12 +4,11 @@
   "States": {
     "CleanupDeployments": {
       "Type": "Task",
-      "Resource":"arn:aws:states:::lambda:invoke",
+      "Resource":"arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${CarveFunction}",
       "ResultSelector": {
         "Payload.$": "States.StringToJson($.Payload)"
       },
       "Parameters": {
-        "FunctionName": "${CarveFunction}",
         "Payload": {
           "CleanupAction": "CleanupDeployments"
         }
@@ -27,12 +26,8 @@
         "States": {
           "DiscoverCarveStacks": {
             "Type": "Task",
-            "Resource":"arn:aws:states:::lambda:invoke",
-            "ResultSelector": {
-              "Payload.$": "States.StringToJson($.Payload)"
-            },
+            "Resource":"arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${CarveFunction}",
             "Parameters": {
-              "FunctionName": "${CarveFunction}",
               "Payload": {
                 "CleanupAction": "DiscoverCarveStacks",
                 "Input.$": "$"
@@ -46,12 +41,11 @@
     },
     "OrganizeDeletions": {
       "Type": "Task",
-      "Resource":"arn:aws:states:::lambda:invoke",
+      "Resource":"arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${CarveFunction}",
       "ResultSelector": {
         "Payload.$": "States.StringToJson($.Payload)"
       },
       "Parameters": {
-        "FunctionName": "${CarveFunction}",
         "Payload": {
           "CleanupAction": "OrganizeDeletions",
           "Input.$": "$"
@@ -70,12 +64,11 @@
         "States": {
           "DeleteStack": {
             "Type": "Task",
-            "Resource":"arn:aws:states:::lambda:invoke",
+            "Resource":"arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${CarveFunction}",
             "ResultSelector": {
               "Payload.$": "States.StringToJson($.Payload)"
             },
             "Parameters": {
-              "FunctionName": "${CarveFunction}",
               "Payload": {
                 "CleanupAction": "DeleteStack",
                 "Input.$": "$"
@@ -86,12 +79,11 @@
           },
           "DescribeDeleteStack": {
             "Type": "Task",
-            "Resource":"arn:aws:states:::lambda:invoke",
+            "Resource":"arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${CarveFunction}",
             "ResultSelector": {
               "Payload.$": "States.StringToJson($.Payload)"
             },
             "Parameters": {
-              "FunctionName": "${CarveFunction}",
               "Payload": {
                 "CleanupAction": "DescribeDeleteStack",
                 "Input.$": "$"

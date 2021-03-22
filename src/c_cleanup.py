@@ -17,11 +17,8 @@ import time
 #     deploy_carve_endpoints(event, context)
 
 
-def sf_DescribeStack(event):
-    if 'Payload' in event['Input']:
-        payload = event['Input']['Payload']
-    else:
-        payload = event['Input']
+def sf_DescribeDeleteStack(event):
+    payload = event['Payload']
 
     account = payload['Account']
 
@@ -41,8 +38,7 @@ def sf_DescribeStack(event):
 
 
 def sf_DeleteStack(event):
-    payload = event['Input']['Payload']
-    # payload = json.loads(event['Input']['Payload'])
+    payload = event['Payload']
 
     account = payload['Account']
     region = payload['Region']
@@ -54,21 +50,20 @@ def sf_DeleteStack(event):
         region=payload['Region'],
         credentials=credentials)
 
-    payload = deepcopy(event['Input'])
     return payload
 
 
 def sf_OrganizeDeletions(event):
     # payload = json.loads(event['Input']['Payload'])
     delete_stacks = []
-    for task in event['Input']:
+    for task in event['Payload']['Input']:
         if 'StackName' in task['Payload']:
             delete_stacks.append(deepcopy(task))
 
     return delete_stacks
 
 
-def sf_CleanupDeployments(event, context):
+def sf_CleanupDeployments():
     '''discover all deployments of carve named stacks and determine if they should exist'''
     # event will be a json array of all final DescribeChangeSetExecution tasks
 
@@ -123,7 +118,7 @@ def sf_DeploymentComplete(event):
 
 
 def sf_DiscoverCarveStacks(event):
-    payload = event['Input']
+    payload = event['Payload']
 
     account = payload['Account']
     region = payload['Region']
@@ -178,21 +173,20 @@ def sf_DiscoverCarveStacks(event):
 
 def  cleanup_steps_entrypoint(event, context):
     ''' step function tasks for deployment all flow thru here after the lambda_hanlder '''
-    if event['CleanupAction'] == 'DescribeStack':
-        response = sf_DescribeStack(event)
+    if event['Payload']['CleanupAction'] == 'DescribeDeleteStack':
+        response = sf_DescribeDeleteStack(event)
 
-    elif event['CleanupAction'] == 'DeleteStack':
+    elif event['Payload']['CleanupAction'] == 'DeleteStack':
         response = sf_DeleteStack(event)
 
-    elif event['CleanupAction'] == 'CleanupDeployments':
-        response = sf_CleanupDeployments(event, context)
+    elif event['Payload']['CleanupAction'] == 'CleanupDeployments':
+        response = sf_CleanupDeployments()
 
-    elif event['CleanupAction'] == 'OrganizeDeletions':
+    elif event['Payload']['CleanupAction'] == 'OrganizeDeletions':
         response = sf_OrganizeDeletions(event)
 
-    elif event['CleanupAction'] == 'DiscoverCarveStacks':
+    elif event['Payload']['CleanupAction'] == 'DiscoverCarveStacks':
         response = sf_DiscoverCarveStacks(event)
-        response = None
 
     # return json to step function
     return json.dumps(response, default=str)
