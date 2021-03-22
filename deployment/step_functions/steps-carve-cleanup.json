@@ -4,7 +4,7 @@
   "States": {
     "CleanupDeployments": {
       "Type": "Task",
-      "Resource":"${CarveFunction.Arn}",
+      "Resource":"${CarveFunction}",
       "ResultSelector": {
         "Payload.$": "States.StringToJson($.Payload)"
       },
@@ -26,7 +26,7 @@
         "States": {
           "DiscoverCarveStacks": {
             "Type": "Task",
-            "Resource":"${CarveFunction.Arn}",
+            "Resource":"${CarveFunction}",
             "Parameters": {
               "Payload": {
                 "CleanupAction": "DiscoverCarveStacks",
@@ -41,7 +41,7 @@
     },
     "OrganizeDeletions": {
       "Type": "Task",
-      "Resource":"${CarveFunction.Arn}",
+      "Resource":"${CarveFunction}",
       "ResultSelector": {
         "Payload.$": "States.StringToJson($.Payload)"
       },
@@ -64,7 +64,7 @@
         "States": {
           "DeleteStack": {
             "Type": "Task",
-            "Resource":"${CarveFunction.Arn}",
+            "Resource":"${CarveFunction}",
             "ResultSelector": {
               "Payload.$": "States.StringToJson($.Payload)"
             },
@@ -79,7 +79,7 @@
           },
           "DescribeDeleteStack": {
             "Type": "Task",
-            "Resource":"${CarveFunction.Arn}",
+            "Resource":"${CarveFunction}",
             "ResultSelector": {
               "Payload.$": "States.StringToJson($.Payload)"
             },
