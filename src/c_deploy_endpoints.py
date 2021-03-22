@@ -38,7 +38,7 @@ def start_carve_deployment(event, context):
     deploy_buckets = []
 
     for r in regions:
-        stackname = f"{os.environ['ResourcePrefix']}carve-{os.environ['OrganizationsId']}-s3-{r}"
+        stackname = f"{os.environ['ResourcePrefix']}carve-managed-{os.environ['OrganizationsId']}-s3-{r}"
         parameters = [
             {
                 "ParameterKey": "OrganizationsId",
@@ -132,7 +132,7 @@ def deployment_list(G):
                         subnet_id = subnet['SubnetId']
                         s = True
 
-        target['StackName'] = f"{os.environ['ResourcePrefix']}carve-endpoint-{vpc}"
+        target['StackName'] = f"{os.environ['ResourcePrefix']}carve-managed-endpoint-{vpc}"
         target['Account'] = vpc_data['Account']
         target['Region'] = vpc_data['Region']
         target['Template'] = "deployment/carve-vpc.sam.yml"
@@ -248,102 +248,6 @@ def update_bucket_policies(G):
     return
 
 
-def create_s3_template(account, accounts):
-    try:
-        with open('deployment/carve-regional-s3.cfn.json') as f:
-            template = (json.load(f))
-    except Exception as e:
-        print(f'error opening json_graph {json_graph}: {e}')
-        return False
-
-    fileout = f'deployment/carve-{account}-s3.cfn.json'
-
-    for a in accounts:
-        # generate an S3 deploy policy per account
-        template['Resources']['CarveS3BucketPolicy']['Properties']['PolicyDocument']['Statement'].append({
-            "Sid": f"carve-{a}-deploy",
-            "Effect": "Allow",
-            "Action": [
-                "s3:*"
-            ],
-            "Resource": {
-                "Fn::GetAtt": [
-                    "CarveS3Bucket",
-                    "Arn"
-                ]
-            },
-            "Principal": {
-                "AWS": f"arn:aws:iam::{a}:role/{os.environ['ResourcePrefix']}carve-lambda-{os.environ['OrganizationsId']}"
-            }
-        })
-
-    try:
-        os.remove(fileout)
-    except:
-        pass
-
-    # output template for deployment
-    with open(fileout, 'a') as f:
-        json.dump(template, f)
-
-
-
-# def seed_deployment_files(account, accounts):
-#     # seed the same lambda package that created this deployment to the carve s3 bucket
-
-#     prepS3template(account, accounts)
-
-#     aws_copy_s3_object(
-#         key=os.environ['CodeKey'], 
-#         target_key="deployment/lambda_packages/${GITSHA}.zip",
-#         source_bucket=, 
-#         target_bucket=
-#         )
-
-#     aws_get_carve_s3(
-#         key=os.environ['CodeKey'],
-#         file_path='package.zip',
-#         bucket=os.environ['CodeBucket']
-#         )
-#     # push package to carve deployment folder
-
-#     # unzip package
-
-def delete_carve_endpoints():
-    start_carve_deployment(event, context)
-
-
-
-def sf_DeleteStack(event):
-    payload = event['Input']['Payload']
-    # payload = json.loads(event['Input']['Payload'])
-
-    account = payload['Account']
-    region = payload['Region']
-
-    credentials = aws_assume_role(carve_role_arn(account), f"carve-cleanup-{region}")
-
-    aws_delete_stack(
-        stackname=payload['StackName'],
-        region=payload['Region'],
-        credentials=credentials)
-
-    payload = deepcopy(event['Input'])
-    return payload
-
-
-def sf_OrganizeDeletions(event):
-    payload = event['Input']['Payload']
-    # payload = json.loads(event['Input']['Payload'])
-    delete_stacks = []
-    for task in payload:
-        if 'StackName' in task:
-            delete_stacks.append(deepcopy(task))
-
-    return delete_stacks
-
-
-
 def sf_CleanupDeployments(event, context):
     '''discover all deployments of carve named stacks and determine if they should exist'''
     # event will be a json array of all final DescribeChangeSetExecution tasks
@@ -394,91 +298,6 @@ def sf_DeploymentComplete(event):
     aws_copy_s3_object(key, get_deploy_key())
     aws_delete_s3_object(key, region)
 
-
-def sf_DiscoverCarveStacks(event):
-    payload = event['Input']['Payload']
-    # payload = json.loads(event['Input']['Payload'])
-
-    account = payload['Account']
-    region = payload['Region']
-
-    credentials = aws_assume_role(carve_role_arn(account), f"carve-cleanup-{region}")
-
-    # find all carve named stacks
-    startswith = f"{os.environ['ResourcePrefix']}carve-endpoint-vpc-"
-    stacks = aws_find_stacks(startswith, region, credentials)
-
-    if len(stacks) == 0:
-        return []
-    else:
-        # load deployment network graph from S3 json file
-        graph_data = aws_read_s3_direct(get_deploy_key(), region)
-        G = json_graph.node_link_graph(json.loads(graph_data))
-        # generate a list of all carve stacks not in the graph
-        delete_stacks = []
-        for stack in stacks:
-            vpc = stack['StackName'].split(startswith)[1]
-            vpc_id = f"vpc-{vpc}"
-            # if carve stack is for a vpc not in the graph, delete it
-            if vpc_id not in list(G.nodes):
-                # create payloads for delete iterator in state machine
-                payload = deepcopy(event['Input'])
-                payload['StackName'] = stack['StackName']
-                payload['Region'] = region
-                payload['Account'] = account
-                delete_stacks.append(payload)
-
-        return delete_stacks
-
-
-
-
-
-def sf_CreateCarveStack(event, context):
-    ''' deploy a carve endpoint/api '''
-
-    # check if stack already exists
-    stackname = f"{os.environ['ResourcePrefix']}carve-endpoint-{event['Input']['VpcId']}"
-    print(f"Deploy {stackname} to {event['Input']['Account']} in {event['Input']['Region']}")
-
-    account = event['Input']['Account']
-
-    credentials = aws_assume_role(carve_role_arn(account), f"carve-deploy-{event['Input']['VpcId']}")
-
-    tags = aws_get_carve_tags(context.invoked_function_arn)
-
-    response = aws_describe_stack(
-        stackname=stackname,
-        region=event['Input']['Region'],
-        credentials=credentials
-        )
-
-    if response is not None:
-        stack = {'StackId': response['StackId']}
-    else:
-        # create bootstrap stack so a changeset can be created for SAM deploy
-        template_url = f"https://s3.amazonaws.com/{os.environ['CarveS3Bucket']}/deploy_templates/carve-vpc-endpoint-bootstrap.cfn.yml"
-        parameters = [
-            {
-                "ParameterKey": "OrganizationsId",
-                "ParameterValue": os.environ['OrganizationsId']
-            }
-        ]
-        print(template_url)
-        stack = aws_create_stack(
-            stackname=stackname,
-            region=event['Input']['Region'],
-            template_url=template_url,
-            parameters=parameters,
-            credentials=credentials,
-            tags=tags
-            )
-
-    # create payload for next step in state machine
-    payload = deepcopy(event['Input'])
-    payload['StackName'] = stackname
-
-    return payload
 
 
 def deploy_steps_entrypoint(event, context):

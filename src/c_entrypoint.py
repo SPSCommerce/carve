@@ -59,11 +59,6 @@ def lambda_handler(event, context):
         print('TRIGGERED by Endpoint Deployment Step Function')
         return deploy_steps_entrypoint(event, context)
 
-    elif 'Payload' in event:
-        if 'CleanupAction' in event['Payload']:
-            print('TRIGGERED by Cleanup Step Function')
-            return cleanup_steps_entrypoint(event, context)
-
     elif 'DeployStack' in event:
         print('TRIGGERED by Deploy Stack Step Function')
         return deploy_stack_entrypoint(event, context)
@@ -76,12 +71,13 @@ def lambda_handler(event, context):
         print('TRIGGERED by Discovery Step Function')
         return disco_entrypoint(event, context)
 
-    # elif 'Discovery' in event:
-    #     print('Starting discovery process')
-    #     return c_disco_entrypoint(event, context)
-
     elif 'ResourceProperties' in event:
         return custom_resource_entrypoint(event, context)
+
+    elif 'Payload' in event:
+        if 'CleanupAction' in event['Payload']:
+            print('TRIGGERED by Cleanup Step Function')
+            return cleanup_steps_entrypoint(event, context)
 
     else:
         print(f'unrecognized event: {event}')
