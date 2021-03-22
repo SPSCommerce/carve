@@ -39,6 +39,12 @@ def sf_DeleteStack(payload):
 
     credentials = aws_assume_role(carve_role_arn(account), f"carve-cleanup-{region}")
 
+    # if this is a regional S3 stack, empty the contents first
+    s3_stack = f"{os.environ['ResourcePrefix']}carve-{os.environ['OrganizationsId']}-s3-{region}"
+    if payload['StackName'] == s3_stack:
+        bucket = f"{os.environ['ResourcePrefix']}carve-{os.environ['OrganizationsId']}-{region}"
+        aws_purge_s3_bucket(bucket)
+
     aws_delete_stack(
         stackname=payload['StackName'],
         region=payload['Region'],
@@ -71,7 +77,10 @@ def sf_CleanupDeployments():
     # do not delete any carve stacks that should be deployed
     safe_stacks = []
     for stack in deployment_list(G):
-        safe_stacks.append(stack['StackName'])
+        safe_stacks.append({
+            'StackName': stack['StackName'],
+            'Account': stack['Account']
+            })
 
     # need all accounts & regions
     accounts = discover_org_accounts()

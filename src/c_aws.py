@@ -421,10 +421,10 @@ def aws_describe_vpcs(region, credentials):
     return vpcs
 
 
-def aws_purge_s3_bucket():
+def aws_purge_s3_bucket(bucket=os.environ['CarveS3Bucket']):
     client = boto3.resource('s3', config=boto_config)
-    bucket = client.Bucket(os.environ['CarveS3Bucket'])
-    bucket.objects.all().delete() 
+    bucket = client.Bucket(bucket)
+    bucket.objects.all().delete()
 
 
 def aws_purge_s3_path(path):
