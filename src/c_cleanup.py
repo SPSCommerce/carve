@@ -71,6 +71,8 @@ def sf_CleanupDeployments():
             'Region': stack['Region']
             })
 
+    print(f'all safe stacks: {safe_stacks}')
+
     # need all accounts & regions
     accounts = discover_org_accounts()
     regions = aws_all_regions()
