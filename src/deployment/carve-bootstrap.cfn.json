@@ -1,6 +1,6 @@
 {
     "AWSTemplateFormatVersion": "2010-09-09",
-    "Description": "Carve bootstrap stack",
+    "Description": "Carve managed stack",
     "Parameters": {
         "OrganizationsId": {
             "Type": "String",

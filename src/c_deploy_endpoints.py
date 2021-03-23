@@ -26,13 +26,7 @@ def start_carve_deployment(event, context):
 
     print(f'deploying graph: {key}')
 
-    # get all other regions where buckets are needed
-    regions = set()
-    for vpc in list(G.nodes):
-        r = G.nodes().data()[vpc]['Region']
-        if r != current_region:
-            if r not in regions:
-                regions.add(r)
+    regions = deploy_regions(G)
 
     # create deploy buckets in all required regions    
     deploy_buckets = []
@@ -58,16 +52,29 @@ def start_carve_deployment(event, context):
         })
 
     if len(deploy_buckets) > 0:
-        aws_start_stepfunction(os.environ['DeployEndpointsStateMachine'], deploy_buckets)
+        name = f"deploy_s3-{filename}-{int(time.time())}"
+        aws_start_stepfunction(os.environ['DeployEndpointsStateMachine'], deploy_buckets, name)
     else:
         # if nothing is being deployed, Run cleanup
-        aws_start_stepfunction(os.environ['CleanupStateMachine'], [])
+        name = f"cleanup-{filename}-{int(time.time())}"
+        aws_start_stepfunction(os.environ['CleanupStateMachine'], [], name)
 
 
 def get_deploy_key():
     # get the deploy key from the first input
     # return aws_list_s3_path('deploy_input/')['Contents'][0]['Key']
     return aws_newest_s3('deploy_active/')
+
+
+def deploy_regions(G):
+    # get all other regions where buckets are needed
+    regions = set()
+    for vpc in list(G.nodes):
+        r = G.nodes().data()[vpc]['Region']
+        if r != current_region:
+            if r not in regions:
+                regions.add(r)
+    return regions    
 
 
 def sf_DeployPrep(event, context):

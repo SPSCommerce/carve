@@ -7,13 +7,13 @@ from copy import deepcopy
 from c_carve import load_graph, save_graph, carve_role_arn
 from c_disco import discover_org_accounts
 from c_aws import *
-from c_deploy_endpoints import deployment_list, get_deploy_key
+from c_deploy_endpoints import deployment_list, deploy_regions, get_deploy_key
 from multiprocessing import Process, Pipe
 from crhelper import CfnResource
 import time
 
 
-def sf_DescribeDeleteStack(event):
+def sf_DescribeDeleteStack(payload):
     account = payload['Account']
     credentials = aws_assume_role(carve_role_arn(account), f"carve-deploy-{payload['Region']}")
     response = aws_describe_stack(
@@ -62,8 +62,17 @@ def sf_CleanupDeployments():
 
     print(f'cleaning up after graph deploy: {deploy_key}')
 
+    # need all accounts & regions
+    accounts = discover_org_accounts()
+    regions = aws_all_regions()
+
     # do not delete any carve stacks that should be deployed
     safe_stacks = []
+
+    for r in deploy_regions(G):
+        s3_stack = f"{os.environ['ResourcePrefix']}carve-managed-{os.environ['OrganizationsId']}-s3-{r}"
+        safe_stacks.append(s3_stack)
+
     for stack in deployment_list(G):
         safe_stacks.append({
             'StackName': stack['StackName'],
@@ -72,10 +81,6 @@ def sf_CleanupDeployments():
             })
 
     print(f'all safe stacks: {safe_stacks}')
-
-    # need all accounts & regions
-    accounts = discover_org_accounts()
-    regions = aws_all_regions()
 
     # create discovery list of all accounts/regions for step function
     discover_stacks = []

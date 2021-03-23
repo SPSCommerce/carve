@@ -93,13 +93,16 @@ def aws_all_regions():
     return regions
 
 
-def aws_start_stepfunction(sf_arn, sf_input):
+def aws_start_stepfunction(sf_arn, sf_input, name):
     ''' start a step function workflow with the given input '''
 
-    sm_client = boto3.client('stepfunctions', region_name=current_region)
+    client = boto3.client('stepfunctions', region_name=current_region)
     sm_input = json.dumps(sf_input)
 
-    response = sm_client.start_execution(stateMachineArn=sf_arn, input=sm_input)
+    response = client.start_execution(
+        stateMachineArn=sf_arn,
+        name=name,
+        input=sm_input)
 
     return response
 
