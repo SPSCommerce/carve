@@ -270,6 +270,14 @@ def aws_find_stacks(startswith, region, credentials):
     return stacks
 
 
+def aws_newest_s3(path, bucket=os.environ['CarveS3Bucket']):
+    client = boto3.client('s3', config=boto_config)
+    objs = client.list_objects_v2(Bucket=bucket, Prefix=path)['Contents']
+    get_last_modified = lambda obj: int(obj['LastModified'].strftime('%s'))
+    newest = [obj['Key'] for obj in sorted(objs, key=get_last_modified)][0]
+    return newest
+
+
 def aws_read_s3_direct(key, region):
     # get graph from S3
     resource = boto3.resource('s3', config=boto_config)
@@ -304,13 +312,13 @@ def aws_get_carve_s3(key, file_path, bucket=None):
     client = boto3.client('s3', config=boto_config)
     if bucket is None:
         bucket = os.environ['CarveS3Bucket']
-
     try:
         response = client.download_file(Bucket=bucket, Key=key, Filename=file_path)
         return response
     except ClientError as e:
         print(f's3 error: {e}')
         # logger.exception(f'Failed to write outputs/logs s3 bucket')
+
 
 
 def aws_states_list_executions(arn):

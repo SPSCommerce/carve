@@ -17,12 +17,12 @@ def start_carve_deployment(event, context):
 
     G = load_graph(key, local=False)
 
-    # # move deployment object to deploy_started path
-    # filename = key.split('/')[-1]
+    # move deployment object to deploy_started path
+    filename = key.split('/')[-1]
     # deploy_key = f"deploy_active/{filename}"
-    # aws_purge_s3_path("deploy_active/")
-    # aws_copy_s3_object(key, deploy_key)
-    # aws_delete_s3_object(key, current_region)
+    aws_purge_s3_path("deploy_active/")
+    aws_copy_s3_object(key, deploy_key)
+    aws_delete_s3_object(key, current_region)
 
     print(f'deploying graph: {key}')
 
@@ -66,7 +66,8 @@ def start_carve_deployment(event, context):
 
 def get_deploy_key():
     # get the deploy key from the first input
-    return aws_list_s3_path('deploy_input/')['Contents'][0]['Key']
+    # return aws_list_s3_path('deploy_input/')['Contents'][0]['Key']
+    return aws_newest_s3('deploy_input/')
 
 
 def sf_DeployPrep(event, context):

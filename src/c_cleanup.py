@@ -60,7 +60,7 @@ def sf_CleanupDeployments():
     deploy_key = get_deploy_key()
     G = load_graph(deploy_key, local=False)
 
-    print(f'cleaning up after graph deploy')
+    print(f'cleaning up after graph deploy: {deploy_key}')
 
     # do not delete any carve stacks that should be deployed
     safe_stacks = []
