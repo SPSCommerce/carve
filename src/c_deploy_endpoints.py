@@ -52,11 +52,11 @@ def start_carve_deployment(event, context):
         })
 
     if len(deploy_buckets) > 0:
-        name = f"deploy_s3-{filename}-{int(time.time())}"
+        name = f"deploy-{filename}-{int(time.time())}"
         aws_start_stepfunction(os.environ['DeployEndpointsStateMachine'], deploy_buckets, name)
     else:
         # if nothing is being deployed, Run cleanup
-        name = f"cleanup-{filename}-{int(time.time())}"
+        name = f"NO-ENDPOINTS-{filename}-{int(time.time())}"
         aws_start_stepfunction(os.environ['CleanupStateMachine'], [], name)
 
 

@@ -72,7 +72,7 @@ def sf_CleanupDeployments(context):
     for r in deploy_regions(G):
         s3_stack = f"{os.environ['ResourcePrefix']}carve-managed-{os.environ['OrganizationsId']}-s3-{r}"
         safe_stacks.append({
-            'StackName': stack['StackName'],
+            'StackName': s3_stack,
             'Account': context.invoked_function_arn.split(":")[4],
             'Region': r
             })
