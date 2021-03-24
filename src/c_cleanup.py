@@ -54,7 +54,7 @@ def sf_OrganizeDeletions(payload):
     return delete_stacks
 
 
-def sf_CleanupDeployments():
+def sf_CleanupDeployments(context):
     '''discover all deployments of carve named stacks and determine if they should exist'''
 
     deploy_key = get_deploy_key()
@@ -71,7 +71,11 @@ def sf_CleanupDeployments():
 
     for r in deploy_regions(G):
         s3_stack = f"{os.environ['ResourcePrefix']}carve-managed-{os.environ['OrganizationsId']}-s3-{r}"
-        safe_stacks.append(s3_stack)
+        safe_stacks.append({
+            'StackName': stack['StackName'],
+            'Account': context.invoked_function_arn.split(":")[4],
+            'Region': r
+            })
 
     for stack in deployment_list(G):
         safe_stacks.append({
@@ -162,7 +166,7 @@ def  cleanup_steps_entrypoint(event, context):
         response = sf_DeleteStack(payload)
 
     elif event['Payload']['CleanupAction'] == 'CleanupDeployments':
-        response = sf_CleanupDeployments()
+        response = sf_CleanupDeployments(context)
 
     elif event['Payload']['CleanupAction'] == 'OrganizeDeletions':
         response = sf_OrganizeDeletions(payload)
