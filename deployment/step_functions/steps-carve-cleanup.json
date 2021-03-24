@@ -69,7 +69,7 @@
             "Type": "Task",
             "Resource":"${CarveFunction}",
             "ResultSelector": {
-              "$": "States.StringToJson($)"
+              "Payload.$": "States.StringToJson($)"
             },
             "Parameters": {
               "Payload": {
@@ -84,7 +84,7 @@
             "Type": "Task",
             "Resource":"${CarveFunction}",
             "ResultSelector": {
-              "$": "States.StringToJson($)"
+              "Payload.$": "States.StringToJson($)"
             },
             "Parameters": {
               "Payload": {

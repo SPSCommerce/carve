@@ -17,7 +17,7 @@ def sf_DescribeDeleteStack(payload):
     account = payload['Account']
     credentials = aws_assume_role(carve_role_arn(account), f"carve-deploy-{payload['Region']}")
     response = aws_describe_stack(
-        stackname=payload['StackName'],
+        stackname=payload['StackId'], # deleted stacks require the stack id to be described
         region=payload['Region'],
         credentials=credentials
         )
@@ -137,6 +137,7 @@ def sf_DiscoverCarveStacks(payload):
                 # create payloads for delete iterator in state machine
                 del_stack = {}
                 del_stack['StackName'] = stack['StackName']
+                del_stack['StackId'] = stack['StackId']
                 del_stack['Region'] = region
                 del_stack['Account'] = account
                 delete_stacks.append(del_stack)
@@ -152,6 +153,9 @@ def  cleanup_steps_entrypoint(event, context):
         payload = event['Payload']
 
     if event['Payload']['CleanupAction'] == 'DescribeDeleteStack':
+        # responses come back different after choice state
+        if 'Payload' in payload:
+            payload = event['Payload']['Input']['Payload']
         response = sf_DescribeDeleteStack(payload)
 
     elif event['Payload']['CleanupAction'] == 'DeleteStack':

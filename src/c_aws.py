@@ -254,7 +254,6 @@ def aws_describe_change_set(changesetname, region, credentials):
     return response
 
 
-
 def aws_find_stacks(startswith, region, credentials):
     client = boto3.client(
         'cloudformation',
