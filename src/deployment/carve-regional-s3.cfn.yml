@@ -17,8 +17,6 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Sub "${ResourcePrefix}carve-${OrganizationsId}-${AWS::Region}"
-      VersioningConfiguration:
-        Status: Enabled
       AccessControl: Private
       BucketEncryption:
         ServerSideEncryptionConfiguration:
