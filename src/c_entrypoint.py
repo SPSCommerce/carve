@@ -23,7 +23,8 @@ def lambda_handler(event, context):
     # lambda needs to log its info at startup
 
     '''
-    print(event)
+    if 'CodePipeline.job' not in event:
+        print(event)
 
     # c_context = setup_context(context)
 
@@ -81,7 +82,7 @@ def lambda_handler(event, context):
 
     elif 'CodePipeline.job' in event:
         # run a redeploy of the last graph with updated templates and code
-        if event['data']['configuration']['UserParameters'] == 'UpdateEndpoints':
+        if event['CodePipeline.job']['data']['configuration']['UserParameters'] == 'UpdateEndpoints':
             if os.environ['PropogateUpdates'] == 'True':
                 start_carve_deployment(event, context, key=get_deploy_key(last=True))
             else:
