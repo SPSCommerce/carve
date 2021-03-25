@@ -93,6 +93,12 @@ def aws_all_regions():
     return regions
 
 
+def aws_codepipeline_success(job_id):
+    client = boto3.client('codepipeline', region_name=current_region)
+    response = client.put_job_success_result(jobId=job_id)
+    return response
+
+
 def aws_start_stepfunction(sf_arn, sf_input, name):
     ''' start a step function workflow with the given input '''
 

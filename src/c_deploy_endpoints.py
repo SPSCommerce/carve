@@ -60,6 +60,10 @@ def start_carve_deployment(event, context, key=False):
         name = f"NO-ENDPOINTS-{filename}-{int(time.time())}"
         aws_start_stepfunction(os.environ['CleanupStateMachine'], [], name)
 
+    if 'CodePipeline.job' in event:
+        aws_codepipeline_success(event['CodePipeline.job']['id'])
+
+
 
 def get_deploy_key(last=False):
     # get either the current or last deployment graph key from s3
@@ -297,19 +301,12 @@ def sf_CleanupDeployments(event, context):
     return discover_stacks
 
 
-def sf_DeploymentComplete(event):
-    # not functional yet
-    sys.exit()
-
-    # should notify of happiness
-    # should move deploy graph to completed
-    # need to add a final step to state machine
-
-    # move deployment object immediately
-    filename = key.split('/')[-1]
-    aws_copy_s3_object(key, get_deploy_key())
-    aws_delete_s3_object(key, region)
-
+def sf_DeploymentComplete():
+    # move deployment object
+    deploy_key = get_deploy_key()
+    key_name = deploy_key.split('/')[-1]
+    aws_copy_s3_object(deploy_key, f'last_deploy/{key_name}')
+    aws_delete_s3_object(deploy_key, current_region)
 
 
 def deploy_steps_entrypoint(event, context):
@@ -319,6 +316,9 @@ def deploy_steps_entrypoint(event, context):
     if event['DeployAction'] == 'EndpointDeployPrep':
         response = sf_DeployPrep(event, context)
 
+    if event['DeployAction'] == 'EndpointDeployPrep':
+        response = sf_DeploymentComplete()
+        
     # return json to step function
     return json.dumps(response, default=str)
 

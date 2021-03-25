@@ -50,7 +50,7 @@
     "CleanupCarveEndpoints": {
       "Comment": "Create one Carve stack per VPC",
       "Type": "Task",
-      "End": true,
+      "Next": "DeploymentComplete",
       "Resource": "arn:aws:states:::states:startExecution.sync",
       "Parameters": {
         "StateMachineArn": "${CarveCleanupStepFunction}",
@@ -58,7 +58,23 @@
           "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id"
         }
       }
-    }
-
+    },
+    "DeploymentComplete": {
+      "Comment": "Perform final tasks",
+      "Type": "Task",
+      "Resource":"arn:aws:states:::lambda:invoke",
+      "ResultSelector": {
+        "Payload.$": "States.StringToJson($.Payload)"
+      },
+      "Parameters": {
+        "FunctionName": "${CarveFunction}",
+        "Payload": {
+          "DeployAction": "EndpointDeployPrep",
+          "Input.$": "$"
+        }
+      },
+      "End": true,
+      "TimeoutSeconds": 900
+    },
   }
 }
