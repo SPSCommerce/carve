@@ -82,7 +82,7 @@ def lambda_handler(event, context):
 
     elif 'CodePipeline.job' in event:
         # run a redeploy of the last graph with updated templates and code
-        if event['CodePipeline.job']['data']['configuration']['UserParameters'] == 'UpdateEndpoints':
+        if event['CodePipeline.job']['data']['actionConfiguration']['configuration']['UserParameters'] == 'UpdateEndpoints':
             if os.environ['PropogateUpdates'] == 'True':
                 start_carve_deployment(event, context, key=get_deploy_key(last=True))
             else:
