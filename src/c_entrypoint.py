@@ -81,7 +81,7 @@ def lambda_handler(event, context):
 
     elif 'UpdateEndpoints' in event:
         # run a redeploy of the last graph with updated templates and code
-        if os.environ['PropogateUpdates']:
+        if os.environ['PropogateUpdates'] == 'True':
             start_carve_deployment(event, context, key=get_deploy_key(last=True))
         else:
             print('Updating endpoints is disabled')

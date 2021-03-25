@@ -23,8 +23,8 @@ Parameters:
     Type: String
     Default: "0"
   PropogateUpdates:
-    Type: Boolean
-    Default: True
+    Type: String
+    Default: 'True'
     Description: Automatically propogate version updates to endpoints 
 
 Resources:
