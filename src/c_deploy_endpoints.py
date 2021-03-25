@@ -13,7 +13,9 @@ import time
 
 def start_carve_deployment(event, context, key=False):
     # read graph from s3 key in event
-    if not key:
+    if key:
+        aws_copy_s3_object(key, f"deploy_active/{key.split('/')[-1]}")
+    else:
         key = event['Records'][0]['s3']['object']['key']
 
     G = load_graph(key, local=False)
