@@ -36,8 +36,6 @@ Parameters:
 
 Resources:
 
-### NEED TO FIX THIS TEMPLATE FINALLY
-# Copy lambda package to carve folder and update CodeUri
 
   CarveFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -59,10 +57,10 @@ Resources:
           S3Bucket: !Sub "carve-${OrganizationsId}"
           # VpcEndpointId: !Ref CarveAPIAccessEndpoint
           VpcId: !Ref VpcId
-      # VpcConfig :
-      #   SecurityGroupIds:
-      #     - !Ref CarveApiSecurityGroup
-      #   SubnetIds: !Ref VpcEndpointSubnetIds
+      VpcConfig :
+        SecurityGroupIds:
+          - !Ref CarveApiSecurityGroup
+        SubnetIds: !Ref VpcEndpointSubnetIds
       # Events:
       #   APIRoot:
       #     Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
@@ -86,19 +84,17 @@ Resources:
       SourceArn: !GetAtt CarveFunction.Arn
       FunctionName: !GetAtt CarveFunction.Arn
 
-
-  # CarveApiSecurityGroup:
-  #   Type: AWS::EC2::SecurityGroup
-  #   Properties:
-  #     VpcId: !Ref VpcId
-  #     GroupDescription: Allows access over 443 from the entire private network
-  #     SecurityGroupIngress:
-  #       -
-  #         IpProtocol: "tcp"
-  #         FromPort: 443
-  #         ToPort: 443
-  #         CidrIp: "0.0.0.0/0"
-
+  CarveApiSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VpcId
+      GroupDescription: Allows access over 443 from the entire private network
+      SecurityGroupIngress:
+        -
+          IpProtocol: "tcp"
+          FromPort: 443
+          ToPort: 443
+          CidrIp: "0.0.0.0/0"
 
   CarveSNSSubscription:
     Type: AWS::SNS::Subscription

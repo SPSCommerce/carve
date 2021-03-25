@@ -96,15 +96,16 @@ Resources:
                 #       - cloudformation.amazonaws.com               
               - Effect: Allow
                 Action:
-                  - ec2:DescribeNetworkInterfaces
-                  - ec2:CreateNetworkInterface
-                  - ec2:DeleteNetworkInterface
                   - ec2:DescribeInstances
-                  - ec2:AttachNetworkInterface
-                  - ec2:DescribeVpcPeeringConnections
+                  - ec2:DescribeNetworkInterfaces
                   - ec2:DescribeVpcs
+                  - ec2:DescribeVpcPeeringConnections
                   - ec2:DescribeRegions
                   - ec2:DescribeSubnets
+                  - ec2:AttachNetworkInterface
+                  - ec2:DetachNetworkInterface
+                  - ec2:CreateNetworkInterface
+                  - ec2:DeleteNetworkInterface
                 Resource:
                   - "*"
               - Effect: Allow
