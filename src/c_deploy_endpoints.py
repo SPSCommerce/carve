@@ -13,9 +13,7 @@ import time
 
 def start_carve_deployment(event, context, key=False):
     # read graph from s3 key in event
-    if key:
-        aws_copy_s3_object(key, f"deploy_active/{key.split('/')[-1]}")
-    else:
+    if not key:
         key = event['Records'][0]['s3']['object']['key']
 
     G = load_graph(key, local=False)
@@ -24,7 +22,7 @@ def start_carve_deployment(event, context, key=False):
     filename = key.split('/')[-1]
     deploy_key = f"deploy_active/{filename}"
     aws_purge_s3_path("deploy_active/")
-    aws_copy_s3_object(key, "deploy_active/deploy_graph.json")
+    aws_copy_s3_object(key, deploy_key)
     # aws_delete_s3_object(key, current_region)
 
     print(f'deploying graph: {key}')
