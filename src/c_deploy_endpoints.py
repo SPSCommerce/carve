@@ -11,9 +11,10 @@ from multiprocessing import Process, Pipe
 import time
 
 
-def start_carve_deployment(event, context):
+def start_carve_deployment(event, context, key=False):
     # read graph from s3 key in event
-    key = event['Records'][0]['s3']['object']['key']
+    if not key:
+        key = event['Records'][0]['s3']['object']['key']
 
     G = load_graph(key, local=False)
 
@@ -60,10 +61,13 @@ def start_carve_deployment(event, context):
         aws_start_stepfunction(os.environ['CleanupStateMachine'], [], name)
 
 
-def get_deploy_key():
-    # get the deploy key from the first input
-    # return aws_list_s3_path('deploy_input/')['Contents'][0]['Key']
-    return aws_newest_s3('deploy_active/')
+def get_deploy_key(last=False):
+    # get either the current or last deployment graph key from s3
+    if not last:
+        path = 'deploy_active/'
+    else:
+        path = 'last_deploy/'
+    return aws_newest_s3(path)
 
 
 def deploy_regions(G):

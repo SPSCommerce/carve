@@ -22,6 +22,10 @@ Parameters:
   CarveVersion:
     Type: String
     Default: "0"
+  PropogateUpdates:
+    Type: Boolean
+    Default: True
+    Description: Automatically propogate version updates to endpoints 
 
 Resources:
 
@@ -35,20 +39,21 @@ Resources:
         S3Key: !Sub "lambda_packages/${GITSHA}/package.zip"
       Environment:
         Variables:
-          OrganizationsId: !Ref OrganizationsId
           CarveS3Bucket: !Sub "${ResourcePrefix}carve-${OrganizationsId}-${AWS::Region}"
+          CarveSNSTopicArn: !Ref SNSTopic
+          CarveVersion: !Ref CarveVersion
           CodeBucket: !Ref CodeBucket
           CodeKey: !Sub "lambda_packages/${GITSHA}/package.zip"
-          GITSHA: !Ref GITSHA
-          CarveSNSTopicArn: !Ref SNSTopic
-          MPLCONFIGDIR: /tmp/matplotlib
-          ResourcePrefix: !Ref ResourcePrefix
           CleanupStateMachine: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ResourcePrefix}carve-cleanup-statemachine"
           DeployEndpointsStateMachine: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ResourcePrefix}carve-deploy-endpoints-statemachine"
           DeployStacksStateMachine: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ResourcePrefix}carve-deploy-stacks-statemachine"
           DiscoveryStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ResourcePrefix}carve-discovery-statemachine"
-          CarveVersion: !Ref CarveVersion
+          GITSHA: !Ref GITSHA
+          MPLCONFIGDIR: /tmp/matplotlib
+          OrganizationsId: !Ref OrganizationsId
+          PropogateUpdates: !Ref PropogateUpdates
           Regions: "us-east-1,us-east-2"
+          ResourcePrefix: !Ref ResourcePrefix
       Handler: c_entrypoint.lambda_handler
       Runtime: python3.8
       MemorySize: 1024

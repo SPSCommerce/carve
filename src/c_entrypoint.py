@@ -1,6 +1,6 @@
 import json
 import os
-from c_deploy_endpoints import deploy_steps_entrypoint, start_carve_deployment
+from c_deploy_endpoints import deploy_steps_entrypoint, start_carve_deployment, get_deploy_key
 from c_custom_resource import custom_resource_entrypoint
 from c_deploy_stack import deploy_stack_entrypoint
 from c_cleanup import cleanup_steps_entrypoint
@@ -27,7 +27,7 @@ def lambda_handler(event, context):
 
     # c_context = setup_context(context)
 
-    # Triggered by cloudwatch cron/scheduled job = crawler run
+    # Triggered by cloudwatch cron/scheduled job
     if 'detail-type' in event:
         if event.get('detail-type') == 'Scheduled Event':
             cw_arn = event['resources'][0]
@@ -78,6 +78,13 @@ def lambda_handler(event, context):
         if 'CleanupAction' in event['Payload']:
             print('TRIGGERED by Cleanup Step Function')
             return cleanup_steps_entrypoint(event, context)
+
+    elif 'UpdateEndpoints' in event:
+        # run a redeploy of the last graph with updated templates and code
+        if os.environ['PropogateUpdates']:
+            start_carve_deployment(event, context, key=get_deploy_key(last=True))
+        else:
+            print('Updating endpoints is disabled')
 
     else:
         print(f'unrecognized event: {event}')
