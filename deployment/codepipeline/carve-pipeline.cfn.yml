@@ -143,7 +143,7 @@ Resources:
               OutputArtifacts: []
               InputArtifacts:
                 - Name: GithubRepo
-        - Name: CarveCoreDeploy
+        - Name: CarveDeploy
           Actions:
             - Name: carve-core-deployment
               ActionTypeId:
@@ -159,6 +159,23 @@ Resources:
                 StackName: !Sub '${ResourcePrefix}carve-core-${OrganizationsId}'
                 TemplatePath: GithubRepo::deployment/carve-core.cfn.yml
                 ParameterOverrides: !Sub '{"GITSHA":"#{github_vars.CommitId}","ResourcePrefix":"${ResourcePrefix}","OrganizationsId":"${OrganizationsId}","CodeBucket":"${DeployBucket}"}'
+              OutputArtifacts: []
+              InputArtifacts:
+                - Name: GithubRepo
+            - Name: carve-ec2-deployment
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              Configuration:
+                ChangeSetName: pipeline-changeset
+                ActionMode: CREATE_UPDATE
+                Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
+                RoleArn: !GetAtt 'CarvePipelineRole.Arn'
+                StackName: !Sub '${ResourcePrefix}carve-ec2-${OrganizationsId}'
+                TemplatePath: GithubRepo::src/deployment/carve-endpoint-ec2.sam.yml
+                ParameterOverrides: !Sub '{"GITSHA":"#{github_vars.CommitId}","ResourcePrefix":"${ResourcePrefix}","OrganizationsId":"${OrganizationsId}"}'
               OutputArtifacts: []
               InputArtifacts:
                 - Name: GithubRepo
@@ -197,7 +214,7 @@ Resources:
             Value: !Ref 'GitHubOAUTHTokenASMPath'
       Source:
         Type: CODEPIPELINE
-        BuildSpec: deployment/codepipeline/pipeline_buildspec.yml
+        BuildSpec: deployment/codepipeline/buildspec.yml
       TimeoutInMinutes: 5
       Tags:
         - Key: GitSHA

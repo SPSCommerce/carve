@@ -131,6 +131,11 @@ def aws_describe_stack(stackname, region, credentials):
     return stack
 
 
+# def aws_put_asm_policy():
+#     client = boto3.client('secretsmanager', config=boto_config)
+
+
+
 def aws_get_carve_tags(lambda_arn):
     ''' get my own tags and format for CFN calls '''
 
@@ -177,6 +182,111 @@ def aws_execute_change_set(changesetname, stackname, region, credentials):
         ChangeSetName=changesetname,
         StackName=stackname)
     return response
+
+
+def aws_describe_transit_gateways(region, credentials):
+    client = boto3.client(
+        'ec2',
+        config=boto_config,
+        region_name=region,
+        aws_access_key_id = credentials['AccessKeyId'],
+        aws_secret_access_key = credentials['SecretAccessKey'],
+        aws_session_token = credentials['SessionToken']
+    )
+    paginator = client.get_paginator('describe_transit_gateways')
+    results = []
+    for page in paginator.paginate():
+        for each in page['TransitGateways']:
+            results.append(each)
+    return results
+
+
+def aws_describe_transit_gateway_attachments(region, credentials):
+    client = boto3.client(
+        'ec2',
+        config=boto_config,
+        region_name=region,
+        aws_access_key_id = credentials['AccessKeyId'],
+        aws_secret_access_key = credentials['SecretAccessKey'],
+        aws_session_token = credentials['SessionToken']
+    )
+    paginator = client.get_paginator('describe_transit_gateway_attachments')
+    results = []
+    for page in paginator.paginate():
+        for each in page['TransitGatewayAttachments']:
+            results.append(each)
+    return results
+
+
+def aws_describe_transit_gateway_vpc_attachments(region, credentials):
+    client = boto3.client(
+        'ec2',
+        config=boto_config,
+        region_name=region,
+        aws_access_key_id = credentials['AccessKeyId'],
+        aws_secret_access_key = credentials['SecretAccessKey'],
+        aws_session_token = credentials['SessionToken']
+    )
+    paginator = client.get_paginator('describe_transit_gateway_vpc_attachments')
+    results = []
+    for page in paginator.paginate():
+        for each in page['TransitGatewayVpcAttachments']:
+            results.append(each)
+    return results
+
+
+def aws_describe_transit_gateway_route_tables(region, credentials):
+    client = boto3.client(
+        'ec2',
+        config=boto_config,
+        region_name=region,
+        aws_access_key_id = credentials['AccessKeyId'],
+        aws_secret_access_key = credentials['SecretAccessKey'],
+        aws_session_token = credentials['SessionToken']
+    )
+    paginator = client.get_paginator('describe_transit_gateway_route_tables')
+    results = []
+    for page in paginator.paginate():
+        for each in page['TransitGatewayRouteTables']:
+            results.append(each)
+    return results
+
+
+# def aws_describe_transit_gateway_peering_attachments(tgw_id, region, credentials):
+#     client = boto3.client(
+#         'ec2',
+#         config=boto_config,
+#         region_name=region,
+#         aws_access_key_id = credentials['AccessKeyId'],
+#         aws_secret_access_key = credentials['SecretAccessKey'],
+#         aws_session_token = credentials['SessionToken']
+#     )
+#     paginator = client.get_paginator('describe_transit_gateway_peering_attachments')
+#     ta = []
+
+#     for page in paginator.paginate(TransitGatewayAttachmentIds=[tgw_id]):
+#         for t in page['TransitGatewayAttachmentIds']:
+#             ta.append(t)
+#     return ta
+
+
+# def aws_describe_transit_gateway_vpc_attachments(tgw_id, region, credentials):
+#     client = boto3.client(
+#         'ec2',
+#         config=boto_config,
+#         region_name=region,
+#         aws_access_key_id = credentials['AccessKeyId'],
+#         aws_secret_access_key = credentials['SecretAccessKey'],
+#         aws_session_token = credentials['SessionToken']
+#     )
+# paginator = client.get_paginator('describe_transit_gateway_attachments')
+# ta = []
+
+# for page in paginator.paginate(TransitGatewayAttachmentIds=[tgw_id]):
+#     for t in page['TransitGatewayAttachmentIds']:
+#         ta.append(t)
+# return ta
+
 
 
 def aws_create_stack(stackname, region, template, parameters, credentials, tags):

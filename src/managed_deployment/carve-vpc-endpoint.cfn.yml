@@ -1,0 +1,52 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  API Gateway Private Endpoint for Carve
+
+# Approx 1:45s to create and 30s to delete
+
+Parameters:
+  VpcId:
+    Type: "AWS::EC2::VPC::Id"
+    Description: VPC ID in which the VPC Endpoint should be created
+  VpcEndpointSubnetIds:
+    Type: "List<AWS::EC2::Subnet::Id>"
+    Description: >
+      The ID of one or more subnets in which to create an endpoint network interface.
+  ResourcePrefix:
+    Type: String
+    Description: "Prefix all carve resources with this"
+    Default: ""
+
+Resources:
+
+  CarveApiSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VpcId
+      GroupName: !Sub '${ResourcePrefix}carve-${VpcId}'
+      GroupDescription: Carve SG for Endpoint
+      SecurityGroupIngress:
+        -
+          IpProtocol: "tcp"
+          FromPort: 443
+          ToPort: 443
+          CidrIp: "0.0.0.0/0"
+
+  CarveAPIAccessEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId:
+        Ref: VpcId
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.execute-api"
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: false
+      SubnetIds: !Ref VpcEndpointSubnetIds
+      SecurityGroupIds:
+        -
+          !Ref CarveApiSecurityGroup
+
+Outputs:
+
+  CarveAPIAccessEndpoint:
+    Description: "Carve Private API VPC Endpoint ID"
+    Value: !Ref CarveAPIAccessEndpoint

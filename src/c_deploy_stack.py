@@ -173,7 +173,7 @@ def sf_CreateStack(event, context):
         stack = {'StackId': response['StackId']}
     else:
         # create bootstrap stack to orchestrate all deploys/updates thru changesets
-        with open('deployment/carve-bootstrap.cfn.json') as f:
+        with open('managed/carve-bootstrap.cfn.json') as f:
             template = (json.load(f))
 
         parameters = [

@@ -49,7 +49,7 @@ def start_carve_deployment(event, context, key=False):
             "Parameters": parameters,
             "Account": context.invoked_function_arn.split(":")[4],
             "Region": r,
-            "Template": 'deployment/carve-regional-s3.cfn.yml'
+            "Template": 'managed/carve-regional-s3.cfn.yml'
         })
 
     if len(deploy_buckets) > 0:
@@ -151,7 +151,7 @@ def deployment_list(G):
         target['StackName'] = f"{os.environ['ResourcePrefix']}carve-managed-endpoint-{vpc}"
         target['Account'] = vpc_data['Account']
         target['Region'] = vpc_data['Region']
-        target['Template'] = "deployment/carve-vpc.sam.yml"
+        target['Template'] = "managed/carve-vpc.sam.yml"
         target['Parameters'] = [
           {
             "ParameterKey": "VpcId",
@@ -264,41 +264,34 @@ def update_bucket_policies(G):
     return
 
 
-def sf_CleanupDeployments(event, context):
-    '''discover all deployments of carve named stacks and determine if they should exist'''
-    # event will be a json array of all final DescribeChangeSetExecution tasks
+def sf_SetupKeys():
 
-    # swipe the GraphName from one of the tasks, need to load deployed graph from S3
-    # payload = json.loads(event['Input']['Payload'])
-    payload = event['Input']['Payload']
+    G = load_graph(get_deploy_key(), local=False)
 
-    graph_name = None
-    for task in payload:
-        if 'GraphName' in task:
-            graph_name = task['GraphName']
-            break
+    role_list = []
+    for vpc in list(G.nodes):
+        vpc_data = G.nodes().data()[vpc]        
+        role = f"arn:aws:iam::{vpc_data['Account']}:role/{os.environ['ResourcePrefix']}carve-ec2-{vpc}"
+        role_list.append(role)
 
-    if graph_name is None:
-        print('something went wrong')
-        sys.exit()
-
-
-    # need all accounts & regions
-    accounts = discover_org_accounts()
-    regions = aws_all_regions()
-
-    # create discovery list of all accounts/regions for step function
-    discover_stacks = []
-    for region in regions:
-        for account_id, account_name in accounts.items():
-            cleanup = {}
-            cleanup['Account'] = account_id
-            cleanup['Region'] = region
-            cleanup['GraphName'] = graph_name
-            discover_stacks.append(cleanup)
-
-    # returns to a step function iterator
-    return discover_stacks
+    for role in role_list:
+        pass
+    # {
+    #   "Version" : "2012-10-17",
+    #   "Statement" : [
+    #     {
+    #       "Effect": "Allow",
+    #       "Principal": {"AWS": "arn:aws:iam::123456789012:role/EC2RoleToAccessSecrets"},
+    #       "Action": "secretsmanager:GetSecretValue",
+    #       "Resource": "*",
+    #       "Condition": {
+    #         "ForAnyValue:StringEquals": {
+    #           "secretsmanager:VersionStage" : "AWSCURRENT"
+    #         }
+    #       }
+    #     }
+    #   ]
+    # }
 
 
 def sf_DeploymentComplete():
@@ -316,7 +309,7 @@ def deploy_steps_entrypoint(event, context):
     if event['DeployAction'] == 'EndpointDeployPrep':
         response = sf_DeployPrep(event, context)
 
-    if event['DeployAction'] == 'EndpointDeployPrep':
+    if event['DeployAction'] == 'DeploymentComplete':
         response = sf_DeploymentComplete()
         
     # return json to step function

@@ -145,6 +145,15 @@ def discover_pcxs(region, account_id, account_name, credentials):
     return G
 
 
+def discover_tgws(region, credentials):
+    # describe tgws
+    # describe tgw attachments using tgw
+    # describe tgw peering using attachment
+    tgws = aws_describe_transit_gateways(region, credentials)
+    attachments = aws_describe_transit_gateway_attachments(region, credentials)
+    route_tables = aws_describe_transit_gateway_route_tables(region, credentials)
+
+
 def discover_resources(resource, region, account_id, account_name, credentials):
     if resource == 'vpcs':
         G = discover_vpcs(region, account_id, account_name, credentials)

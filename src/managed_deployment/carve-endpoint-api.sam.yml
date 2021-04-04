@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  AWS SAM Template to deploy the private Carve API into a specific VPC
+  Private Carve API for a specific VPC
 
 Parameters:
   VpcId:
@@ -113,21 +113,6 @@ Resources:
       SourceArn: !Ref CarveSNSTopicArn
       FunctionName: !GetAtt CarveFunction.Arn
 
-
-  # CarveAPIAccessEndpoint:
-  #   Type: AWS::EC2::VPCEndpoint
-  #   Properties:
-  #     VpcId:
-  #       Ref: VpcId
-  #     ServiceName: !Sub "com.amazonaws.${AWS::Region}.execute-api"
-  #     VpcEndpointType: Interface
-  #     PrivateDnsEnabled: true
-  #     SubnetIds: !Ref VpcEndpointSubnetIds
-  #     SecurityGroupIds:
-  #       -
-  #         !Ref CarveApiSecurityGroup
-
-
   # CarvePrivateApi:
   #   Type: AWS::Serverless::Api
   #   Properties:
@@ -203,7 +188,3 @@ Outputs:
   CarveFunction:
     Description: "Carve Lambda Function ARN"
     Value: !GetAtt CarveFunction.Arn
-
-  # CarveAPIAccessEndpoint:
-  #   Description: "Carve Private API VPC Endpoint ID"
-  #   Value: !GetAtt CarveAPIAccessEndpoint.Arn
