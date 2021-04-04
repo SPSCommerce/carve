@@ -162,23 +162,23 @@ Resources:
               OutputArtifacts: []
               InputArtifacts:
                 - Name: GithubRepo
-            - Name: carve-ec2-deployment
-              ActionTypeId:
-                Category: Deploy
-                Owner: AWS
-                Provider: CloudFormation
-                Version: 1
-              Configuration:
-                ChangeSetName: pipeline-changeset
-                ActionMode: CREATE_UPDATE
-                Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
-                RoleArn: !GetAtt 'CarvePipelineRole.Arn'
-                StackName: !Sub '${ResourcePrefix}carve-ec2-${OrganizationsId}'
-                TemplatePath: GithubRepo::src/deployment/carve-endpoint-ec2.sam.yml
-                ParameterOverrides: !Sub '{"GITSHA":"#{github_vars.CommitId}","ResourcePrefix":"${ResourcePrefix}","OrganizationsId":"${OrganizationsId}"}'
-              OutputArtifacts: []
-              InputArtifacts:
-                - Name: GithubRepo
+            # - Name: carve-ec2-deployment
+            #   ActionTypeId:
+            #     Category: Deploy
+            #     Owner: AWS
+            #     Provider: CloudFormation
+            #     Version: 1
+            #   Configuration:
+            #     ChangeSetName: pipeline-changeset
+            #     ActionMode: CREATE_UPDATE
+            #     Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
+            #     RoleArn: !GetAtt 'CarvePipelineRole.Arn'
+            #     StackName: !Sub '${ResourcePrefix}carve-ec2-${OrganizationsId}'
+            #     TemplatePath: GithubRepo::src/deployment/carve-endpoint-ec2.sam.yml
+            #     ParameterOverrides: !Sub '{"GITSHA":"#{github_vars.CommitId}","ResourcePrefix":"${ResourcePrefix}","OrganizationsId":"${OrganizationsId}"}'
+            #   OutputArtifacts: []
+            #   InputArtifacts:
+            #     - Name: GithubRepo
         - Name: RunUpdates
           Actions:
             - Name: update-carve-endpoints
