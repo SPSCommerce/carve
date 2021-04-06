@@ -43,7 +43,6 @@ Resources:
           CarveSNSTopicArn: !Ref SNSTopic
           CarveVersion: !Ref CarveVersion
           CodeBucket: !Ref CodeBucket
-          CodeKey: !Sub "lambda_packages/${GITSHA}/package.zip"
           CleanupStateMachine: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ResourcePrefix}carve-cleanup-statemachine"
           DeployEndpointsStateMachine: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ResourcePrefix}carve-deploy-endpoints-statemachine"
           DeployStacksStateMachine: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ResourcePrefix}carve-deploy-stacks-statemachine"
@@ -61,13 +60,14 @@ Resources:
       Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ResourcePrefix}carve-lambda-${OrganizationsId}"
       ReservedConcurrentExecutions: 200
       Layers:
+        # Carve requirements in their own layer for small lambda pkg
         - !Ref CarveRequirementsLayer
         # AWS provided lambda layer for scipy and numpy
         - !Sub "arn:aws:lambda:${AWS::Region}:668099181075:layer:AWSLambda-Python38-SciPy1x:29"
         # public lambda layer for matplotlib from Klayers
         - !Sub "arn:aws:lambda:${AWS::Region}:770693421928:layer:Klayers-python38-matplotlib:21"
 
-  CarveRequirementsLayer:
+  RequirementsLayer:
     Type: AWS::Lambda::LayerVersion
     Properties: 
       CompatibleRuntimes:
@@ -78,6 +78,14 @@ Resources:
         S3Key: !Sub "requirements_packages/b1381f2c51b3877528a5d14436f4267a45071946/requirements_package.zip"
       Description: "Carve python requirements"
       LayerName: CarveRequirementsLayer
+
+  LayerPermission:
+    Type: AWS::Lambda::LayerVersionPermission
+    Properties: 
+      Action: lambda:GetLayerVersion
+      LayerVersionArn: !Ref RequirementsLayer
+      OrganizationId: !Ref OrganizationsId
+      Principal: "*"
 
   CarveDeployStacksStepFunction:
     Type: AWS::StepFunctions::StateMachine
@@ -265,6 +273,12 @@ Resources:
         Id: Carve SNS Policy
         Version: "2012-10-17"
         Statement:
+          - Sid: Allow events
+            Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: 'sns:Publish'
+            Resource: '*'
           - Sid: Allow Carve Lambdas
             Effect: "Allow"
             Principal:

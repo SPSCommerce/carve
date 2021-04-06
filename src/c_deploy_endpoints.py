@@ -29,7 +29,7 @@ def start_carve_deployment(event, context, key=False):
 
     regions = deploy_regions(G)
 
-    # create deploy buckets in all required regions    
+    # create deploy buckets in all required regions for deployment files
     deploy_buckets = []
 
     for r in regions:
@@ -93,7 +93,7 @@ def sf_DeployPrep(event, context):
 
     # update_bucket_policies(G)
 
-    # push lambda deployment package to regional S3 buckets
+    # push lambda deploy pkg and reqs layer pkg to regional S3 buckets
     # get all other regions where buckets are needed
     regions = set()
     for vpc in list(G.nodes):
@@ -101,43 +101,82 @@ def sf_DeployPrep(event, context):
         if r not in regions:
             regions.add(r)
 
+    codekey = f'lambda_packages/{os.environ['GITSHA']}/package.zip'
+    reqskey = f'lambda_packages/{os.environ['GITSHA']}/reqs_package.zip'
+
     for r in regions:
         aws_copy_s3_object(
-            key=os.environ['CodeKey'],
-            target_key=os.environ['CodeKey'],
+            key=codekey,
+            target_key=codekey,
+            source_bucket=os.environ['CodeBucket'],
+            target_bucket=f"{os.environ['ResourcePrefix']}carve-{os.environ['OrganizationsId']}-{r}"
+            )
+        aws_copy_s3_object(
+            key=reqskey,
+            target_key=reqskey,
             source_bucket=os.environ['CodeBucket'],
             target_bucket=f"{os.environ['ResourcePrefix']}carve-{os.environ['OrganizationsId']}-{r}"
             )
 
-    # use the graph name if it contains one
-    if 'Name' in G.graph:
-        graph_name = G.graph['Name']
-    else:
-        graph_name = f'c_deployed_{int(time.time())}'
-
-    deployment_targets = deployment_list(G)
-
-    # cache deployment tags to local lambda tmp
-    tags = aws_get_carve_tags(context.invoked_function_arn)
-
-    # # add the deploy key if we are deploying nothing
-    # if len(list(G.nodes)) == 0:
-    #     deployment_targets.append({"DeployKey": deploy_key})
+    deployment_targets = deploy_layers(G)
 
     return deployment_targets
 
 
+def deploy_layers(G):
+    regions = deploy_regions(G)
+
+    # create lambda layers in all required regions for deployment
+    deploy_layers = []
+
+    for r in regions:
+        stackname = f"{os.environ['ResourcePrefix']}carve-layers-{r}"
+        parameters = [
+            {
+                "ParameterKey": "OrganizationsId",
+                "ParameterValue": os.environ['OrganizationsId']
+            },
+            {
+                "ParameterKey": "S3Bucket",
+                "ParameterValue": os.environ['CarveS3Bucket']
+            },
+            {
+                "ParameterKey": "GITSHA",
+                "ParameterValue": os.environ['GITSHA']
+            },
+            {
+                "ParameterKey": "ResourcePrefix",
+                "ParameterValue": os.environ['ResourcePrefix']
+            }
+        ]
+        deploy_layers.append({
+            "StackName": stackname,
+            "Parameters": parameters,
+            "Account": context.invoked_function_arn.split(":")[4],
+            "Region": r,
+            "Template": 'managed/carve-layers.cfn.yml'
+        })
+
+    if len(deploy_layers) > 0:
+        name = f"deploy-layers-{int(time.time())}"
+        aws_start_stepfunction(os.environ['DeployEndpointsStateMachine'], deploy_layers, name)
+
+
 def deployment_list(G):
+    ''' return a list of stacks to deploy 
+        1 lambda and 1 EC2 instance per VPC
+    '''
     # create a ranking of AZ from most to least occuring
     azs_ranked = az_rank(G)
 
     # create a list of deployment dicts
     deployment_targets = []
+    concurrent = len(list(G.nodes))
     for vpc in list(G.nodes):
         vpc_data = G.nodes().data()[vpc]
-        target = {}
 
-        # select the subnet in the top ranked AZ for the region
+        # of available subnets, select the the highest ranked AZ for the region
+        # this logic minimizes cross AZ traffic across the Org
         s = False
         subnet_id = ""
         while not s:
@@ -148,10 +187,12 @@ def deployment_list(G):
                         subnet_id = subnet['SubnetId']
                         s = True
 
-        target['StackName'] = f"{os.environ['ResourcePrefix']}carve-managed-endpoint-{vpc}"
+        # add lambda stack first
+        target = {}
+        target['StackName'] = f"{os.environ['ResourcePrefix']}carve-lambda-{vpc}"
         target['Account'] = vpc_data['Account']
         target['Region'] = vpc_data['Region']
-        target['Template'] = "managed/carve-vpc.sam.yml"
+        target['Template'] = "managed/carve-vpc-lambda.sam.yml"
         target['Parameters'] = [
           {
             "ParameterKey": "VpcId",
@@ -184,10 +225,41 @@ def deployment_list(G):
           {
             "ParameterKey": "ResourcePrefix",
             "ParameterValue": os.environ['ResourcePrefix']
+          },
+          {
+            "ParameterKey": "ReservedConcurrentExecutions",
+            "ParameterValue": concurrent
           }
         ]
 
         deployment_targets.append(target)
+
+        # add ec2 stack next
+        target = {}
+        target['StackName'] = f"{os.environ['ResourcePrefix']}carve-managed-ec2-{vpc}"
+        target['Account'] = vpc_data['Account']
+        target['Region'] = vpc_data['Region']
+        target['Template'] = "managed/carve-vpc-ec2.cfn.yml"
+        target['Parameters'] = [
+          {
+            "ParameterKey": "VpcId",
+            "ParameterValue": vpc
+          },
+          {
+            "ParameterKey": "VpcEndpointSubnetIds",
+            "ParameterValue": subnet_id
+          },      
+          {
+            "ParameterKey": "ResourcePrefix",
+            "ParameterValue": os.environ['ResourcePrefix']
+          },
+          {
+            "ParameterKey": "CarveSNSTopicArn",
+            "ParameterValue": os.environ['CarveSNSTopicArn']
+          }
+        ]
+        deployment_targets.append(target)
+
 
     return deployment_targets
 
@@ -264,34 +336,9 @@ def update_bucket_policies(G):
     return
 
 
-def sf_SetupKeys():
-
+def sf_GetDeploymentList():
     G = load_graph(get_deploy_key(), local=False)
-
-    role_list = []
-    for vpc in list(G.nodes):
-        vpc_data = G.nodes().data()[vpc]        
-        role = f"arn:aws:iam::{vpc_data['Account']}:role/{os.environ['ResourcePrefix']}carve-ec2-{vpc}"
-        role_list.append(role)
-
-    for role in role_list:
-        pass
-    # {
-    #   "Version" : "2012-10-17",
-    #   "Statement" : [
-    #     {
-    #       "Effect": "Allow",
-    #       "Principal": {"AWS": "arn:aws:iam::123456789012:role/EC2RoleToAccessSecrets"},
-    #       "Action": "secretsmanager:GetSecretValue",
-    #       "Resource": "*",
-    #       "Condition": {
-    #         "ForAnyValue:StringEquals": {
-    #           "secretsmanager:VersionStage" : "AWSCURRENT"
-    #         }
-    #       }
-    #     }
-    #   ]
-    # }
+    return deployment_list(G)
 
 
 def sf_DeploymentComplete():
@@ -308,6 +355,9 @@ def deploy_steps_entrypoint(event, context):
 
     if event['DeployAction'] == 'EndpointDeployPrep':
         response = sf_DeployPrep(event, context)
+
+    if event['DeployAction'] == 'GetDeploymentList':
+        response = sf_GetDeploymentList()
 
     if event['DeployAction'] == 'DeploymentComplete':
         response = sf_DeploymentComplete()

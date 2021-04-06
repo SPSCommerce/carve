@@ -31,6 +31,34 @@
           "Input.$": "$"
         }
       },
+      "Next": "DeployCarveLayers",
+      "TimeoutSeconds": 900
+    },
+    "DeployCarveLayers": {
+      "Comment": "Create one Carve layer per region",
+      "Type": "Task",
+      "Next": "GetDeploymentList",
+      "Resource": "arn:aws:states:::states:startExecution.sync",
+      "Parameters": {
+        "StateMachineArn": "${CarveDeployStacksStepFunction}",
+        "Input": {
+          "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id",
+          "Input.$": "$.Payload"
+        }
+      }
+    },
+    "GetDeploymentList": {
+      "Type": "Task",
+      "Resource":"arn:aws:states:::lambda:invoke",
+      "ResultSelector": {
+        "Payload.$": "States.StringToJson($.Payload)"
+      },
+      "Parameters": {
+        "FunctionName": "${CarveFunction}",
+        "Payload": {
+          "DeployAction": "GetDeploymentList"
+        }
+      },
       "Next": "DeployCarveEndpoints",
       "TimeoutSeconds": 900
     },

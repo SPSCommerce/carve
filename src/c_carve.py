@@ -5,9 +5,16 @@ import json
 import sys
 import os
 from c_aws import aws_read_s3_direct, current_region
+import urllib3
 
 # from c_disco import discovery
 # from pprint import pprint
+
+
+def get_ipv4():
+    http = urllib3.PoolManager()
+    r = http.request('GET', 'http://169.254.169.254/latest/meta-data/local-ipv4')
+    print(r.data.decode('utf-8'))
 
 
 def carve_role_arn(account):

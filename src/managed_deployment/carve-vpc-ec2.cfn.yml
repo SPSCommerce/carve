@@ -1,0 +1,179 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Carve VPC Testing Endpoint
+
+Parameters:
+  VpcId:
+    Type: "AWS::EC2::VPC::Id"
+    Description: VPC ID in which the VPC Endpoint should be created
+    Default: "vpc-0ffafac6841402ebb"
+  VpcSubnetIds:
+    Type: "List<AWS::EC2::Subnet::Id>"
+    Description: one or more subnets in which to create endpoints
+    Default: "subnet-0d310df8338186b7f"
+  ResourcePrefix:
+    Type: String
+    Description: "Prefix all carve resources with this"
+    Default: ""
+  MinSize:
+    Description: Minimum number of instances in the ASG
+    Type: Number
+    Default: '1'
+  MaxSize:
+    Description: Maximum number of instances in the ASG
+    Type: Number
+    Default: '1'
+  ImageId:
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Description: The ImageId of Amazon AMI to use
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-arm64-gp2'
+  CarveSNSTopicArn:
+    Type: String
+    Description: Carve SNS Topic Arn
+
+Resources:
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: !Sub ${ResourcePrefix}carve-asg-${VpcId}
+      LaunchConfigurationName: !Ref LaunchConfig
+      VPCZoneIdentifier: !Ref VpcSubnetIds
+      HealthCheckGracePeriod: '60'
+      HealthCheckType: EC2
+      MinSize: !Ref MinSize
+      MaxSize: !Ref MaxSize
+      MetricsCollection:
+        - Granularity: 1Minute
+      Tags:
+        - Key: Name
+          Value: !Sub ${ResourcePrefix}carve-endpoint-${VpcId}
+          PropagateAtLaunch: true
+
+  LaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      AssociatePublicIpAddress: 'true'
+      SecurityGroups:
+        - !Ref 'InstanceSecurityGroup'
+      IamInstanceProfile: !Ref 'InstanceProfile'
+      ImageId: !Ref 'ImageId'
+      InstanceMonitoring: 'false'
+      InstanceType: t4g.nano
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeType: gp2
+            VolumeSize: '8'
+            DeleteOnTermination: 'true'
+            Encrypted: 'true'
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          amazon-linux-extras install nginx1
+          cat << 'EOF' > /etc/nginx/conf.d/default.conf
+          server {
+          listen      *:80;
+          server_name carve;
+          root        /home/www;
+          access_log  /var/log/nginx/carve_access.log;
+          error_log   /var/log/nginx/carve_error.log;
+          location /up {
+               add_header Content-Type text/plain;
+               return 200 'OK';
+            }
+          }
+          EOF
+          systemctl enable nginx
+          systemctl start nginx
+
+
+  EventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "ASG notifications to SNS"
+      EventPattern: 
+        source:
+          - "aws.autoscaling"
+        detail-type:
+          - "EC2 Instance Terminate Successful"
+          - "EC2 Instance Launch Successful"
+        detail:
+          AutoScalingGroupName:
+            - !Ref 'AutoScalingGroup'
+      State: "ENABLED"
+      Targets:
+        - Id: "Send SNS to Carve"
+          Arn: !Ref CarveSNSTopicArn
+          RoleArn: "The ARN from the eventbridge role resource"
+
+  EventRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: ''
+            Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Policies:
+        - PolicyName: EventsPolicy
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action: 
+                - 'sns:Publish'
+              Resource: 
+                - !Ref CarveSNSTopicArn
+
+  # CfnInitWaitConditionHandle:
+  #   Type: AWS::CloudFormation::WaitConditionHandle
+
+  # CfnInitWaitCondition:
+  #   Type: AWS::CloudFormation::WaitCondition
+  #   Properties:
+  #     Handle: !Ref 'CfnInitWaitConditionHandle'
+  #     Timeout: '1200'
+
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VpcId
+      GroupDescription: allow http healthcheck
+      SecurityGroupIngress:
+        -
+          IpProtocol: "tcp"
+          FromPort: 80
+          ToPort: 80
+          CidrIp: "0.0.0.0/0"
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles:
+        - !Ref 'InstanceRole'
+
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ResourcePrefix}carve-ec2-${VpcId}"
+      Path: /
+      ManagedPolicyArns:
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonSSMManagedInstanceCore
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: "Allow"
+          Principal:
+            Service:
+              - "ec2.amazonaws.com"
+          Action:
+            - "sts:AssumeRole"
+
+Outputs:
+  AutoScalingGroup:
+    Description: The name of the AutoScaling Group
+    Value: !Ref 'AutoScalingGroup'
+

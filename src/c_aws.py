@@ -288,7 +288,6 @@ def aws_describe_transit_gateway_route_tables(region, credentials):
 # return ta
 
 
-
 def aws_create_stack(stackname, region, template, parameters, credentials, tags):
 
     client = boto3.client(

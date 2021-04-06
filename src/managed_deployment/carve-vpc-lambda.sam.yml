@@ -1,0 +1,109 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Carve VPC Lambda & EC2
+
+Parameters:
+  VpcId:
+    Type: "AWS::EC2::VPC::Id"
+    Description: VPC ID in which the VPC Endpoint should be created
+  VpcSubnetIds:
+    Type: "String<AWS::EC2::Subnet::Id>"
+    Description: one subnet in which to create endpoints
+    Default: "subnet-0d310df8338186b7f"
+  CarveSNSTopicArn:
+    Type: String
+    Description: Carve SNS Topic Arn
+  CarveCoreRegion:
+    Type: String
+    Description: Region carve core is deployed in
+    Default: 'us-east-1'
+  OrganizationsId:
+    Type: String
+    Description: AWS Organizations Id
+    Default: ""
+  CarveVersion:
+    Type: String
+    Default: "0"
+  GITSHA:
+    Type: String
+    Default: ""
+    Description: latest Git commit SHA determines S3 artifact paths
+  ResourcePrefix:
+    Type: String
+    Description: "Prefix all carve resources with this"
+    Default: ""
+  ReservedConcurrentExecutions:
+    Type: Number
+    Default: '1'
+
+Resources:
+  CarveFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}carve-${VpcId}"
+      Description: Continuous AWS Route Verification Engine
+      PackageType: Zip
+      CodeUri: 
+        Bucket: !Sub "${ResourcePrefix}carve-${OrganizationsId}-${AWS::Region}"
+        Key: !Sub "lambda_packages/${GITSHA}/package.zip"
+      Handler: c_entrypoint.lambda_handler
+      Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ResourcePrefix}carve-lambda-${OrganizationsId}"
+      Runtime: python3.8
+      Timeout: 20
+      MemorySize: 128
+      ReservedConcurrentExecutions: !Ref ReservedConcurrentExecutions
+      Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
+        Variables:
+          S3Bucket: !Sub "carve-${OrganizationsId}"
+          # VpcEndpointId: !Ref CarveAPIAccessEndpoint
+          VpcId: !Ref VpcId
+      VpcConfig :
+        SecurityGroupIds:
+          - !Ref CarveApiSecurityGroup
+        SubnetIds: !Ref VpcSubnetIds
+
+  CarveSelfInvoke:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      Principal: lambda.amazonaws.com
+      SourceArn: !GetAtt CarveFunction.Arn
+      FunctionName: !GetAtt CarveFunction.Arn
+
+  CarveApiSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VpcId
+      GroupDescription: Allows access over 443 from the entire private network
+      SecurityGroupIngress:
+        -
+          IpProtocol: "tcp"
+          FromPort: 443
+          ToPort: 443
+          CidrIp: "0.0.0.0/0"
+
+  CarveSNSSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: !GetAtt CarveFunction.Arn
+      Protocol: Lambda
+      TopicArn: !Ref CarveSNSTopicArn
+      Region: !Ref CarveCoreRegion
+
+  CarveLambdaSNSInvoke:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      Principal: !Sub "sns.amazonaws.com"
+      SourceArn: !Ref CarveSNSTopicArn
+      FunctionName: !GetAtt CarveFunction.Arn
+
+
+Outputs:
+  CarveFunction:
+    Description: "Carve Lambda Function ARN"
+    Value: !GetAtt CarveFunction.Arn
+
+  PrivateIpAddress:
+    Description: carve instance private ipv4 address
+    Value: !GetAtt CarveInstance.PrivateIp 
