@@ -101,8 +101,8 @@ def sf_DeployPrep(event, context):
         if r not in regions:
             regions.add(r)
 
-    codekey = f'lambda_packages/{os.environ['GITSHA']}/package.zip'
-    reqskey = f'lambda_packages/{os.environ['GITSHA']}/reqs_package.zip'
+    codekey = f"lambda_packages/{os.environ['GITSHA']}/package.zip"
+    reqskey = f"lambda_packages/{os.environ['GITSHA']}/reqs_package.zip"
 
     for r in regions:
         aws_copy_s3_object(
@@ -269,7 +269,7 @@ def az_rank(G):
     # sort all AZs in graph by most to least used per region
     # returns regions with sorted list of AZs = {<region>: [<az>, <az>, <az>]}
 
-    ### NEED TO UPDATE SO IT DOES THIS for each region
+    ### really need other criteria options here... first would be subnets with IGW, then maybe tags?
     regions = {}
     for vpc in list(G.nodes):
         region = G.nodes().data()[vpc]['Region']
