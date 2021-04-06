@@ -67,7 +67,7 @@ Resources:
         # public lambda layer for matplotlib from Klayers
         - !Sub "arn:aws:lambda:${AWS::Region}:770693421928:layer:Klayers-python38-matplotlib:21"
 
-  RequirementsLayer:
+  CarveRequirementsLayer:
     Type: AWS::Lambda::LayerVersion
     Properties: 
       CompatibleRuntimes:

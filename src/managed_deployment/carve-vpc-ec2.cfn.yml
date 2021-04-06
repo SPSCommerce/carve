@@ -85,7 +85,6 @@ Resources:
           systemctl enable nginx
           systemctl start nginx
 
-
   EventRule:
     Type: AWS::Events::Rule
     Properties:
