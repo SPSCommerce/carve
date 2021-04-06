@@ -83,7 +83,7 @@ Resources:
     Type: AWS::Lambda::LayerVersionPermission
     Properties: 
       Action: lambda:GetLayerVersion
-      LayerVersionArn: !Ref RequirementsLayer
+      LayerVersionArn: !Ref CarveRequirementsLayer
       OrganizationId: !Ref OrganizationsId
       Principal: "*"
 
