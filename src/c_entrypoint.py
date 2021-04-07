@@ -1,6 +1,6 @@
 import json
 import os
-from c_deploy_endpoints import deploy_steps_entrypoint, start_carve_deployment, get_deploy_key
+from c_deploy_endpoints import deploy_steps_entrypoint, start_carve_deployment, codepipline_job
 from c_deploy_stack import deploy_stack_entrypoint
 from c_cleanup import cleanup_steps_entrypoint
 from c_disco import disco_entrypoint
@@ -82,19 +82,7 @@ def lambda_handler(event, context):
 
     elif 'CodePipeline.job' in event:
         print('TRIGGERED by CodePipeline')
-        param = event['CodePipeline.job']['data']['actionConfiguration']['configuration']['UserParameters']
-
-        if param == 'UpdateEndpoints':
-            if os.environ['PropogateUpdates'] == 'True':
-                deploy_key = get_deploy_key(last=True)
-                if deploy_key is not None:
-                    start_carve_deployment(event, context, key=deploy_key)
-            else:
-                print('Updating endpoints is disabled')
- 
-        elif param == 'BucketNotification':
-            aws_put_bucket_notification('deploy_input/', context.invoked_function_arn)
-            aws_codepipeline_success(event['CodePipeline.job']['id'])
+        codepipline_job(event, context)
 
     else:
         print(f'unrecognized event: {event}')

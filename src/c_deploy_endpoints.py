@@ -60,9 +60,6 @@ def start_carve_deployment(event, context, key=False):
         name = f"NO-ENDPOINTS-{filename}-{int(time.time())}"
         aws_start_stepfunction(os.environ['CleanupStateMachine'], [], name)
 
-    if 'CodePipeline.job' in event:
-        aws_codepipeline_success(event['CodePipeline.job']['id'])
-
 
 def get_deploy_key(last=False):
     # get either the current or last deployment graph key from s3
@@ -333,6 +330,27 @@ def update_bucket_policies(G):
 
     # return json.dumps(policy)
     return
+
+
+def codepipline_job(event, context):
+    param = event['CodePipeline.job']['data']['actionConfiguration']['configuration']['UserParameters']
+
+    if param == 'UpdateEndpoints':
+        if os.environ['PropogateUpdates'] == 'True':
+            deploy_key = get_deploy_key(last=True)
+            if deploy_key is not None:
+                start_carve_deployment(event, context, key=deploy_key)
+            else:
+                print('No previous deploy key to run updates with')
+        else:
+            print('Updating endpoints is disabled')
+
+    elif param == 'BucketNotification':
+        aws_put_bucket_notification('deploy_input/', context.invoked_function_arn)
+
+    # let the pipeline continue
+    aws_codepipeline_success(event['CodePipeline.job']['id'])
+
 
 
 def sf_GetDeploymentList():
