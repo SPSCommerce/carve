@@ -95,8 +95,11 @@ def aws_all_regions():
 
 def aws_codepipeline_success(job_id):
     client = boto3.client('codepipeline', region_name=current_region)
-    response = client.put_job_success_result(jobId=job_id)
-    return response
+    try:
+        response = client.put_job_success_result(jobId=job_id)
+        return response
+    except ClientError as e:
+        print(f'error returning success to codepipeline: {e}')
 
 
 def aws_start_stepfunction(sf_arn, sf_input, name):
