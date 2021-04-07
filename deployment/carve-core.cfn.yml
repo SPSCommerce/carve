@@ -40,7 +40,6 @@ Resources:
       Environment:
         Variables:
           CarveS3Bucket: !Sub "${ResourcePrefix}carve-core-${OrganizationsId}"
-          !Sub "arn:aws:s3:::${ResourcePrefix}carve-${OrganizationsId}-${AWS::Region}"
           CarveSNSTopicArn: !Ref SNSTopic
           CarveVersion: !Ref CarveVersion
           CodeBucket: !Ref CodeBucket

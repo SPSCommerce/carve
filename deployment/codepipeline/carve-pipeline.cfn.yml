@@ -174,7 +174,7 @@ Resources:
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt 'CarvePipelineRole.Arn'
                 StackName: !Sub "${ResourcePrefix}carve-managed-${OrganizationsId}-s3-{AWS::Region}"
-                TemplatePath: GithubRepo::src/managed-deployment/carve-deploy-bucket.cfn.yml
+                TemplatePath: GithubRepo::src/managed_deployment/carve-deploy-bucket.cfn.yml
                 ParameterOverrides: !Sub '{"ResourcePrefix":"${ResourcePrefix}","OrganizationsId":"${OrganizationsId}","CarveCoreRegion":"${AWS::Region}"}'
               OutputArtifacts: []
               InputArtifacts:
