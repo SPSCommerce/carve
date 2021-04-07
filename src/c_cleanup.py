@@ -69,7 +69,11 @@ def sf_CleanupDeployments(context):
     # create a list for carve stacks to not delete
     safe_stacks = []
 
-    for r in deploy_regions(G):
+    # do not delete the s3 stack in the current region
+    deploy_region_list = set(deploy_regions(G))
+    deploy_region_list.add(current_region)
+
+    for r in deploy_region_list:
         s3_stack = f"{os.environ['ResourcePrefix']}carve-managed-{os.environ['OrganizationsId']}-s3-{r}"
         safe_stacks.append({
             'StackName': s3_stack,

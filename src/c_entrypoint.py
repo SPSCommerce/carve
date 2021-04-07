@@ -73,6 +73,7 @@ def lambda_handler(event, context):
         return disco_entrypoint(event, context)
 
     # elif 'ResourceProperties' in event:
+    #     # this is from CFN custom resource
     #     return custom_resource_entrypoint(event, context)
 
     elif 'Payload' in event:
