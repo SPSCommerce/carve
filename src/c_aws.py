@@ -558,8 +558,10 @@ def aws_purge_s3_bucket(bucket=os.environ['CarveS3Bucket']):
     client = boto3.resource('s3', config=boto_config)
     print(f"purging bucket: {bucket}") 
     bucket = client.Bucket(bucket)
-    bucket.objects.all().delete()
-
+    try:
+        bucket.objects.all().delete()
+    except ClientError as e:
+        print(f'error purging bucket {bucket}: {e}')
 
 def aws_purge_s3_path(path):
     client = boto3.resource('s3', config=boto_config)
@@ -597,7 +599,7 @@ def aws_get_bucket_policy(bucket):
         print(f'error getting bucket policy for {bucket}: {e}')
 
 
-def aws_put_bucket_notification(path, notification_id, function_arn):
+def aws_put_bucket_notification(path, function_arn, notification_id="CarveDeploy"):
     client = boto3.client('s3', config=boto_config)
     try:
         response = client.put_bucket_notification_configuration(

@@ -39,7 +39,8 @@ Resources:
         S3Key: !Sub "lambda_packages/${GITSHA}/package.zip"
       Environment:
         Variables:
-          CarveS3Bucket: !Sub "${ResourcePrefix}carve-${OrganizationsId}-${AWS::Region}"
+          CarveS3Bucket: !Sub "${ResourcePrefix}carve-core-${OrganizationsId}"
+          !Sub "arn:aws:s3:::${ResourcePrefix}carve-${OrganizationsId}-${AWS::Region}"
           CarveSNSTopicArn: !Ref SNSTopic
           CarveVersion: !Ref CarveVersion
           CodeBucket: !Ref CodeBucket
@@ -176,72 +177,6 @@ Resources:
                   - states:List*
                 Resource:
                   - !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ResourcePrefix}carve-*-statemachine"
-
-  CarveS3Bucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: !Sub "${ResourcePrefix}carve-${OrganizationsId}-${AWS::Region}"
-      AccessControl: Private
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: 'AES256'
-
-
-  S3InvokeCarvePermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !GetAtt CarveFunction.Arn
-      Principal: s3.amazonaws.com
-      SourceArn: !Sub "arn:aws:s3:::${ResourcePrefix}carve-${OrganizationsId}-${AWS::Region}"
-
-
-  # SetupCarveBucket:
-  #   Type: Custom::SetupCarveBucket
-  #   Properties:
-  #     ServiceToken:  !GetAtt CarveFunction.Arn 
-  #     Bucket: !Ref CarveS3Bucket
-  #     DeployEventPath: deploy_input/
-  #     NotificationId: CarveDeploy
-
-
-  # DeleteStackCleanup:
-  #   # delete any associated carve endpoint stacks if this stack is deleted
-  #   Type: Custom::DeleteStackCleanup
-  #   Properties:
-  #     ServiceToken:  !GetAtt CarveFunction.Arn 
-  #     OrganizationsId: !Ref OrganizationsId
-  #     ResourcePrefix: !Ref ResourcePrefix
-  #     CarveS3Bucket: !Ref CarveS3Bucket
-
-
-  CarveS3BucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    Properties:
-      Bucket: !Ref CarveS3Bucket
-      PolicyDocument:
-        Statement:
-          - Sid: CarveCoreLambda
-            Effect: Allow 
-            Action:
-              - "s3:*"
-            Resource: !GetAtt CarveS3Bucket.Arn
-            Principal:
-              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ResourcePrefix}carve-lambda-${OrganizationsId}"
-          - Sid: DeploymentAccess
-            Effect: Allow
-            Action:
-              - "s3:Get*"
-            Principal: "*"
-            Resource:
-              - !Sub "arn:aws:s3:::${CarveS3Bucket}"
-              - !Sub "arn:aws:s3:::${CarveS3Bucket}/*"
-            Condition:
-              StringEquals:
-                aws:PrincipalOrgID: !Ref OrganizationsId
-              # ArnLike:
-              #   aws:SourceArn: !Sub "arn:aws:lambda:*:*:function:${ResourcePrefix}carve-o-*"
 
   SNSTopic:
     Type: AWS::SNS::Topic

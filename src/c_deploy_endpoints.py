@@ -49,10 +49,10 @@ def start_carve_deployment(event, context, key=False):
             "Parameters": parameters,
             "Account": context.invoked_function_arn.split(":")[4],
             "Region": r,
-            "Template": 'managed/carve-regional-s3.cfn.yml'
+            "Template": 'managed_deployment/carve-deploy-bucket.cfn.yml'
         })
 
-    if len(deploy_buckets) > 0:
+    if len(list(G.nodes)) > 0:
         name = f"deploy-{filename}-{int(time.time())}"
         aws_start_stepfunction(os.environ['DeployEndpointsStateMachine'], deploy_buckets, name)
     else:
@@ -62,7 +62,6 @@ def start_carve_deployment(event, context, key=False):
 
     if 'CodePipeline.job' in event:
         aws_codepipeline_success(event['CodePipeline.job']['id'])
-
 
 
 def get_deploy_key(last=False):
@@ -79,9 +78,9 @@ def deploy_regions(G):
     regions = set()
     for vpc in list(G.nodes):
         r = G.nodes().data()[vpc]['Region']
-        if r != current_region:
-            if r not in regions:
-                regions.add(r)
+        # if r != current_region:
+        if r not in regions:
+            regions.add(r)
     return regions    
 
 
@@ -154,7 +153,7 @@ def deploy_layers(G):
             "Parameters": parameters,
             "Account": context.invoked_function_arn.split(":")[4],
             "Region": r,
-            "Template": 'managed/carve-layers.cfn.yml'
+            "Template": 'managed_deployment/carve-layers.cfn.yml'
         })
 
     if len(deploy_layers) > 0:
@@ -192,7 +191,7 @@ def deployment_list(G):
         target['StackName'] = f"{os.environ['ResourcePrefix']}carve-lambda-{vpc}"
         target['Account'] = vpc_data['Account']
         target['Region'] = vpc_data['Region']
-        target['Template'] = "managed/carve-vpc-lambda.sam.yml"
+        target['Template'] = "managed_deployment/carve-vpc-lambda.sam.yml"
         target['Parameters'] = [
           {
             "ParameterKey": "VpcId",
@@ -239,7 +238,7 @@ def deployment_list(G):
         target['StackName'] = f"{os.environ['ResourcePrefix']}carve-managed-ec2-{vpc}"
         target['Account'] = vpc_data['Account']
         target['Region'] = vpc_data['Region']
-        target['Template'] = "managed/carve-vpc-ec2.cfn.yml"
+        target['Template'] = "managed_deployment/carve-vpc-ec2.cfn.yml"
         target['Parameters'] = [
           {
             "ParameterKey": "VpcId",

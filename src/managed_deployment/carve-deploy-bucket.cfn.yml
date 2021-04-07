@@ -2,7 +2,6 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: Regional S3 Deploy Bucket for Carve
 
 Parameters:
-  
   OrganizationsId:
     Type: String
     Description: AWS Organizations Id
@@ -11,12 +10,23 @@ Parameters:
     Type: String
     Description: "Prefix all carve resources with this"
     Default: ""
+  CarveCoreRegion:
+    Type: String
+    Default: us-east-1
+
+
+Conditions:
+  CoreRegion: !Equals 
+    - !Ref "AWS::Region"
+    - !Ref "CarveCoreRegion"
+
 
 Resources:
   CarveS3Bucket:
     Type: AWS::S3::Bucket
+    Condition: StackUpdate
     Properties:
-      BucketName: !Sub "${ResourcePrefix}carve-${OrganizationsId}-${AWS::Region}"
+      BucketName: !Sub "${ResourcePrefix}carve-deploy-${OrganizationsId}-${AWS::Region}"
       AccessControl: Private
       BucketEncryption:
         ServerSideEncryptionConfiguration:
@@ -48,3 +58,30 @@ Resources:
             Condition:
               StringEquals:
                 aws:PrincipalOrgID: !Ref OrganizationsId
+
+  S3InvokeCarvePermission:
+    Type: AWS::Lambda::Permission
+    Condition: CoreRegion
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ResourcePrefix}carve-${OrganizationsId}"
+      Principal: s3.amazonaws.com
+      SourceArn: !Sub "arn:aws:s3:::${ResourcePrefix}carve-${OrganizationsId}-${AWS::Region}"
+
+  # SetupCarveBucket:
+  #   Type: Custom::SetupCarveBucket
+  #   Properties:
+  #     ServiceToken:  !GetAtt CarveFunction.Arn 
+  #     Bucket: !Ref CarveS3Bucket
+  #     DeployEventPath: deploy_input/
+  #     NotificationId: CarveDeploy
+
+
+  # DeleteStackCleanup:
+  #   # delete any associated carve endpoint stacks if this stack is deleted
+  #   Type: Custom::DeleteStackCleanup
+  #   Properties:
+  #     ServiceToken:  !GetAtt CarveFunction.Arn 
+  #     OrganizationsId: !Ref OrganizationsId
+  #     ResourcePrefix: !Ref ResourcePrefix
+  #     CarveS3Bucket: !Ref CarveS3Bucket

@@ -66,7 +66,7 @@ def sf_CleanupDeployments(context):
     accounts = discover_org_accounts()
     regions = aws_all_regions()
 
-    # do not delete any carve stacks that should be deployed
+    # create a list for carve stacks to not delete
     safe_stacks = []
 
     for r in deploy_regions(G):

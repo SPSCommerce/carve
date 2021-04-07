@@ -103,7 +103,7 @@ Resources:
               Configuration:
                 ProjectName: !Ref 'CarveCodeBuild'
                 EnvironmentVariables: '[{"name":"GITSHA","value":"#{github_vars.CommitId}","type":"PLAINTEXT"}]'
-            - Name: carve-iam-org-stackset-deploy
+            - Name: carve-iam-org-stackset
               Region: !Ref 'AWS::Region'
               ActionTypeId:
                 Category: Deploy
@@ -126,7 +126,7 @@ Resources:
               OutputArtifacts: []
               InputArtifacts:
                 - Name: GithubRepo
-            - Name: carve-iam-core-deployment
+            - Name: carve-iam-core
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
@@ -145,7 +145,7 @@ Resources:
                 - Name: GithubRepo
         - Name: CarveDeploy
           Actions:
-            - Name: carve-core-deployment
+            - Name: carve-core
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
@@ -159,6 +159,23 @@ Resources:
                 StackName: !Sub '${ResourcePrefix}carve-core-${OrganizationsId}'
                 TemplatePath: GithubRepo::deployment/carve-core.cfn.yml
                 ParameterOverrides: !Sub '{"GITSHA":"#{github_vars.CommitId}","ResourcePrefix":"${ResourcePrefix}","OrganizationsId":"${OrganizationsId}","CodeBucket":"${DeployBucket}"}'
+              OutputArtifacts: []
+              InputArtifacts:
+                - Name: GithubRepo
+            - Name: carve-deploy-bucket
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              Configuration:
+                ChangeSetName: pipeline-changeset
+                ActionMode: CREATE_UPDATE
+                Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
+                RoleArn: !GetAtt 'CarvePipelineRole.Arn'
+                StackName: !Sub "${ResourcePrefix}carve-managed-${OrganizationsId}-s3-{AWS::Region}"
+                TemplatePath: GithubRepo::src/managed-deployment/carve-deploy-bucket.cfn.yml
+                ParameterOverrides: !Sub '{"ResourcePrefix":"${ResourcePrefix}","OrganizationsId":"${OrganizationsId}","CarveCoreRegion":"${AWS::Region}"}'
               OutputArtifacts: []
               InputArtifacts:
                 - Name: GithubRepo
@@ -179,9 +196,9 @@ Resources:
             #   OutputArtifacts: []
             #   InputArtifacts:
             #     - Name: GithubRepo
-        - Name: RunUpdates
+        - Name: PostDeploy
           Actions:
-            - Name: update-carve-endpoints
+            - Name: update-s3-notification
               ActionTypeId:
                 Category: Invoke
                 Owner: AWS
@@ -190,10 +207,24 @@ Resources:
               RunOrder: 1
               Configuration:
                 FunctionName: !Sub "${ResourcePrefix}carve-${OrganizationsId}"
+                UserParameters: BucketNotification
+              OutputArtifacts: []
+              InputArtifacts: []
+              Region: !Ref 'AWS::Region'
+            - Name: update-carve-endpoints
+              ActionTypeId:
+                Category: Invoke
+                Owner: AWS
+                Provider: Lambda
+                Version: '1'
+              RunOrder: 2
+              Configuration:
+                FunctionName: !Sub "${ResourcePrefix}carve-${OrganizationsId}"
                 UserParameters: UpdateEndpoints
               OutputArtifacts: []
               InputArtifacts: []
               Region: !Ref 'AWS::Region'
+
 
   CarveCodeBuild:
     Type: AWS::CodeBuild::Project

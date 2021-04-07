@@ -81,13 +81,18 @@ def lambda_handler(event, context):
             return cleanup_steps_entrypoint(event, context)
 
     elif 'CodePipeline.job' in event:
-        # run a redeploy of the last graph with updated templates and code
         print('TRIGGERED by CodePipeline')
-        if event['CodePipeline.job']['data']['actionConfiguration']['configuration']['UserParameters'] == 'UpdateEndpoints':
+        param = event['CodePipeline.job']['data']['actionConfiguration']['configuration']['UserParameters']
+
+        if param == 'UpdateEndpoints':
             if os.environ['PropogateUpdates'] == 'True':
                 start_carve_deployment(event, context, key=get_deploy_key(last=True))
             else:
                 print('Updating endpoints is disabled')
+ 
+        elif param == 'BucketNotification':
+            aws_put_bucket_notification('deploy_input/', context.invoked_function_arn)
+            aws_codepipeline_success(event['CodePipeline.job']['id'])
 
     else:
         print(f'unrecognized event: {event}')
