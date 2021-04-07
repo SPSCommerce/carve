@@ -44,7 +44,7 @@ Resources:
       Description: Continuous AWS Route Verification Engine
       PackageType: Zip
       CodeUri: 
-        Bucket: !Sub "${ResourcePrefix}carve-${OrganizationsId}-${AWS::Region}"
+        Bucket: !Sub "${ResourcePrefix}carve-managed-bucket-${OrganizationsId}-${AWS::Region}"
         Key: !Sub "lambda_packages/${GITSHA}/package.zip"
       Handler: c_entrypoint.lambda_handler
       Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ResourcePrefix}carve-lambda-${OrganizationsId}"

@@ -26,7 +26,6 @@ Resources:
           Principal:
             Service:
               - "lambda.amazonaws.com"
-              - "ec2.amazonaws.com"
           Action:
             - "sts:AssumeRole"
         - Effect: Allow
@@ -112,8 +111,8 @@ Resources:
                 Action:
                   - s3:*
                 Resource:
-                  - !Sub "arn:aws:s3:::${ResourcePrefix}carve-${OrganizationsId}-${AWS::Region}"
-                  - !Sub "arn:aws:s3:::${ResourcePrefix}carve-${OrganizationsId}-${AWS::Region}/*"
+                  - !Sub "arn:aws:s3:::${ResourcePrefix}carve-managed-bucket-${OrganizationsId}-${AWS::Region}"
+                  - !Sub "arn:aws:s3:::${ResourcePrefix}carve-managed-bucket-${OrganizationsId}-${AWS::Region}/*"
 
 
 
