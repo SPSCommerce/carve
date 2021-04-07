@@ -65,7 +65,8 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ResourcePrefix}carve-${OrganizationsId}"
       Principal: s3.amazonaws.com
-      SourceArn: !Sub "arn:aws:s3:::${ResourcePrefix}carve-${OrganizationsId}-${AWS::Region}"
+      SourceArn: !GetAtt CarveS3Bucket.Arn
+      # SourceArn: !Sub "arn:aws:s3:::${ResourcePrefix}carve-${OrganizationsId}-${AWS::Region}"
 
   # SetupCarveBucket:
   #   Type: Custom::SetupCarveBucket
