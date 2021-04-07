@@ -33,7 +33,7 @@ def start_carve_deployment(event, context, key=False):
     deploy_buckets = []
 
     for r in regions:
-        stackname = f"{os.environ['ResourcePrefix']}carve-managed-{os.environ['OrganizationsId']}-s3-{r}"
+        stackname = f"{os.environ['ResourcePrefix']}carve-managed-bucket-{r}"
         parameters = [
             {
                 "ParameterKey": "OrganizationsId",
@@ -105,13 +105,13 @@ def sf_DeployPrep(event, context):
             key=codekey,
             target_key=codekey,
             source_bucket=os.environ['CodeBucket'],
-            target_bucket=f"{os.environ['ResourcePrefix']}carve-{os.environ['OrganizationsId']}-{r}"
+            target_bucket=f"{os.environ['ResourcePrefix']}carve-managed-bucket-{os.environ['OrganizationsId']}-{r}"
             )
         aws_copy_s3_object(
             key=reqskey,
             target_key=reqskey,
             source_bucket=os.environ['CodeBucket'],
-            target_bucket=f"{os.environ['ResourcePrefix']}carve-{os.environ['OrganizationsId']}-{r}"
+            target_bucket=f"{os.environ['ResourcePrefix']}carve-managed-bucket-{os.environ['OrganizationsId']}-{r}"
             )
 
     deployment_targets = deploy_layers(G)
@@ -126,7 +126,7 @@ def deploy_layers(G):
     deploy_layers = []
 
     for r in regions:
-        stackname = f"{os.environ['ResourcePrefix']}carve-layers-{r}"
+        stackname = f"{os.environ['ResourcePrefix']}carve-managed-layers-{r}"
         parameters = [
             {
                 "ParameterKey": "OrganizationsId",
@@ -185,7 +185,7 @@ def deployment_list(G):
 
         # add lambda stack first
         target = {}
-        target['StackName'] = f"{os.environ['ResourcePrefix']}carve-lambda-{vpc}"
+        target['StackName'] = f"{os.environ['ResourcePrefix']}carve-managed-lambda-{vpc}"
         target['Account'] = vpc_data['Account']
         target['Region'] = vpc_data['Region']
         target['Template'] = "managed_deployment/carve-vpc-lambda.sam.yml"
@@ -303,7 +303,7 @@ def update_bucket_policies(G):
 
     # update the policy of each regional bucket
     for region, accounts in regions.items():
-        bucket = f"{os.environ['ResourcePrefix']}carve-{os.environ['OrganizationsId']}-{region}"
+        bucket = f"{os.environ['ResourcePrefix']}carve-managed-bucket-{os.environ['OrganizationsId']}-{region}"
         policy = aws_get_bucket_policy(bucket)
         # get all account arns that need to deploy thru this region
         arns = []
@@ -322,7 +322,7 @@ def update_bucket_policies(G):
                 "Sid": f"DeploymentAccess",
                 "Effect": "Allow",
                 "Action": ["s3:Get"],
-                "Resource":  f"arn:aws:s3:::{os.environ['ResourcePrefix']}carve-{os.environ['OrganizationsId']}-{region}",
+                "Resource":  f"arn:aws:s3:::{os.environ['ResourcePrefix']}carve-managed-bucket-{os.environ['OrganizationsId']}-{region}",
                 "Principal": {"AWS": arns}
             }
         )

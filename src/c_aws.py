@@ -391,15 +391,17 @@ def aws_find_stacks(startswith, region, credentials):
 
 
 def aws_newest_s3(path, bucket=os.environ['CarveS3Bucket']):
+    # return the newest file in an S3 path
     client = boto3.client('s3', config=boto_config)
     objs = client.list_objects_v2(Bucket=bucket, Prefix=path)
     if objs['KeyCount'] > 0:
-        contents = ['Contents']
+        contents = objs['Contents']
         get_last_modified = lambda obj: int(obj['LastModified'].strftime('%s'))
-        newest = [obj['Key'] for obj in sorted(objs, key=get_last_modified)][0]
+        newest = [obj['Key'] for obj in sorted(contents, key=get_last_modified)][0]
         return newest
     else:
         return None
+
 
 def aws_read_s3_direct(key, region):
     # get graph from S3

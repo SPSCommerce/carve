@@ -39,11 +39,10 @@ Resources:
         S3Key: !Sub "lambda_packages/${GITSHA}/package.zip"
       Environment:
         Variables:
-          CarveS3Bucket: !Sub "${ResourcePrefix}carve-deploy-${OrganizationsId}-${AWS::Region}"
-          CarveS3Bucket: a-carve-deploy-o-dvdaw54vmt-us-east-1
+          CodeBucket: !Ref CodeBucket
+          CarveS3Bucket: !Sub "${ResourcePrefix}carve-managed-bucket-${OrganizationsId}-${AWS::Region}"
           CarveSNSTopicArn: !Ref SNSTopic
           CarveVersion: !Ref CarveVersion
-          CodeBucket: !Ref CodeBucket
           CleanupStateMachine: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ResourcePrefix}carve-cleanup-statemachine"
           DeployEndpointsStateMachine: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ResourcePrefix}carve-deploy-endpoints-statemachine"
           DeployStacksStateMachine: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ResourcePrefix}carve-deploy-stacks-statemachine"
