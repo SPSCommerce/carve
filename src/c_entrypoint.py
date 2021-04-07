@@ -86,7 +86,9 @@ def lambda_handler(event, context):
 
         if param == 'UpdateEndpoints':
             if os.environ['PropogateUpdates'] == 'True':
-                start_carve_deployment(event, context, key=get_deploy_key(last=True))
+                deploy_key = get_deploy_key(last=True)
+                if deploy_key is not None:
+                    start_carve_deployment(event, context, key=deploy_key)
             else:
                 print('Updating endpoints is disabled')
  
