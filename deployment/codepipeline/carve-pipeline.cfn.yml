@@ -119,7 +119,7 @@ Resources:
                 FailureTolerancePercentage: 100
                 MaxConcurrentPercentage: 100
                 PermissionModel: SERVICE_MANAGED
-                StackSetName: !Sub '${ResourcePrefix}carve-lambda-${OrganizationsId}'
+                StackSetName: !Sub '${ResourcePrefix}carve-core-iam-stackset'
                 TemplatePath: GithubRepo::deployment/carve-iam.cfn.yml
                 Parameters: !Sub 'ParameterKey=OrganizationsId,ParameterValue=${OrganizationsId}
                   ParameterKey=ResourcePrefix,ParameterValue="${ResourcePrefix}"'
@@ -137,7 +137,7 @@ Resources:
                 ActionMode: CREATE_UPDATE
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt 'CarvePipelineRole.Arn'
-                StackName: !Sub '${ResourcePrefix}carve-iam-${OrganizationsId}'
+                StackName: !Sub '${ResourcePrefix}carve-core-iam'
                 TemplatePath: GithubRepo::deployment/carve-iam.cfn.yml
                 ParameterOverrides: !Sub '{"OrganizationsId": "${OrganizationsId}","ResourcePrefix":"${ResourcePrefix}"}'
               OutputArtifacts: []
@@ -156,7 +156,7 @@ Resources:
                 ActionMode: CREATE_UPDATE
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt 'CarvePipelineRole.Arn'
-                StackName: !Sub '${ResourcePrefix}carve-core-${OrganizationsId}'
+                StackName: !Sub '${ResourcePrefix}carve-core-lambda'
                 TemplatePath: GithubRepo::deployment/carve-core.cfn.yml
                 ParameterOverrides: !Sub '{"GITSHA":"#{github_vars.CommitId}","ResourcePrefix":"${ResourcePrefix}","OrganizationsId":"${OrganizationsId}","CodeBucket":"${DeployBucket}"}'
               OutputArtifacts: []
@@ -173,7 +173,7 @@ Resources:
                 ActionMode: CREATE_UPDATE
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt 'CarvePipelineRole.Arn'
-                StackName: !Sub "${ResourcePrefix}carve-managed-bucket-${OrganizationsId}-${AWS::Region}"
+                StackName: !Sub "${ResourcePrefix}carve-managed-bucket-${AWS::Region}"
                 TemplatePath: GithubRepo::src/managed_deployment/carve-deploy-bucket.cfn.yml
                 ParameterOverrides: !Sub '{"ResourcePrefix":"${ResourcePrefix}","OrganizationsId":"${OrganizationsId}","CarveCoreRegion":"${AWS::Region}"}'
               OutputArtifacts: []

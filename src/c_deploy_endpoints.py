@@ -114,12 +114,12 @@ def sf_DeployPrep(event, context):
             target_bucket=f"{os.environ['ResourcePrefix']}carve-managed-bucket-{os.environ['OrganizationsId']}-{r}"
             )
 
-    deployment_targets = deploy_layers(G)
+    deployment_targets = deploy_layers(G, context)
 
     return deployment_targets
 
 
-def deploy_layers(G):
+def deploy_layers(G, context):
     regions = deploy_regions(G)
 
     # create lambda layers in all required regions for deployment
