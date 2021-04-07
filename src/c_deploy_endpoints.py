@@ -346,6 +346,7 @@ def codepipline_job(event, context):
             print('Updating endpoints is disabled')
 
     elif param == 'BucketNotification':
+        aws_create_s3_path('deploy_input/')
         aws_put_bucket_notification('deploy_input/', context.invoked_function_arn)
 
     # let the pipeline continue

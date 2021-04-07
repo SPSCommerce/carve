@@ -97,7 +97,7 @@
       "Parameters": {
         "FunctionName": "${CarveFunction}",
         "Payload": {
-          "DeployAction": "EndpointDeployPrep",
+          "DeployAction": "DeploymentComplete",
           "Input.$": "$"
         }
       },
