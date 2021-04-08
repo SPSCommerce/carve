@@ -121,6 +121,8 @@ def sf_DescribeStack(event):
     # create payload for next step in state machine
     payload = deepcopy(payload)
     payload['StackStatus'] = response['StackStatus']
+    if 'StackStatusReason' in response:
+        payload['StackStatusReason'] = response['StackStatusReason']
 
     return payload
 

@@ -29,9 +29,6 @@ Parameters:
   CarveSNSTopicArn:
     Type: String
     Description: Carve SNS Topic Arn
-  CarveCoreFunctionArn:
-    Type: String
-    Description: Carve Core Function Arn
 
 Resources:
   AutoScalingGroup:
@@ -124,49 +121,24 @@ Resources:
           Action:
             - "sts:AssumeRole"
 
-  ## not cross region capable, need to deal with this idea later
-  # EventRule:
-  #   Type: AWS::Events::Rule
-  #   Properties:
-  #     Description: "ASG notifications to SNS"
-  #     EventPattern: 
-  #       source:
-  #         - "aws.autoscaling"
-  #       detail-type:
-  #         - "EC2 Instance Terminate Successful"
-  #         - "EC2 Instance Launch Successful"
-  #       detail:
-  #         AutoScalingGroupName:
-  #           - !Ref 'AutoScalingGroup'
-  #     State: "ENABLED"
-  #     Targets:
-  #       - Id: "SendSNStoCarve"
-  #         Arn: !Ref CarveSNSTopicArn
-  #         RoleArn: CarveCoreFunctionArn
-  #
-  # EventRole:
-  #   Type: AWS::IAM::Role
-  #   Properties:
-  #     AssumeRolePolicyDocument:
-  #       Version: '2012-10-17'
-  #       Statement:
-  #       - Effect: Allow
-  #         Principal:
-  #           Service:
-  #             - "events.amazonaws.com"
-  #         Action: 
-  #           - 'sts:AssumeRole'
-  #     Policies:
-  #       - PolicyName: EventsPolicy
-  #         PolicyDocument:
-  #           Version: '2012-10-17'
-  #           Statement:
-  #             - Effect: Allow
-  #               Action: 
-  #                 - 'sns:Publish'
-  #               Resource: 
-  #                 - !Ref CarveSNSTopicArn
-
+  EventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "ASG notifications to SNS"
+      EventPattern: 
+        source:
+          - "aws.autoscaling"
+        detail-type:
+          - "EC2 Instance Terminate Successful"
+          - "EC2 Instance Launch Successful"
+        detail:
+          AutoScalingGroupName:
+            - !Ref 'AutoScalingGroup'
+      State: "ENABLED"
+      Targets:
+        - Id: "SendSNStoCarve"
+          Arn: !Ref CarveSNSTopicArn
+  
   # CfnInitWaitConditionHandle:
   #   Type: AWS::CloudFormation::WaitConditionHandle
 

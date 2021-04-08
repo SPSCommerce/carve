@@ -159,7 +159,7 @@ def deploy_layers(G, context):
     #     aws_start_stepfunction(os.environ['DeployEndpointsStateMachine'], deploy_layers, name)
 
 
-def deployment_list(G):
+def deployment_list(G, context):
     ''' return a list of stacks to deploy 
         1 lambda and 1 EC2 instance per VPC
     '''
@@ -355,9 +355,9 @@ def codepipline_job(event, context):
 
 
 
-def sf_GetDeploymentList():
+def sf_GetDeploymentList(context):
     G = load_graph(get_deploy_key(), local=False)
-    return deployment_list(G)
+    return deployment_list(G, context)
 
 
 def sf_DeploymentComplete():
