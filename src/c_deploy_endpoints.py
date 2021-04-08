@@ -150,12 +150,13 @@ def deploy_layers(G, context):
             "Parameters": parameters,
             "Account": context.invoked_function_arn.split(":")[4],
             "Region": r,
-            "Template": 'managed_deployment/carve-layers.cfn.yml'
+            "Template": 'managed_deployment/carve-layer.cfn.yml'
         })
 
-    if len(deploy_layers) > 0:
-        name = f"deploy-layers-{int(time.time())}"
-        aws_start_stepfunction(os.environ['DeployEndpointsStateMachine'], deploy_layers, name)
+    return deploy_layers
+    # if len(deploy_layers) > 0:
+    #     name = f"deploy-layers-{int(time.time())}"
+    #     aws_start_stepfunction(os.environ['DeployEndpointsStateMachine'], deploy_layers, name)
 
 
 def deployment_list(G):
@@ -195,7 +196,7 @@ def deployment_list(G):
             "ParameterValue": vpc
           },
           {
-            "ParameterKey": "VpcEndpointSubnetIds",
+            "ParameterKey": "VpcSubnetIds",
             "ParameterValue": subnet_id
           },
           {
@@ -224,7 +225,7 @@ def deployment_list(G):
           },
           {
             "ParameterKey": "ReservedConcurrentExecutions",
-            "ParameterValue": concurrent
+            "ParameterValue": str(concurrent)
           }
         ]
 
@@ -242,7 +243,7 @@ def deployment_list(G):
             "ParameterValue": vpc
           },
           {
-            "ParameterKey": "VpcEndpointSubnetIds",
+            "ParameterKey": "VpcSubnetIds",
             "ParameterValue": subnet_id
           },      
           {

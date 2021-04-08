@@ -346,7 +346,8 @@ def aws_create_changeset(stackname, changeset_name, region, template, parameters
         ChangeSetName=changeset_name,
         TemplateBody=template,
         Tags=tags,
-        Parameters=parameters
+        Parameters=parameters,
+        Capabilities=['CAPABILITY_NAMED_IAM']
         )
 
     # returns...

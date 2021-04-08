@@ -7,7 +7,7 @@ Parameters:
     Type: "AWS::EC2::VPC::Id"
     Description: VPC ID in which the VPC Endpoint should be created
   VpcSubnetIds:
-    Type: "String<AWS::EC2::Subnet::Id>"
+    Type: "CommaDelimitedList<AWS::EC2::Subnet::Id>"
     Description: one subnet in which to create endpoints
     Default: "subnet-0d310df8338186b7f"
   CarveSNSTopicArn:
@@ -33,7 +33,7 @@ Parameters:
     Description: "Prefix all carve resources with this"
     Default: ""
   ReservedConcurrentExecutions:
-    Type: Number
+    Type: String
     Default: '1'
 
 Resources:
@@ -60,7 +60,7 @@ Resources:
       VpcConfig :
         SecurityGroupIds:
           - !Ref CarveApiSecurityGroup
-        SubnetIds: !Ref VpcSubnetIds
+        SubnetIds: !Split [ ",", !Ref VpcSubnetIds ]
 
   CarveSelfInvoke:
     Type: AWS::Lambda::Permission
@@ -104,6 +104,3 @@ Outputs:
     Description: "Carve Lambda Function ARN"
     Value: !GetAtt CarveFunction.Arn
 
-  PrivateIpAddress:
-    Description: carve instance private ipv4 address
-    Value: !GetAtt CarveInstance.PrivateIp 

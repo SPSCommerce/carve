@@ -7,7 +7,7 @@ Parameters:
     Description: VPC ID in which the VPC Endpoint should be created
     Default: "vpc-0ffafac6841402ebb"
   VpcSubnetIds:
-    Type: "List<AWS::EC2::Subnet::Id>"
+    Type: "CommaDelimitedList<AWS::EC2::Subnet::Id>"
     Description: one or more subnets in which to create endpoints
     Default: "subnet-0d310df8338186b7f"
   ResourcePrefix:
@@ -36,7 +36,7 @@ Resources:
     Properties:
       AutoScalingGroupName: !Sub ${ResourcePrefix}carve-asg-${VpcId}
       LaunchConfigurationName: !Ref LaunchConfig
-      VPCZoneIdentifier: !Ref VpcSubnetIds
+      VPCZoneIdentifier: !Split [ ",", !Ref VpcSubnetIds ]
       HealthCheckGracePeriod: '60'
       HealthCheckType: EC2
       MinSize: !Ref MinSize
@@ -110,21 +110,22 @@ Resources:
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
-          - Sid: ''
-            Effect: Allow
-            Principal:
-              Service:
-                - events.amazonaws.com
-            Action: 'sts:AssumeRole'
+        - Effect: Allow
+          Principal:
+            Service:
+              - "events.amazonaws.com"
+          Action: 
+            - 'sts:AssumeRole'
       Policies:
         - PolicyName: EventsPolicy
-          Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Action: 
-                - 'sns:Publish'
-              Resource: 
-                - !Ref CarveSNSTopicArn
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - 'sns:Publish'
+                Resource: 
+                  - !Ref CarveSNSTopicArn
 
   # CfnInitWaitConditionHandle:
   #   Type: AWS::CloudFormation::WaitConditionHandle
