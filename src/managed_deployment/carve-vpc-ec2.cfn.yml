@@ -29,6 +29,9 @@ Parameters:
   CarveSNSTopicArn:
     Type: String
     Description: Carve SNS Topic Arn
+  CarveCoreFunctionArn:
+    Type: String
+    Description: Carve Core Function Arn
 
 Resources:
   AutoScalingGroup:
@@ -85,57 +88,6 @@ Resources:
           systemctl enable nginx
           systemctl start nginx
 
-  EventRule:
-    Type: AWS::Events::Rule
-    Properties:
-      Description: "ASG notifications to SNS"
-      EventPattern: 
-        source:
-          - "aws.autoscaling"
-        detail-type:
-          - "EC2 Instance Terminate Successful"
-          - "EC2 Instance Launch Successful"
-        detail:
-          AutoScalingGroupName:
-            - !Ref 'AutoScalingGroup'
-      State: "ENABLED"
-      Targets:
-        - Id: "Send SNS to Carve"
-          Arn: !Ref CarveSNSTopicArn
-          RoleArn: "The ARN from the eventbridge role resource"
-
-  EventRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-        - Effect: Allow
-          Principal:
-            Service:
-              - "events.amazonaws.com"
-          Action: 
-            - 'sts:AssumeRole'
-      Policies:
-        - PolicyName: EventsPolicy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action: 
-                  - 'sns:Publish'
-                Resource: 
-                  - !Ref CarveSNSTopicArn
-
-  # CfnInitWaitConditionHandle:
-  #   Type: AWS::CloudFormation::WaitConditionHandle
-
-  # CfnInitWaitCondition:
-  #   Type: AWS::CloudFormation::WaitCondition
-  #   Properties:
-  #     Handle: !Ref 'CfnInitWaitConditionHandle'
-  #     Timeout: '1200'
-
   InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -171,6 +123,59 @@ Resources:
               - "ec2.amazonaws.com"
           Action:
             - "sts:AssumeRole"
+
+  ## not cross region capable, need to deal with this idea later
+  # EventRule:
+  #   Type: AWS::Events::Rule
+  #   Properties:
+  #     Description: "ASG notifications to SNS"
+  #     EventPattern: 
+  #       source:
+  #         - "aws.autoscaling"
+  #       detail-type:
+  #         - "EC2 Instance Terminate Successful"
+  #         - "EC2 Instance Launch Successful"
+  #       detail:
+  #         AutoScalingGroupName:
+  #           - !Ref 'AutoScalingGroup'
+  #     State: "ENABLED"
+  #     Targets:
+  #       - Id: "SendSNStoCarve"
+  #         Arn: !Ref CarveSNSTopicArn
+  #         RoleArn: CarveCoreFunctionArn
+  #
+  # EventRole:
+  #   Type: AWS::IAM::Role
+  #   Properties:
+  #     AssumeRolePolicyDocument:
+  #       Version: '2012-10-17'
+  #       Statement:
+  #       - Effect: Allow
+  #         Principal:
+  #           Service:
+  #             - "events.amazonaws.com"
+  #         Action: 
+  #           - 'sts:AssumeRole'
+  #     Policies:
+  #       - PolicyName: EventsPolicy
+  #         PolicyDocument:
+  #           Version: '2012-10-17'
+  #           Statement:
+  #             - Effect: Allow
+  #               Action: 
+  #                 - 'sns:Publish'
+  #               Resource: 
+  #                 - !Ref CarveSNSTopicArn
+
+  # CfnInitWaitConditionHandle:
+  #   Type: AWS::CloudFormation::WaitConditionHandle
+
+  # CfnInitWaitCondition:
+  #   Type: AWS::CloudFormation::WaitCondition
+  #   Properties:
+  #     Handle: !Ref 'CfnInitWaitConditionHandle'
+  #     Timeout: '1200'
+
 
 Outputs:
   AutoScalingGroup:
