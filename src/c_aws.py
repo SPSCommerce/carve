@@ -523,16 +523,16 @@ def aws_ssm_get_parameter(parameter):
 
 def aws_ssm_get_parameters(path):
     client = boto3.client('ssm', config=boto_config)
+    params = {}
     try:
         paginator = client.get_paginator('get_parameters_by_path')
         pages = paginator.paginate(Path=path)
-        params = {}
         for page in paginator.paginate():
             for parm in page['Parameters']:
                 name = param['Name'].split(path)[1]
-                params[] = param['Value']
+                params[param] = param['Value']
     except ClientError as e:
-        params = []
+        pass
 
     return params
 

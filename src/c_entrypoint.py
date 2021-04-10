@@ -1,6 +1,6 @@
 import json
 import os
-from c_deploy_endpoints import deploy_steps_entrypoint, start_carve_deployment, codepipline_job
+from c_deploy_endpoints import deploy_steps_entrypoint, start_carve_deployment, codepipline_job, get_deploy_key
 from c_deploy_stack import deploy_stack_entrypoint
 from c_cleanup import cleanup_steps_entrypoint
 from c_disco import disco_entrypoint
@@ -35,7 +35,7 @@ def lambda_handler(event, context):
             execute_carve(event, context)
 
         elif event['source'] == 'aws.autoscaling':
-            print(f'TRIGGERED by ASG: {event['detail']['AutoScalingGroupName']}')
+            print(f"TRIGGERED by ASG: {event['detail']['AutoScalingGroupName']}")
             asg_event(event, context)
 
     elif 'Records' in event:

@@ -5,7 +5,6 @@ import json
 import sys
 import os
 from c_aws import *
-from c_deploy_endpoints import get_deploy_key
 import urllib3
 import concurrent.futures
 
@@ -24,11 +23,11 @@ def execute_carve(event, context):
 
     # create a list of all monitored VPCs for testing
     vpcs = []
-    G = load_graph(get_deploy_key(last=True), local=False)
+    G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
     for vpc in list(G.nodes):
         vpcs.append({
-            'vpc': vpc
-            'account': G.nodes().data()[vpc]['Account']
+            'vpc': vpc,
+            'account': G.nodes().data()[vpc]['Account'],
             'region': G.nodes().data()[vpc]['Region']})
 
     results = []
@@ -84,7 +83,7 @@ def asg_event(event, context):
             if parameter is None:
                 parameter = f"/{os.environ['ResourcePrefix']}-carve/vpc-endpoints/{ec2['VpcId']}"
                 try:
-                    response = json.loads aws_ssm_get_parameter(parameter)
+                    response = json.loads(aws_ssm_get_parameter(parameter))
                     beacons = response
                 except:
                     beacons = []

@@ -21,7 +21,7 @@ Resources:
       FunctionName: !Sub "${ResourcePrefix}carve-${VpcId}"
       Description: Continuous AWS Route Verification Engine
       Handler: index.lambda_handler
-      Role: !Ref LambdaRole
+      Role: !GetAtt LambdaRole.Arn
       Runtime: python3.8
       Timeout: 20
       MemorySize: 128
@@ -66,8 +66,9 @@ Resources:
   LambdaRole:
     Type: AWS::IAM::Role
     Properties:
+      Path: /
       ManagedPolicyArns:
-        - !Sub arn:${AWS::Partition}:iam::aws:policy/AWSLambdaVPCAccessExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
