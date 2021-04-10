@@ -1,6 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Transform: AWS::Serverless-2016-10-31
-Description: Carve VPC Lambda & EC2
+Description: Carve VPC Lambda
 
 Parameters:
   VpcId:
@@ -10,97 +9,79 @@ Parameters:
     Type: "CommaDelimitedList<AWS::EC2::Subnet::Id>"
     Description: one subnet in which to create endpoints
     Default: "subnet-0d310df8338186b7f"
-  CarveSNSTopicArn:
-    Type: String
-    Description: Carve SNS Topic Arn
-  CarveCoreRegion:
-    Type: String
-    Description: Region carve core is deployed in
-    Default: 'us-east-1'
-  OrganizationsId:
-    Type: String
-    Description: AWS Organizations Id
-    Default: ""
-  CarveVersion:
-    Type: String
-    Default: "0"
-  GITSHA:
-    Type: String
-    Default: ""
-    Description: latest Git commit SHA determines S3 artifact paths
   ResourcePrefix:
     Type: String
     Description: "Prefix all carve resources with this"
     Default: ""
-  ReservedConcurrentExecutions:
-    Type: String
-    Default: '1'
 
 Resources:
   CarveFunction:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Sub "${ResourcePrefix}carve-${VpcId}"
       Description: Continuous AWS Route Verification Engine
-      PackageType: Zip
-      CodeUri: 
-        Bucket: !Sub "${ResourcePrefix}carve-managed-bucket-${OrganizationsId}-${AWS::Region}"
-        Key: !Sub "lambda_packages/${GITSHA}/package.zip"
-      Handler: c_entrypoint.lambda_handler
-      Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ResourcePrefix}carve-lambda-${OrganizationsId}"
+      Handler: index.lambda_handler
+      Role: !Ref LambdaRole
       Runtime: python3.8
       Timeout: 20
       MemorySize: 128
-      ReservedConcurrentExecutions: !Ref ReservedConcurrentExecutions
-      Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
-        Variables:
-          S3Bucket: !Sub "carve-${OrganizationsId}"
-          # VpcEndpointId: !Ref CarveAPIAccessEndpoint
-          VpcId: !Ref VpcId
       VpcConfig :
         SecurityGroupIds:
-          - !Ref CarveApiSecurityGroup
+          - !Ref SecurityGroup
         SubnetIds: !Split [ ",", !Ref VpcSubnetIds ]
+      Code: 
+        ZipFile: |
+          import concurrent.futures
+          import time
+          import urllib3
 
-  CarveSelfInvoke:
-    Type: AWS::Lambda::Permission
+          def threaded_test(addr):
+              http = urllib3.PoolManager()
+              try:
+                  r = http.request('GET', f'http://{addr}/up', timeout=1)
+                  if r.status == 200:
+                      result = 'pass'
+                  else:
+                      result = 'fail'
+              except:
+                  result = 'fail'
+              return {addr: result}
+
+          def lambda_handler(event, context):
+              if len(event) < 1:
+                  print('no payload to test')
+                  return None
+              else:
+                  print(f'testing endpoints: {event}')
+              results = []
+              with concurrent.futures.ThreadPoolExecutor() as executor:
+                  futures = []
+                  for addr in event:
+                      futures.append(executor.submit(threaded_test, addr=addr))
+                  for future in concurrent.futures.as_completed(futures):
+                      results.append(future.result())
+              print(results)
+              return results
+
+  LambdaRole:
+    Type: AWS::IAM::Role
     Properties:
-      Action: lambda:InvokeFunction
-      Principal: lambda.amazonaws.com
-      SourceArn: !GetAtt CarveFunction.Arn
-      FunctionName: !GetAtt CarveFunction.Arn
+      ManagedPolicyArns:
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/AWSLambdaVPCAccessExecutionRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: "Allow"
+          Principal:
+            Service:
+              - "lambda.amazonaws.com"
+          Action:
+            - "sts:AssumeRole"
 
-  CarveApiSecurityGroup:
+  SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId: !Ref VpcId
-      GroupDescription: Allows access over 443 from the entire private network
-      SecurityGroupIngress:
-        -
-          IpProtocol: "tcp"
-          FromPort: 443
-          ToPort: 443
-          CidrIp: "0.0.0.0/0"
+      GroupDescription: Egress
 
-  CarveSNSSubscription:
-    Type: AWS::SNS::Subscription
-    Properties:
-      Endpoint: !GetAtt CarveFunction.Arn
-      Protocol: Lambda
-      TopicArn: !Ref CarveSNSTopicArn
-      Region: !Ref CarveCoreRegion
-
-  CarveLambdaSNSInvoke:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      Principal: !Sub "sns.amazonaws.com"
-      SourceArn: !Ref CarveSNSTopicArn
-      FunctionName: !GetAtt CarveFunction.Arn
-
-
-Outputs:
-  CarveFunction:
-    Description: "Carve Lambda Function ARN"
-    Value: !GetAtt CarveFunction.Arn
 

@@ -187,6 +187,24 @@ def aws_execute_change_set(changesetname, stackname, region, credentials):
     return response
 
 
+def aws_describe_instances(instances, region, credentials):
+    client = boto3.client(
+        'ec2',
+        config=boto_config,
+        region_name=region,
+        aws_access_key_id = credentials['AccessKeyId'],
+        aws_secret_access_key = credentials['SecretAccessKey'],
+        aws_session_token = credentials['SessionToken']
+    )
+    paginator = client.get_paginator('describe_instances')
+    results = []
+    for page in paginator.paginate(InstanceIds=instances):
+        for reservation in page['Reservations']:
+            for instance in reservation['Instances']:
+                results.append(instance)
+    return results
+
+
 def aws_describe_transit_gateways(region, credentials):
     client = boto3.client(
         'ec2',
@@ -482,6 +500,64 @@ def aws_delete_bucket_notification():
         print(f'error creating bucket notification: {e}')
 
 
+def aws_ssm_put_parameter(parameter, value):
+    client = boto3.client('ssm', config=boto_config)
+    response = client.put_parameter(
+        Name=parameter,
+        Description='Carve managed config data',
+        Value=value,
+        Overwrite=True,
+    )
+    return response
+
+
+def aws_ssm_get_parameter(parameter):
+    client = boto3.client('ssm', config=boto_config)
+    try:
+        response = client.get_parameter(Name=parameter)
+        value = response['Parameter']['Value']
+    except ClientError as e:
+        value = None
+    return value
+
+
+def aws_ssm_get_parameters(path):
+    client = boto3.client('ssm', config=boto_config)
+    try:
+        paginator = client.get_paginator('get_parameters_by_path')
+        pages = paginator.paginate(Path=path)
+        params = {}
+        for page in paginator.paginate():
+            for parm in page['Parameters']:
+                name = param['Name'].split(path)[1]
+                params[] = param['Value']
+    except ClientError as e:
+        params = []
+
+    return params
+
+
+
+def aws_invoke_lambda(arn, payload, region, credentials):
+    if credentials is None:
+        a = arn.split(':')[4]
+        credentials = aws_assume_role(carve_role_arn(a), f"carve-test-{arn}")
+
+    client = boto3.client(
+        'lambda',
+        config=boto_config,
+        region_name=region,
+        aws_access_key_id = credentials['AccessKeyId'],
+        aws_secret_access_key = credentials['SecretAccessKey'],
+        aws_session_token = credentials['SessionToken']
+        )
+
+    response = client.invoke(
+        FunctionName=arn,
+        Payload=bytes(json.dumps(payload))
+        )
+    return response
+
 # def aws_empty_bucket():
 #     bucket = os.environ['CarveS3Bucket']
 #     client = boto3.client('s3', config=boto_config)
@@ -644,7 +720,7 @@ def aws_put_bucket_notification(path, function_arn, notification_id="CarveDeploy
         print(f'error creating bucket notification: {e}')
 
 
-def aws_upload_file_carve_s3(key, file_path):
+def aws_upload_file_s3(key, file_path):
     '''
     writes file_path to the carve s3 bucket
     '''

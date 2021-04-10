@@ -81,7 +81,7 @@ def sf_CleanupDeployments(context):
             'Region': r
             })
 
-    for stack in deployment_list(G):
+    for stack in deployment_list(G, context):
         safe_stacks.append({
             'StackName': stack['StackName'],
             'Account': stack['Account'],

@@ -165,7 +165,7 @@ def discover_resources(resource, region, account_id, account_name, credentials):
 
     save_graph(G, f"/tmp/{name}.json")
 
-    aws_upload_file_carve_s3(f'discovery/accounts/{name}.json', f"/tmp/{name}.json")
+    aws_upload_file_s3(f'discovery/accounts/{name}.json', f"/tmp/{name}.json")
 
     return {resource: f'discovery/accounts/{name}.json'}
 
@@ -261,7 +261,7 @@ def sf_OrganizeDiscovery(event):
 
     save_graph(G, f"/tmp/{name}.json")
 
-    aws_upload_file_carve_s3(f'discovered/{name}.json', f"/tmp/{name}.json")
+    aws_upload_file_s3(f'discovered/{name}.json', f"/tmp/{name}.json")
 
     return {'discovery': f's3://a-carve-o-dvdaw54vmt-us-east-1/discovered/{name}.json'}
 

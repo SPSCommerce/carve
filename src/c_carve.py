@@ -4,17 +4,106 @@ import pylab as plt
 import json
 import sys
 import os
-from c_aws import aws_read_s3_direct, current_region
+from c_aws import *
+from c_deploy_endpoints import get_deploy_key
 import urllib3
+import concurrent.futures
 
 # from c_disco import discovery
 # from pprint import pprint
 
 
-def get_ipv4():
-    http = urllib3.PoolManager()
-    r = http.request('GET', 'http://169.254.169.254/latest/meta-data/local-ipv4')
-    print(r.data.decode('utf-8'))
+
+def execute_carve(event, context):
+    # get all registered beacons from SSM
+    result = aws_ssm_get_parameters(f"/{os.environ['ResourcePrefix']}-carve/vpc-endpoints/")
+    
+    beacons = []
+    for k, v in result.items():
+        beacons.extend(v)
+
+    # create a list of all monitored VPCs for testing
+    vpcs = []
+    G = load_graph(get_deploy_key(last=True), local=False)
+    for vpc in list(G.nodes):
+        vpcs.append({
+            'vpc': vpc
+            'account': G.nodes().data()[vpc]['Account']
+            'region': G.nodes().data()[vpc]['Region']})
+
+    results = []
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = []
+        p = os.environ['ResourcePrefix']
+
+        for vpc in list(G.nodes):
+            a = G.nodes().data()[vpc]['Account']
+            r = G.nodes().data()[vpc]['Region']
+            futures.append(executor.submit(
+                aws_invoke_lambda,
+                arn=f"arn:aws:lambda:{r}:{a}:function:{p}carve-{vpc}",
+                payload=beacons,
+                region=r,
+                credentials=None))
+
+        for future in concurrent.futures.as_completed(futures):
+            results.append(future.result())
+
+    print(results)
+    # process_test_results(results)
+
+
+def process_test_results(results):
+    pass
+    # targets = []
+    # for edge in list(G.edges(vpc)):
+    #     for v in edge:
+    #         if v != vpc:
+    #             targets.append(str(v))
+
+    # target_beacons = []
+    # for target in targets:
+    #     if target in beacons:
+    #         target_beacons.append(beacons['target'])
+
+
+
+def asg_event(event, context):
+
+        # get insances from event data
+        instances = []
+        for resource in event['resources']:
+            if resource.startswith("arn:aws:ec2"):
+                instance.append(resource)
+
+        parameter = None
+
+        # get instance metadata from account and update SSM
+        credentials = aws_assume_role(carve_role_arn(event['Account']), f"event-{event['detail']['AutoScalingGroupName']}")
+        for ec2 in aws_describe_instances(instances, event['Region'], credentials):
+            if parameter is None:
+                parameter = f"/{os.environ['ResourcePrefix']}-carve/vpc-endpoints/{ec2['VpcId']}"
+                try:
+                    response = json.loads aws_ssm_get_parameter(parameter)
+                    beacons = response
+                except:
+                    beacons = []
+
+            if 'EC2 Instance Launch Successful' == event['detail-type']:
+                print(f"adding beacon to ssm: {ec2['InstanceId']} - {ec2['PrivateIpAddress']}")
+                beacons.append({ec2['InstanceId']: ec2['PrivateIpAddress']})
+
+            elif 'EC2 Instance Terminate Successful' == event['detail-type']:
+                print(f"removing beacon from ssm: {ec2['InstanceId']}")
+                b = []
+                for beacon in beacons:
+                    if ec2['InstanceId'] in beacon:
+                        pass
+                    else:
+                        b.append(beacon)
+                beacons = b
+
+            aws_ssm_put_parameter(parameter, beacons)
 
 
 def carve_role_arn(account):
@@ -24,21 +113,33 @@ def carve_role_arn(account):
     return role
 
 
-def run_test(G, c_context):
-    targets = []
-    for edge in list(G.edges):
-        # edge example:  ('vpc-id', 'vpc-id')
-        if c_context['VpcId'] in edge:
-            for v in edge:
-                if v != c_context['VpcId']:
-                    targets.append(str(v))
-    # get values
-    for target in targets:
-        PrivateEndpoint = G.nodes[target]['PrivateEndpoint']
-        ApiGatewayUrl = G.nodes[target]['ApiGatewayUrl']
-        # do some cool shit
+
+
+
+
+# how do you want to orchestrate tests?
+# maybe a StepFunction per lambda?
+# could start step func by assume role from core
+# step function sends back SNS?
+# works cross account and region
+# look at event bridge https://dashbird.io/blog/cutting-step-functions-costs-on-enterprise-scale-workflows/
+
+
+# def run_test(G, c_context):
+#     targets = []
+#     for edge in list(G.edges):
+#         # edge example:  ('vpc-id', 'vpc-id')
+#         if c_context['VpcId'] in edge:
+#             for v in edge:
+#                 if v != c_context['VpcId']:
+#                     targets.append(str(v))
+#     # get values
+#     for target in targets:
+#         PrivateEndpoint = G.nodes[target]['PrivateEndpoint']
+#         ApiGatewayUrl = G.nodes[target]['ApiGatewayUrl']
+#         # do some cool shit
     
-    print(targets)
+#     print(targets)
 
 
 def network_diff(A, B):

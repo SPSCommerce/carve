@@ -66,7 +66,7 @@ def get_deploy_key(last=False):
     if not last:
         path = 'deploy_active/'
     else:
-        path = 'last_deploy/'
+        path = 'deployed_graph/'
     return aws_newest_s3(path)
 
 
@@ -87,32 +87,32 @@ def sf_DeployPrep(event, context):
 
     G = load_graph(get_deploy_key(), local=False)
 
-    # update_bucket_policies(G)
+    # # update_bucket_policies(G)
 
-    # push lambda deploy pkg and reqs layer pkg to regional S3 buckets
-    # get all other regions where buckets are needed
-    regions = set()
-    for vpc in list(G.nodes):
-        r = G.nodes().data()[vpc]['Region']
-        if r not in regions:
-            regions.add(r)
+    # # push lambda deploy pkg and reqs layer pkg to regional S3 buckets
+    # # get all other regions where buckets are needed
+    # regions = set()
+    # for vpc in list(G.nodes):
+    #     r = G.nodes().data()[vpc]['Region']
+    #     if r not in regions:
+    #         regions.add(r)
 
-    codekey = f"lambda_packages/{os.environ['GITSHA']}/package.zip"
-    reqskey = f"lambda_packages/{os.environ['GITSHA']}/reqs_package.zip"
+    # codekey = f"lambda_packages/{os.environ['GITSHA']}/package.zip"
+    # reqskey = f"lambda_packages/{os.environ['GITSHA']}/reqs_package.zip"
 
-    for r in regions:
-        aws_copy_s3_object(
-            key=codekey,
-            target_key=codekey,
-            source_bucket=os.environ['CodeBucket'],
-            target_bucket=f"{os.environ['ResourcePrefix']}carve-managed-bucket-{os.environ['OrganizationsId']}-{r}"
-            )
-        aws_copy_s3_object(
-            key=reqskey,
-            target_key=reqskey,
-            source_bucket=os.environ['CodeBucket'],
-            target_bucket=f"{os.environ['ResourcePrefix']}carve-managed-bucket-{os.environ['OrganizationsId']}-{r}"
-            )
+    # for r in regions:
+    #     aws_copy_s3_object(
+    #         key=codekey,
+    #         target_key=codekey,
+    #         source_bucket=os.environ['CodeBucket'],
+    #         target_bucket=f"{os.environ['ResourcePrefix']}carve-managed-bucket-{os.environ['OrganizationsId']}-{r}"
+    #         )
+    #     aws_copy_s3_object(
+    #         key=reqskey,
+    #         target_key=reqskey,
+    #         source_bucket=os.environ['CodeBucket'],
+    #         target_bucket=f"{os.environ['ResourcePrefix']}carve-managed-bucket-{os.environ['OrganizationsId']}-{r}"
+    #         )
 
     deployment_targets = deploy_layers(G, context)
 
@@ -125,33 +125,33 @@ def deploy_layers(G, context):
     # create lambda layers in all required regions for deployment
     deploy_layers = []
 
-    for r in regions:
-        stackname = f"{os.environ['ResourcePrefix']}carve-managed-layers-{r}"
-        parameters = [
-            {
-                "ParameterKey": "OrganizationsId",
-                "ParameterValue": os.environ['OrganizationsId']
-            },
-            {
-                "ParameterKey": "S3Bucket",
-                "ParameterValue": os.environ['CarveS3Bucket']
-            },
-            {
-                "ParameterKey": "GITSHA",
-                "ParameterValue": os.environ['GITSHA']
-            },
-            {
-                "ParameterKey": "ResourcePrefix",
-                "ParameterValue": os.environ['ResourcePrefix']
-            }
-        ]
-        deploy_layers.append({
-            "StackName": stackname,
-            "Parameters": parameters,
-            "Account": context.invoked_function_arn.split(":")[4],
-            "Region": r,
-            "Template": 'managed_deployment/carve-layer.cfn.yml'
-        })
+    # for r in regions:
+    #     stackname = f"{os.environ['ResourcePrefix']}carve-managed-layers-{r}"
+    #     parameters = [
+    #         {
+    #             "ParameterKey": "OrganizationsId",
+    #             "ParameterValue": os.environ['OrganizationsId']
+    #         },
+    #         {
+    #             "ParameterKey": "S3Bucket",
+    #             "ParameterValue": os.environ['CarveS3Bucket']
+    #         },
+    #         {
+    #             "ParameterKey": "GITSHA",
+    #             "ParameterValue": os.environ['GITSHA']
+    #         },
+    #         {
+    #             "ParameterKey": "ResourcePrefix",
+    #             "ParameterValue": os.environ['ResourcePrefix']
+    #         }
+    #     ]
+    #     deploy_layers.append({
+    #         "StackName": stackname,
+    #         "Parameters": parameters,
+    #         "Account": context.invoked_function_arn.split(":")[4],
+    #         "Region": r,
+    #         "Template": 'managed_deployment/carve-layer.cfn.yml'
+    #     })
 
     return deploy_layers
     # if len(deploy_layers) > 0:
@@ -200,32 +200,8 @@ def deployment_list(G, context):
             "ParameterValue": subnet_id
           },
           {
-            "ParameterKey": "CarveSNSTopicArn",
-            "ParameterValue": os.environ['CarveSNSTopicArn']
-          },
-          {
-            "ParameterKey": "OrganizationsId",
-            "ParameterValue": os.environ['OrganizationsId']
-          },
-          {
-            "ParameterKey": "CarveCoreRegion",
-            "ParameterValue": current_region
-          },          
-          {
-            "ParameterKey": "CarveVersion",
-            "ParameterValue": os.environ['CarveVersion']
-          },
-          {
-            "ParameterKey": "GITSHA",
-            "ParameterValue": os.environ['GITSHA']
-          },
-          {
             "ParameterKey": "ResourcePrefix",
             "ParameterValue": os.environ['ResourcePrefix']
-          },
-          {
-            "ParameterKey": "ReservedConcurrentExecutions",
-            "ParameterValue": str(concurrent)
           }
         ]
 
@@ -364,7 +340,7 @@ def sf_DeploymentComplete():
     # move deployment object
     deploy_key = get_deploy_key()
     key_name = deploy_key.split('/')[-1]
-    aws_copy_s3_object(deploy_key, f'last_deploy/{key_name}')
+    aws_copy_s3_object(deploy_key, f'deployed_graph/{key_name}')
     aws_delete_s3_object(deploy_key, current_region)
 
 
@@ -376,7 +352,7 @@ def deploy_steps_entrypoint(event, context):
         response = sf_DeployPrep(event, context)
 
     if event['DeployAction'] == 'GetDeploymentList':
-        response = sf_GetDeploymentList()
+        response = sf_GetDeploymentList(context)
 
     if event['DeployAction'] == 'DeploymentComplete':
         response = sf_DeploymentComplete()
