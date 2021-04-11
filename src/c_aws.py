@@ -505,6 +505,7 @@ def aws_ssm_put_parameter(parameter, value):
     response = client.put_parameter(
         Name=parameter,
         Description='Carve managed config data',
+        Type='String',
         Value=value,
         Overwrite=True,
     )
@@ -526,22 +527,28 @@ def aws_ssm_get_parameters(path):
     params = {}
     try:
         paginator = client.get_paginator('get_parameters_by_path')
-        pages = paginator.paginate(Path=path)
-        for page in paginator.paginate():
-            for parm in page['Parameters']:
-                name = param['Name'].split(path)[1]
-                params[param] = param['Value']
+        for page in paginator.paginate(Path=path, Recursive=True):
+            for param in page['Parameters']:
+                name = param['Name'].split('/')[-1]
+                params[name] = param['Value']
     except ClientError as e:
         pass
-
     return params
 
+def aws_ssm_delete_parameter(path):
+    client = boto3.client('ssm', config=boto_config)
+    try:
+        response = client.delete_parameter(Name=path)
+    except ClientError:
+        pass
 
 
 def aws_invoke_lambda(arn, payload, region, credentials):
     if credentials is None:
-        a = arn.split(':')[4]
-        credentials = aws_assume_role(carve_role_arn(a), f"carve-test-{arn}")
+        account = arn.split(':')[4]
+        role_name = f"{os.environ['ResourcePrefix']}carve-lambda-{os.environ['OrganizationsId']}"
+        role = f"arn:aws:iam::{account}:role/{role_name}"
+        credentials = aws_assume_role(role, arn.split(':')[-1])
 
     client = boto3.client(
         'lambda',
@@ -551,12 +558,12 @@ def aws_invoke_lambda(arn, payload, region, credentials):
         aws_secret_access_key = credentials['SecretAccessKey'],
         aws_session_token = credentials['SessionToken']
         )
-
     response = client.invoke(
         FunctionName=arn,
-        Payload=bytes(json.dumps(payload))
+        Payload=json.dumps(payload)
         )
-    return response
+    data = response['Payload'].read()
+    return data
 
 # def aws_empty_bucket():
 #     bucket = os.environ['CarveS3Bucket']

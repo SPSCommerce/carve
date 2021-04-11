@@ -23,9 +23,10 @@ Parameters:
     Type: Number
     Default: '1'
   ImageId:
-    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
-    Description: The ImageId of Amazon AMI to use
-    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-arm64-gp2'
+    Type: 'String'
+    Description: The ImageId from the Carve imagebuilder
+    Default: ''
+    # Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-arm64-gp2'
   CarveSNSTopicArn:
     Type: String
     Description: Carve SNS Topic Arn
@@ -34,7 +35,7 @@ Resources:
   AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
-      AutoScalingGroupName: !Sub ${ResourcePrefix}carve-asg-${VpcId}
+      AutoScalingGroupName: !Sub ${ResourcePrefix}carve-beacon-asg-${VpcId}
       LaunchConfigurationName: !Ref LaunchConfig
       VPCZoneIdentifier: !Split [ ",", !Ref VpcSubnetIds ]
       HealthCheckGracePeriod: '60'
@@ -45,7 +46,7 @@ Resources:
         - Granularity: 1Minute
       Tags:
         - Key: Name
-          Value: !Sub ${ResourcePrefix}carve-endpoint-${VpcId}
+          Value: !Sub ${ResourcePrefix}carve-beacon-${VpcId}
           PropagateAtLaunch: true
 
   LaunchConfig:
@@ -65,25 +66,24 @@ Resources:
             VolumeSize: '8'
             DeleteOnTermination: 'true'
             Encrypted: 'true'
-      UserData:
-        Fn::Base64: !Sub |
-          #!/bin/bash
-          amazon-linux-extras install nginx1
-          cat << 'EOF' > /etc/nginx/conf.d/default.conf
-          server {
-          listen      *:80;
-          server_name carve;
-          root        /home/www;
-          access_log  /var/log/nginx/carve_access.log;
-          error_log   /var/log/nginx/carve_error.log;
-          location /up {
-               add_header Content-Type text/plain;
-               return 200 'OK';
-            }
-          }
-          EOF
-          systemctl enable nginx
-          systemctl start nginx
+      # UserData:
+      #   Fn::Base64: !Sub |
+      #     #!/bin/bash
+      #     cat << 'EOF' > /etc/nginx/conf.d/default.conf
+      #     server {
+      #     listen      *:80;
+      #     server_name carve;
+      #     root        /home/www;
+      #     access_log  /var/log/nginx/carve_access.log;
+      #     error_log   /var/log/nginx/carve_error.log;
+      #     location /up {
+      #          add_header Content-Type text/plain;
+      #          return 200 'OK';
+      #       }
+      #     }
+      #     EOF
+      #     systemctl enable nginx
+      #     systemctl start nginx
 
   InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -107,7 +107,7 @@ Resources:
   InstanceRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub "${ResourcePrefix}carve-ec2-${VpcId}"
+      RoleName: !Sub "${ResourcePrefix}carve-beacon-${VpcId}"
       Path: /
       ManagedPolicyArns:
         - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonSSMManagedInstanceCore

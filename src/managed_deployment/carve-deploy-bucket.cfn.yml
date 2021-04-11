@@ -49,6 +49,7 @@ Resources:
             Effect: Allow 
             Action:
               - "s3:Get*"
+              - "s3:PutObject"
             Resource: 
               - !Sub "arn:aws:s3:::${CarveS3Bucket}"
               - !Sub "arn:aws:s3:::${CarveS3Bucket}/*"

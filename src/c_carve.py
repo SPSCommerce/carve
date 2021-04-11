@@ -15,20 +15,30 @@ import concurrent.futures
 
 def execute_carve(event, context):
     # get all registered beacons from SSM
-    result = aws_ssm_get_parameters(f"/{os.environ['ResourcePrefix']}-carve/vpc-endpoints/")
-    
+    print('running carve')
+
+    result = aws_ssm_get_parameters(f"/{os.environ['ResourcePrefix']}carve/resources/vpc-endpoints/")
+
+    print(f'endpoints: {result}')
+
     beacons = []
     for k, v in result.items():
-        beacons.extend(v)
+        addr = list(json.loads(v).keys())[0]
+        beacons.append(addr)
+
+    print(f'beacons: {beacons}')
 
     # create a list of all monitored VPCs for testing
     vpcs = []
     G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
+    print('loaded graph')
     for vpc in list(G.nodes):
         vpcs.append({
             'vpc': vpc,
             'account': G.nodes().data()[vpc]['Account'],
             'region': G.nodes().data()[vpc]['Region']})
+
+    print(f'vpcs: {vpcs}')
 
     results = []
     with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -38,6 +48,7 @@ def execute_carve(event, context):
         for vpc in list(G.nodes):
             a = G.nodes().data()[vpc]['Account']
             r = G.nodes().data()[vpc]['Region']
+            print(f'adding test for {vpc}')
             futures.append(executor.submit(
                 aws_invoke_lambda,
                 arn=f"arn:aws:lambda:{r}:{a}:function:{p}carve-{vpc}",
@@ -67,42 +78,33 @@ def process_test_results(results):
 
 
 
-def asg_event(event, context):
+def asg_event(message):
+
+        print(f"TRIGGERED by ASG: {message['detail']['AutoScalingGroupName']}")
 
         # get insances from event data
         instances = []
-        for resource in event['resources']:
+        for resource in message['resources']:
             if resource.startswith("arn:aws:ec2"):
-                instance.append(resource)
+                instances.append(resource.split('/')[1])
 
-        parameter = None
+        vpc = message['detail']['AutoScalingGroupName'].split(f"{os.environ['ResourcePrefix']}carve-beacon-asg-")[-1]
+        credentials = aws_assume_role(carve_role_arn(message['account']), f"event-{message['detail']['AutoScalingGroupName']}")
 
         # get instance metadata from account and update SSM
-        credentials = aws_assume_role(carve_role_arn(event['Account']), f"event-{event['detail']['AutoScalingGroupName']}")
-        for ec2 in aws_describe_instances(instances, event['Region'], credentials):
-            if parameter is None:
-                parameter = f"/{os.environ['ResourcePrefix']}-carve/vpc-endpoints/{ec2['VpcId']}"
-                try:
-                    response = json.loads(aws_ssm_get_parameter(parameter))
-                    beacons = response
-                except:
-                    beacons = []
+        for ec2 in aws_describe_instances(instances, message['region'], credentials):
 
-            if 'EC2 Instance Launch Successful' == event['detail-type']:
-                print(f"adding beacon to ssm: {ec2['InstanceId']} - {ec2['PrivateIpAddress']}")
-                beacons.append({ec2['InstanceId']: ec2['PrivateIpAddress']})
+            parameter = f"/{os.environ['ResourcePrefix']}carve/resources/vpc-endpoints/{vpc}/{ec2['InstanceId']}"
 
-            elif 'EC2 Instance Terminate Successful' == event['detail-type']:
-                print(f"removing beacon from ssm: {ec2['InstanceId']}")
-                b = []
-                for beacon in beacons:
-                    if ec2['InstanceId'] in beacon:
-                        pass
-                    else:
-                        b.append(beacon)
-                beacons = b
+            if 'EC2 Instance Launch Successful' == message['detail-type']:
+                print(f"adding beacon to ssm: {ec2['InstanceId']} - {ec2['PrivateIpAddress']} - {ec2['SubnetId']}")
+                beacon = {ec2['PrivateIpAddress']: ec2['SubnetId']}
+                aws_ssm_put_parameter(parameter, json.dumps(beacon))
 
-            aws_ssm_put_parameter(parameter, beacons)
+            elif 'EC2 Instance Terminate Successful' == message['detail-type']:
+                print(f"removing beacon from ssm: {parameter}")
+                aws_ssm_delete_parameter(parameter)
+
 
 
 def carve_role_arn(account):

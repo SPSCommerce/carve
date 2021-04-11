@@ -1,6 +1,6 @@
 import json
 import os
-from c_deploy_endpoints import deploy_steps_entrypoint, start_carve_deployment, codepipline_job, get_deploy_key
+from c_deploy_endpoints import deploy_steps_entrypoint, start_carve_deployment, codepipline_job
 from c_deploy_stack import deploy_stack_entrypoint
 from c_cleanup import cleanup_steps_entrypoint
 from c_disco import disco_entrypoint
@@ -34,22 +34,19 @@ def lambda_handler(event, context):
             print(f'TRIGGERED by CW: {cw_arn}')
             execute_carve(event, context)
 
-        elif event['source'] == 'aws.autoscaling':
-            print(f"TRIGGERED by ASG: {event['detail']['AutoScalingGroupName']}")
-            asg_event(event, context)
-
     elif 'Records' in event:
 
-        if 'EventSource' in event['Records'][0]:
-            if event['Records'][0]['EventSource'] == "aws:sns":
-                sns_arn = event['Records'][0]['EventSubscriptionArn']
-                print(f'TRIGGERED by SNS: {sns_arn}')
-                return sns_arn
+        if 'Sns' in event['Records'][0]:
+            print(f"TRIGGERED by SNS: {event['Records'][0]['EventSubscriptionArn']}")
+            message = json.loads(event['Records'][0]['Sns']['Message'])
+            print(message)
+            if 'source' in message:
+                if message['source'] == 'aws.autoscaling':
+                    asg_event(message)
 
-        elif 'eventSource' in event['Records'][0]:
-            if event['Records'][0]['eventSource'] == "aws:s3":
-                if event['Records'][0]['s3']['bucket']['name'] == os.environ['CarveS3Bucket']:
-                    start_carve_deployment(event, context)
+        elif 's3' in event['Records'][0]:
+            if event['Records'][0]['s3']['bucket']['name'] == os.environ['CarveS3Bucket']:
+                start_carve_deployment(event, context)
 
     elif 'queryStringParameters' in event:
         print(f'TRIGGERED by API Gateway: {event["requestContext"]["apiId"]}')

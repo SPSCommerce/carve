@@ -189,7 +189,7 @@ def deployment_list(G, context):
         target['StackName'] = f"{os.environ['ResourcePrefix']}carve-managed-lambda-{vpc}"
         target['Account'] = vpc_data['Account']
         target['Region'] = vpc_data['Region']
-        target['Template'] = "managed_deployment/carve-vpc-lambda.sam.yml"
+        target['Template'] = "managed_deployment/carve-vpc-lambda.cfn.yml"
         target['Parameters'] = [
           {
             "ParameterKey": "VpcId",
@@ -209,10 +209,10 @@ def deployment_list(G, context):
 
         # add ec2 stack next
         target = {}
-        target['StackName'] = f"{os.environ['ResourcePrefix']}carve-managed-ec2-{vpc}"
+        target['StackName'] = f"{os.environ['ResourcePrefix']}carve-managed-beacon-{vpc}"
         target['Account'] = vpc_data['Account']
         target['Region'] = vpc_data['Region']
-        target['Template'] = "managed_deployment/carve-vpc-ec2.cfn.yml"
+        target['Template'] = "managed_deployment/carve-vpc-beacon.cfn.yml"
         target['Parameters'] = [
           {
             "ParameterKey": "VpcId",
@@ -227,10 +227,15 @@ def deployment_list(G, context):
             "ParameterValue": os.environ['ResourcePrefix']
           },
           {
+            "ParameterKey": "ImageId",
+            "ParameterValue": aws_ssm_get_parameter(f"/{os.environ['ResourcePrefix']}carve/resources/carve-endpoint-ami")
+          },
+          {
             "ParameterKey": "CarveSNSTopicArn",
             "ParameterValue": os.environ['CarveSNSTopicArn']
           }
         ]
+
         deployment_targets.append(target)
 
 

@@ -1,0 +1,232 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  ExistingSubnetId:
+    Type: String
+    Default: ""
+    Description: Must have Internet Access, will create if not provided
+  ExistingVpcId:
+    Type: String
+    Default: ""
+    Description: Must have Internet Access, will create if not provided
+  VpcCIDR:
+    Description: IP range (CIDR notation) for new VPC if needed
+    Type: String
+    Default: 10.0.0.0/24
+  PublicSubnetCIDR:
+    Description: IP range (CIDR notation) for subnet in new VPC if needed
+    Type: String
+    Default: 10.0.0.0/28
+  ImageId:
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-arm64-gp2'
+    Description: The source ImageId of Amazon AMI to use
+  BuildInstanceType:
+    Type: CommaDelimitedList
+    Default: "t4g.nano,t4g.micro"
+  OrganizationsId:
+    Type: String
+    Description: AWS Organizations Id
+    Default: ""
+  ResourcePrefix:
+    Type: String
+    Description: "Prefix all carve resources with this"
+    Default: ""
+
+Conditions:
+  CreateVpc: !Equals [ !Ref ExistingVpcId, "" ]
+
+Resources:
+  BuildInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ResourcePrefix}carve-build-instance"
+      ManagedPolicyArns:
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/AmazonSSMManagedInstanceCore"
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/EC2InstanceProfileForImageBuilder"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+      Policies:
+        - PolicyName: ImageBuilderLogBucketPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Action:
+                  - s3:PutObject
+                Effect: Allow
+                Resource: !Sub "arn:aws:s3:::${ResourcePrefix}carve-managed-bucket-${OrganizationsId}-${AWS::Region}/*"
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref BuildInstanceRole
+
+  CarveConfiguration:
+    Type: AWS::ImageBuilder::InfrastructureConfiguration
+    Properties:
+      Name: CarveAMI
+      InstanceProfileName:
+        Ref: InstanceProfile
+      InstanceTypes:
+        Ref: BuildInstanceType
+      Logging:
+        S3Logs:
+          S3BucketName: !Sub "${ResourcePrefix}carve-managed-bucket-${OrganizationsId}-${AWS::Region}"
+          S3KeyPrefix: imagebuilder
+      # TerminateInstanceOnFailure: false
+      SubnetId: !If [ CreateVpc,  !Ref PublicSubnet, !Ref ExistingSubnetId ]
+      SecurityGroupIds:
+        - !Ref InstanceSecurityGroup
+
+  InstallNginxComponent:
+    Type: AWS::ImageBuilder::Component
+    Properties:
+      Name: NGINX
+      Version: 0.0.1
+      Description: Update and install nginx
+      Platform: Linux
+      Data: |
+        name: install
+        description: install nginx
+        schemaVersion: 1.0
+        phases:
+          - name: build
+            steps:
+              - name: InstallNginx
+                action: ExecuteBash
+                inputs:
+                  commands:
+                    - yum update -y
+                    - amazon-linux-extras install -y nginx1
+                    - echo "server {" > /etc/nginx/conf.d/default.conf
+                    - echo "listen      *:80;" >> /etc/nginx/conf.d/default.conf
+                    - echo "server_name carve;" >> /etc/nginx/conf.d/default.conf
+                    - echo "root        /home/www;" >> /etc/nginx/conf.d/default.conf
+                    - echo "access_log  /var/log/nginx/carve_access.log;" >> /etc/nginx/conf.d/default.conf
+                    - echo "error_log   /var/log/nginx/carve_error.log;" >> /etc/nginx/conf.d/default.conf
+                    - echo "location /up {" >> /etc/nginx/conf.d/default.conf
+                    - echo "     add_header Content-Type text/plain;" >> /etc/nginx/conf.d/default.conf
+                    - echo "     return 200 'OK';" >> /etc/nginx/conf.d/default.conf
+                    - echo "  }" >> /etc/nginx/conf.d/default.conf
+                    - echo "}" >> /etc/nginx/conf.d/default.conf
+                    - systemctl enable nginx
+                    - systemctl start nginx
+
+  CarveImageRecipe:
+    Type: AWS::ImageBuilder::ImageRecipe
+    Properties:
+      Name: CarveAMI
+      Version: 0.0.1
+      ParentImage: !Ref ImageId
+      Components:
+        - ComponentArn:
+            Ref: InstallNginxComponent
+
+  CarveAMI:
+    Type: AWS::ImageBuilder::Image
+    Properties:
+      ImageRecipeArn:
+        Ref: CarveImageRecipe
+      InfrastructureConfigurationArn:
+        Ref: CarveConfiguration
+
+  CarveAMIParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: Image Id for Carve
+      Name: !Sub /${ResourcePrefix}carve-resources/carve-endpoint-ami
+      Type: String
+      Value: !GetAtt CarveAMI.ImageId
+
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !If [ CreateVpc,  !Ref VPC, !Ref ExistingVpcId ]
+      GroupDescription: carve-ami-builder
+
+
+###################################
+## Below here are resources to create a public VPC for image creation if needed
+## These resources only get created if VPC info is not provided
+
+
+  VPC:
+    Type: AWS::EC2::VPC
+    Condition: CreateVpc
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${ResourcePrefix}-carve-imagebuilder-vpc
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Condition: CreateVpc
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ${ResourcePrefix}carve-imagebuilder-vpc
+
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Condition: CreateVpc
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Condition: CreateVpc
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      CidrBlock: !Ref PublicSubnetCIDR
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${ResourcePrefix}carve-imagebuilder-public-subnet
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Condition: CreateVpc
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${ResourcePrefix}carve-imagebuilder-public-route
+
+  DefaultPublicRoute:
+    Type: AWS::EC2::Route
+    Condition: CreateVpc
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: CreateVpc
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet
+
+Outputs:
+  VPC:
+    Condition: CreateVpc
+    Description: A reference to the created VPC
+    Value: !Ref VPC
+
+  PublicSubnet:
+    Condition: CreateVpc
+    Value: !Ref PublicSubnet

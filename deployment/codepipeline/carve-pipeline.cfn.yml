@@ -21,6 +21,22 @@ Parameters:
     Default: githuboauthtoken
     Description: GitHubServiceOAUTHToken path in Secrets Manager
     Type: String
+  ImageBuilderExistingSubnetId:
+    Type: String
+    Default: ""
+    Description: Must have Internet Access, will create if not provided
+  ImageBuilderExistingVpcId:
+    Type: String
+    Default: ""
+    Description: Must have Internet Access, will create if not provided
+  ImageBuilderVpcCIDR:
+    Description: IP range (CIDR notation) for new VPC if needed
+    Type: String
+    Default: 10.0.0.0/24
+  ImageBuilderPublicSubnetCIDR:
+    Description: IP range (CIDR notation) for subnet in new VPC if needed
+    Type: String
+    Default: 10.0.0.0/28
 
 Resources:
   CarvePipelineRole:
@@ -179,24 +195,7 @@ Resources:
               OutputArtifacts: []
               InputArtifacts:
                 - Name: GithubRepo
-            # - Name: carve-ec2-deployment
-            #   ActionTypeId:
-            #     Category: Deploy
-            #     Owner: AWS
-            #     Provider: CloudFormation
-            #     Version: 1
-            #   Configuration:
-            #     ChangeSetName: pipeline-changeset
-            #     ActionMode: CREATE_UPDATE
-            #     Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
-            #     RoleArn: !GetAtt 'CarvePipelineRole.Arn'
-            #     StackName: !Sub '${ResourcePrefix}carve-ec2-${OrganizationsId}'
-            #     TemplatePath: GithubRepo::src/deployment/carve-endpoint-ec2.sam.yml
-            #     ParameterOverrides: !Sub '{"GITSHA":"#{github_vars.CommitId}","ResourcePrefix":"${ResourcePrefix}","OrganizationsId":"${OrganizationsId}"}'
-            #   OutputArtifacts: []
-            #   InputArtifacts:
-            #     - Name: GithubRepo
-        - Name: PostDeploy
+        - Name: PrepManagedDeployments
           Actions:
             - Name: update-s3-notification
               ActionTypeId:
@@ -211,6 +210,31 @@ Resources:
               OutputArtifacts: []
               InputArtifacts: []
               Region: !Ref 'AWS::Region'
+            - Name: carve-imagebuilder
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              Configuration:
+                ChangeSetName: pipeline-changeset
+                ActionMode: CREATE_UPDATE
+                Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
+                RoleArn: !GetAtt 'CarvePipelineRole.Arn'
+                StackName: !Sub '${ResourcePrefix}carve-imagebuilder'
+                TemplatePath: GithubRepo::deployment/image-builder.cfn.yml
+                ParameterOverrides: !Sub |
+                  '{
+                    "OrganizationsId": "${OrganizationsId}",
+                    "ResourcePrefix": "${ResourcePrefix}",
+                    "ExistingSubnetId": "${ImageBuilderExistingSubnetId}",
+                    "ExistingVpcId": "${ImageBuilderExistingVpcId}",
+                    "VpcCIDR": $"{ImageBuilderVpcCIDR}",
+                    "PublicSubnetCIDR": "${ImageBuilderPublicSubnetCIDR}"
+                  }'
+              OutputArtifacts: []
+              InputArtifacts:
+                - Name: GithubRepo
             - Name: update-carve-endpoints
               ActionTypeId:
                 Category: Invoke
@@ -224,7 +248,6 @@ Resources:
               OutputArtifacts: []
               InputArtifacts: []
               Region: !Ref 'AWS::Region'
-
 
   CarveCodeBuild:
     Type: AWS::CodeBuild::Project

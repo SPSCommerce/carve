@@ -30,7 +30,7 @@ Resources:
           - !Ref SecurityGroup
         SubnetIds: !Split [ ",", !Ref VpcSubnetIds ]
       Code: 
-        ZipFile: |
+        ZipFile: !Sub |
           import concurrent.futures
           import time
           import urllib3
@@ -61,7 +61,8 @@ Resources:
                   for future in concurrent.futures.as_completed(futures):
                       results.append(future.result())
               print(results)
-              return results
+              test_result = {${VpcId}: results}
+              return test_result
 
   LambdaRole:
     Type: AWS::IAM::Role
