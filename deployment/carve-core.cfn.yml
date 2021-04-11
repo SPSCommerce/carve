@@ -74,8 +74,8 @@ Resources:
         - python3.8
       Content: 
         S3Bucket: !Ref CodeBucket
-        # S3Key: !Sub "requirements_packages/${GITSHA}/requirements_package.zip"
-        S3Key: !Sub "requirements_packages/b1381f2c51b3877528a5d14436f4267a45071946/requirements_package.zip"
+        S3Key: !Sub "requirements_packages/${GITSHA}/requirements_package.zip"
+        # S3Key: !Sub "requirements_packages/b1381f2c51b3877528a5d14436f4267a45071946/requirements_package.zip"
       Description: "Carve python requirements"
       LayerName: CarveRequirementsLayer
 
