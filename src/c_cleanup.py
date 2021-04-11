@@ -124,6 +124,7 @@ def sf_DeploymentComplete(payload):
 
 
 def sf_DiscoverCarveStacks(payload):
+    # this found too many stacks:  https://console.aws.amazon.com/cloudwatch/home?region=us-east-1#logsV2:log-groups/log-group/$252Faws$252Flambda$252Fa-carve-o-dvdaw54vmt/log-events/2021$252F04$252F11$252F$255B$2524LATEST$255D3a3fec791872482e8a00d5ee55ced415
     account = payload['Account']
     region = payload['Region']
     safe_stacks = payload['SafeStacks']

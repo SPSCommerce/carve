@@ -87,6 +87,8 @@ def sf_DeployPrep(event, context):
 
     G = load_graph(get_deploy_key(), local=False)
 
+    propagate_carve_ami(G)
+
     # # update_bucket_policies(G)
 
     # # push lambda deploy pkg and reqs layer pkg to regional S3 buckets
@@ -119,44 +121,39 @@ def sf_DeployPrep(event, context):
     return deployment_targets
 
 
-def deploy_layers(G, context):
+def propagate_carve_ami(G):
+    ''' if the carve ami in the current region is newer, update the regional copies '''
     regions = deploy_regions(G)
 
-    # create lambda layers in all required regions for deployment
-    deploy_layers = []
+    # all copies get the same time stamped name, use that to compare
+    source_image = aws_ssm_get_parameter(f"/{os.environ['ResourcePrefix']}carve-resources/carve-endpoint-ami")
+    source_name = aws_describe_image(source_image)['Name']
 
-    # for r in regions:
-    #     stackname = f"{os.environ['ResourcePrefix']}carve-managed-layers-{r}"
-    #     parameters = [
-    #         {
-    #             "ParameterKey": "OrganizationsId",
-    #             "ParameterValue": os.environ['OrganizationsId']
-    #         },
-    #         {
-    #             "ParameterKey": "S3Bucket",
-    #             "ParameterValue": os.environ['CarveS3Bucket']
-    #         },
-    #         {
-    #             "ParameterKey": "GITSHA",
-    #             "ParameterValue": os.environ['GITSHA']
-    #         },
-    #         {
-    #             "ParameterKey": "ResourcePrefix",
-    #             "ParameterValue": os.environ['ResourcePrefix']
-    #         }
-    #     ]
-    #     deploy_layers.append({
-    #         "StackName": stackname,
-    #         "Parameters": parameters,
-    #         "Account": context.invoked_function_arn.split(":")[4],
-    #         "Region": r,
-    #         "Template": 'managed_deployment/carve-layer.cfn.yml'
-    #     })
+    parameter = f"/{os.environ['ResourcePrefix']}carve-resources/carve-endpoint-ami"
 
-    return deploy_layers
-    # if len(deploy_layers) > 0:
-    #     name = f"deploy-layers-{int(time.time())}"
-    #     aws_start_stepfunction(os.environ['DeployEndpointsStateMachine'], deploy_layers, name)
+    # threaded copy of all AMIs
+    results = []
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = []
+        for region in regions:
+            ami = aws_ssm_get_parameter(parameter, region=region)
+            name = aws_describe_image(ami)['Name']
+            if name != source_name:
+                futures.append(executor.submit(
+                    aws_copy_image,
+                    name=source_name,
+                    source_image=source_image,
+                    region=region))
+        for future in concurrent.futures.as_completed(futures):
+            results.append(future.result())
+
+    for r in results:
+        aws_ssm_put_parameter(parameter, r['ImageId'], r['region'])
+
+
+def deploy_layers(G, context):
+    # function no longer used, will refactor out
+    return []
 
 
 def deployment_list(G, context):
@@ -228,7 +225,7 @@ def deployment_list(G, context):
           },
           {
             "ParameterKey": "ImageId",
-            "ParameterValue": aws_ssm_get_parameter(f"/{os.environ['ResourcePrefix']}carve-resources/carve-endpoint-ami")
+            "ParameterValue": aws_ssm_get_parameter(f"/{os.environ['ResourcePrefix']}carve-resources/carve-endpoint-ami", region=vpc_data['Region'])
           },
           {
             "ParameterKey": "CarveSNSTopicArn",

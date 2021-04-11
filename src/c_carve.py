@@ -17,12 +17,12 @@ def execute_carve(event, context):
     # get all registered beacons from SSM
     print('running carve')
 
-    result = aws_ssm_get_parameters(f"/{os.environ['ResourcePrefix']}carve-resources/vpc-endpoints/")
+    beacon_params = aws_ssm_get_parameters(f"/{os.environ['ResourcePrefix']}carve-resources/vpc-beacons/")
 
-    print(f'endpoints: {result}')
+    print(f'beacon_params: {beacon_params}')
 
     beacons = []
-    for k, v in result.items():
+    for k, v in beacon_params.items():
         addr = list(json.loads(v).keys())[0]
         beacons.append(addr)
 
@@ -94,7 +94,7 @@ def asg_event(message):
         # get instance metadata from account and update SSM
         for ec2 in aws_describe_instances(instances, message['region'], credentials):
 
-            parameter = f"/{os.environ['ResourcePrefix']}carve-resources/vpc-endpoints/{vpc}/{ec2['InstanceId']}"
+            parameter = f"/{os.environ['ResourcePrefix']}carve-resources/vpc-beacons/{vpc}/{ec2['InstanceId']}"
 
             if 'EC2 Instance Launch Successful' == message['detail-type']:
                 print(f"adding beacon to ssm: {ec2['InstanceId']} - {ec2['PrivateIpAddress']} - {ec2['SubnetId']}")
@@ -112,10 +112,6 @@ def carve_role_arn(account):
     role_name = f"{os.environ['ResourcePrefix']}carve-lambda-{os.environ['OrganizationsId']}"
     role = f"arn:aws:iam::{account}:role/{role_name}"
     return role
-
-
-
-
 
 
 # how do you want to orchestrate tests?

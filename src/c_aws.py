@@ -12,6 +12,15 @@ from boto3.session import Session
 current_region = os.environ['AWS_REGION']
 boto_config = Config(retries=dict(max_attempts=10))
 
+
+def get_credentials_using_arn(arn):
+    account = arn.split(':')[4]
+    role_name = f"{os.environ['ResourcePrefix']}carve-lambda-{os.environ['OrganizationsId']}"
+    role = f"arn:aws:iam::{account}:role/{role_name}"
+    credentials = aws_assume_role(role, arn.split(':')[-1])
+    return credentials
+
+
 def aws_assume_role(role_arn, session_name, token_life=900):
     # a function for this lambda to assume a given role
     sts_client = boto3.client(
@@ -500,8 +509,31 @@ def aws_delete_bucket_notification():
         print(f'error creating bucket notification: {e}')
 
 
-def aws_ssm_put_parameter(parameter, value):
-    client = boto3.client('ssm', config=boto_config)
+def aws_copy_image(name, source_image, region):
+    client = boto3.client('ec2', region_name=region, config=boto_config)
+    response = client.copy_image(
+        # ClientToken='string',
+        Description='Carve AMI',
+        Encrypted=True,
+        Name=name,
+        SourceImageId=source_image,
+        SourceRegion=current_region
+    )
+    return {"ImageId": response['ImageId'], "region": region}
+
+
+def aws_describe_image(image, region=current_region):
+    client = boto3.client(
+        'ec2',
+        config=boto_config,
+        region_name=region,
+        )
+    response = client.describe_images(ImageIds=[image])
+    return response['Images'][0]
+
+
+def aws_ssm_put_parameter(parameter, value, region=current_region):
+    client = boto3.client('ssm', config=boto_config, region_name=region)
     response = client.put_parameter(
         Name=parameter,
         Description='Carve managed config data',
@@ -512,8 +544,8 @@ def aws_ssm_put_parameter(parameter, value):
     return response
 
 
-def aws_ssm_get_parameter(parameter):
-    client = boto3.client('ssm', config=boto_config)
+def aws_ssm_get_parameter(parameter, region=current_region):
+    client = boto3.client('ssm', config=boto_config, region_name=region)
     try:
         response = client.get_parameter(Name=parameter)
         value = response['Parameter']['Value']
@@ -545,10 +577,7 @@ def aws_ssm_delete_parameter(path):
 
 def aws_invoke_lambda(arn, payload, region, credentials):
     if credentials is None:
-        account = arn.split(':')[4]
-        role_name = f"{os.environ['ResourcePrefix']}carve-lambda-{os.environ['OrganizationsId']}"
-        role = f"arn:aws:iam::{account}:role/{role_name}"
-        credentials = aws_assume_role(role, arn.split(':')[-1])
+        credentials = get_credentials_using_arn(arn)
 
     client = boto3.client(
         'lambda',
