@@ -228,7 +228,7 @@ def deployment_list(G, context):
           },
           {
             "ParameterKey": "ImageId",
-            "ParameterValue": aws_ssm_get_parameter(f"/{os.environ['ResourcePrefix']}carve/resources/carve-endpoint-ami")
+            "ParameterValue": aws_ssm_get_parameter(f"/{os.environ['ResourcePrefix']}carve-resources/carve-endpoint-ami")
           },
           {
             "ParameterKey": "CarveSNSTopicArn",

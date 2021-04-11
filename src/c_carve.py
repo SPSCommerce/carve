@@ -17,7 +17,7 @@ def execute_carve(event, context):
     # get all registered beacons from SSM
     print('running carve')
 
-    result = aws_ssm_get_parameters(f"/{os.environ['ResourcePrefix']}carve/resources/vpc-endpoints/")
+    result = aws_ssm_get_parameters(f"/{os.environ['ResourcePrefix']}carve-resources/vpc-endpoints/")
 
     print(f'endpoints: {result}')
 
@@ -94,7 +94,7 @@ def asg_event(message):
         # get instance metadata from account and update SSM
         for ec2 in aws_describe_instances(instances, message['region'], credentials):
 
-            parameter = f"/{os.environ['ResourcePrefix']}carve/resources/vpc-endpoints/{vpc}/{ec2['InstanceId']}"
+            parameter = f"/{os.environ['ResourcePrefix']}carve-resources/vpc-endpoints/{vpc}/{ec2['InstanceId']}"
 
             if 'EC2 Instance Launch Successful' == message['detail-type']:
                 print(f"adding beacon to ssm: {ec2['InstanceId']} - {ec2['PrivateIpAddress']} - {ec2['SubnetId']}")
