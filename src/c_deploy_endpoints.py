@@ -171,9 +171,6 @@ def deployment_list(G, context):
     with open("managed_deployment/carve-vpc-stack.json") as f:
         template = json.load(f)
 
-    if not os.path.exists('my_folder'):
-
-
     for vpc in list(G.nodes):
 
         vpc_data = G.nodes().data()[vpc]
@@ -195,7 +192,7 @@ def deployment_list(G, context):
         vpc_template = deepcopy(template)
 
         # update the CFN template with 1 lambda function per subnet
-        for subnet in vpc['Subnets']:
+        for subnet in vpc_data['Subnets']:
             Function = deepcopy(vpc_template['Resources']['Function'])
             Function['Properties']['Environment']['Variables']['VpcSubnetIds'] = [subnet['SubnetId']]
             Function['Properties']['VpcConfig']['SubnetIds'] = [subnet['SubnetId']]
