@@ -26,10 +26,7 @@ aws s3 rm s3://$DEPLOYMENT_BUCKET/step_functions/ --recursive --exclude "${LATES
 echo "uploading state machine definitions to S3"
 aws s3 sync "$BUILDPATH/deployment/step_functions" s3://$DEPLOYMENT_BUCKET/step_functions/$GITSHA/
 
-# copy carve IAM template into deployment folder in lambda src
-cp "$BUILDPATH/deployment/carve-iam.cfn.yml" "$BUILDPATH/src/deployment/"
-
-# convert the VPC template to JSON
+# convert the VPC template to JSON for python import (CFN yaml is not valid yaml)
 cfn-flip "$BUILDPATH/src/managed_deployment/carve-vpc-stack.cfn.yml" \
     "$BUILDPATH/src/managed_deployment/carve-vpc-stack.cfn.json"
 
