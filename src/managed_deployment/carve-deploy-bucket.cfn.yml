@@ -6,6 +6,10 @@ Parameters:
     Type: String
     Description: AWS Organizations Id
     Default: ""
+  UniqueId:
+    Type: String
+    Description: A unique string for S3 buckets. If none, will use AWS Organizations Id
+    Default: ""
   ResourcePrefix:
     Type: String
     Description: "Prefix all carve resources with this"
@@ -19,7 +23,6 @@ Conditions:
   CoreRegion: !Equals 
     - !Ref "AWS::Region"
     - !Ref "CarveCoreRegion"
-
 
 Resources:
   CarveS3Bucket:
@@ -67,25 +70,3 @@ Resources:
       FunctionName: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ResourcePrefix}carve-${OrganizationsId}"
       Principal: s3.amazonaws.com
       SourceArn: !GetAtt CarveS3Bucket.Arn
-      # SourceArn: !Sub "arn:aws:s3:::${ResourcePrefix}carve-${OrganizationsId}-${AWS::Region}"
-
-
-
-
-  # SetupCarveBucket:
-  #   Type: Custom::SetupCarveBucket
-  #   Properties:
-  #     ServiceToken:  !GetAtt CarveFunction.Arn 
-  #     Bucket: !Ref CarveS3Bucket
-  #     DeployEventPath: deploy_input/
-  #     NotificationId: CarveDeploy
-
-
-  # DeleteStackCleanup:
-  #   # delete any associated carve endpoint stacks if this stack is deleted
-  #   Type: Custom::DeleteStackCleanup
-  #   Properties:
-  #     ServiceToken:  !GetAtt CarveFunction.Arn 
-  #     OrganizationsId: !Ref OrganizationsId
-  #     ResourcePrefix: !Ref ResourcePrefix
-  #     CarveS3Bucket: !Ref CarveS3Bucket

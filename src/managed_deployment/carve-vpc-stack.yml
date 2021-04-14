@@ -3,19 +3,19 @@ Description: Carve VPC Testing Endpoint
 
 Parameters:
   VpcId:
-    Type: "AWS::EC2::VPC::Id"
+    Type: String
     Description: VPC ID in which the VPC Endpoint should be created
-    Default: "vpc-0ffafac6841402ebb"
+    Default: ""
   VpcSubnetIds:
-    Type: "CommaDelimitedList<AWS::EC2::Subnet::Id>"
-    Description: one or more subnets in which to create endpoints
-    Default: "subnet-0d310df8338186b7f"
+    Type: String
+    Description: one or more comma separated subnets in which to create endpoints
+    Default: ""
   ResourcePrefix:
     Type: String
     Description: "Prefix all carve resources with this"
     Default: ""
   ImageId:
-    Type: 'String'
+    Type: String
     Description: The ImageId from the Carve imagebuilder
     Default: ''
   CarveSNSTopicArn:

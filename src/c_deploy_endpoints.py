@@ -32,6 +32,12 @@ def start_carve_deployment(event, context, key=False):
     regions = deploy_regions(G)
     deploy_buckets = []
 
+    key = "managed_deployment/carve-deploy-bucket.cfn.yml"
+    with open(key) as f:
+        template = f.read()
+
+    aws_put_direct(template, key)
+
     for r in regions:
         stackname = f"{os.environ['ResourcePrefix']}carve-managed-bucket-{r}"
         parameters = [
@@ -165,7 +171,7 @@ def deployment_list(G, context):
     # azs_ranked = az_rank(G)
 
     # create a list of deployment dicts
-    deployment_targets = []
+    deploy_beacons = []
     concurrent = len(list(G.nodes))
 
     with open("managed_deployment/carve-vpc-stack.json") as f:
@@ -174,6 +180,7 @@ def deployment_list(G, context):
     for vpc in list(G.nodes):
 
         vpc_data = G.nodes().data()[vpc]
+        print(vpc_data)
 
         # pretty sure I'm abandoning this logic... delete when sure
         #
@@ -192,12 +199,18 @@ def deployment_list(G, context):
         vpc_template = deepcopy(template)
 
         # update the CFN template with 1 lambda function per subnet
+        # create a list of subnets for CFN parameters
+        subnets = []
         for subnet in vpc_data['Subnets']:
             Function = deepcopy(vpc_template['Resources']['Function'])
-            Function['Properties']['Environment']['Variables']['VpcSubnetIds'] = [subnet['SubnetId']]
+            Function['Properties']['Environment']['Variables']['VpcSubnetIds'] = subnet['SubnetId']
             Function['Properties']['VpcConfig']['SubnetIds'] = [subnet['SubnetId']]
+
+            subnets.append(subnet['SubnetId'])
+
             name = f"Function{subnet['SubnetId'].split('-')[-1]}"
             vpc_template['Resources'][name] = deepcopy(Function)
+
 
         # remote template function
         del vpc_template['Resources']['Function']
@@ -212,24 +225,23 @@ def deployment_list(G, context):
         # need to paramaterize this as a choice
         all_subnets = False
         if all_subnets:
-            max_size = len(vpc['Subnets'])
+            max_size = len(vpc_data['Subnets'])
         else:
             max_size = 1
 
-        # add lambda stack first
-        target = {}
-        target['StackName'] = f"{os.environ['ResourcePrefix']}carve-managed-{vpc}"
-        target['Account'] = vpc_data['Account']
-        target['Region'] = vpc_data['Region']
-        target['Template'] = key
-        target['Parameters'] = [
+        stack = {}
+        stack['StackName'] = f"{os.environ['ResourcePrefix']}carve-managed-{vpc}"
+        stack['Account'] = vpc_data['Account']
+        stack['Region'] = vpc_data['Region']
+        stack['Template'] = key
+        stack['Parameters'] = [
           {
             "ParameterKey": "VpcId",
             "ParameterValue": vpc
           },
           {
             "ParameterKey": "VpcSubnetIds",
-            "ParameterValue": ','.join(vpc['Subnets'])
+            "ParameterValue": ','.join(subnets)
           },      
           {
             "ParameterKey": "ResourcePrefix",
@@ -245,14 +257,14 @@ def deployment_list(G, context):
           },
           {
             "ParameterKey": "MaxSize",
-            "ParameterValue": max_size
+            "ParameterValue": str(max_size)
           }
         ]
 
-        deployment_targets.append(target)
+        deploy_beacons.append(stack)
 
 
-    return deployment_targets
+    return deploy_beacons
 
 
 

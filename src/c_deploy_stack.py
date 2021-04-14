@@ -78,8 +78,10 @@ def sf_CreateChangeSet(event, context):
     region = payload['Region']
     parameters = payload['Parameters']
 
-    with open(payload['Template']) as f:
-        template = f.read()
+    # with open(payload['Template']) as f:
+    #     template = f.read()
+
+    template = aws_read_s3_direct(payload['Template'], current_region)
 
     credentials = aws_assume_role(carve_role_arn(account), f"carve-changeset-{region}")
 

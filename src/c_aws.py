@@ -442,9 +442,9 @@ def aws_read_s3_direct(key, region):
         return None
 
 def aws_put_direct(data, key, bucket=os.environ['CarveS3Bucket']):
-    resource = boto3.resource('s3', config=boto_config)
+    client = boto3.client('s3', config=boto_config)
     try:
-        response = s3.put_object(
+        response = client.put_object(
             Bucket=bucket,
             Body=data,
             Key=key)

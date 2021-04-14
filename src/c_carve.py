@@ -29,7 +29,7 @@ def execute_carve(event, context):
     print(f'beacons: {beacons}')
 
     # create a list of all monitored VPCs for testing
-    vpcs = []
+    subnets = []
     G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
     print('loaded graph')
     for vpc in list(G.nodes):
