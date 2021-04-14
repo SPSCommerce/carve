@@ -227,7 +227,7 @@ Resources:
               OutputArtifacts: []
               InputArtifacts:
                 - Name: GithubRepo
-            - Name: update-carve-endpoints
+            - Name: update-carve-managed-resources
               ActionTypeId:
                 Category: Invoke
                 Owner: AWS

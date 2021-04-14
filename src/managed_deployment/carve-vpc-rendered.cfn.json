@@ -1,0 +1,743 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Carve VPC Testing Endpoint",
+  "Outputs": {
+    "AutoScalingGroup": {
+      "Description": "The name of the AutoScaling Group",
+      "Value": {
+        "Ref": "AutoScalingGroup"
+      }
+    }
+  },
+  "Parameters": {
+    "BeaconTimeout": {
+      "Default": "1",
+      "Description": "Timeout in seconds for testing beacons",
+      "Type": "String"
+    },
+    "CarveSNSTopicArn": {
+      "Description": "Carve SNS Topic Arn",
+      "Type": "String"
+    },
+    "ImageId": {
+      "Default": "",
+      "Description": "The ImageId from the Carve imagebuilder",
+      "Type": "String"
+    },
+    "MaxSize": {
+      "Default": "1",
+      "Description": "Maximum number of instances in the ASG",
+      "Type": "Number"
+    },
+    "MinSize": {
+      "Default": "1",
+      "Description": "Minimum number of instances in the ASG",
+      "Type": "Number"
+    },
+    "ResourcePrefix": {
+      "Default": "",
+      "Description": "Prefix all carve resources with this",
+      "Type": "String"
+    },
+    "VpcId": {
+      "Default": "vpc-0ffafac6841402ebb",
+      "Description": "VPC ID in which the VPC Endpoint should be created",
+      "Type": "AWS::EC2::VPC::Id"
+    },
+    "VpcSubnetIds": {
+      "Default": "subnet-0d310df8338186b7f",
+      "Description": "one or more subnets in which to create endpoints",
+      "Type": "CommaDelimitedList<AWS::EC2::Subnet::Id>"
+    }
+  },
+  "Resources": {
+    "AutoScalingGroup": {
+      "Properties": {
+        "AutoScalingGroupName": {
+          "Fn::Sub": "${ResourcePrefix}carve-beacon-asg-${VpcId}"
+        },
+        "HealthCheckGracePeriod": "60",
+        "HealthCheckType": "EC2",
+        "LaunchConfigurationName": {
+          "Ref": "LaunchConfig"
+        },
+        "MaxSize": {
+          "Ref": "MaxSize"
+        },
+        "MetricsCollection": [
+          {
+            "Granularity": "1Minute"
+          }
+        ],
+        "MinSize": {
+          "Ref": "MinSize"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "PropagateAtLaunch": true,
+            "Value": {
+              "Fn::Sub": "${ResourcePrefix}carve-beacon-${VpcId}"
+            }
+          }
+        ],
+        "VPCZoneIdentifier": {
+          "Fn::Split": [
+            ",",
+            {
+              "Ref": "VpcSubnetIds"
+            }
+          ]
+        }
+      },
+      "Type": "AWS::AutoScaling::AutoScalingGroup"
+    },
+    "EventRule": {
+      "Properties": {
+        "Description": "ASG notifications to SNS",
+        "EventPattern": {
+          "detail": {
+            "AutoScalingGroupName": [
+              {
+                "Ref": "AutoScalingGroup"
+              }
+            ]
+          },
+          "detail-type": [
+            "EC2 Instance Terminate Successful",
+            "EC2 Instance Launch Successful"
+          ],
+          "source": [
+            "aws.autoscaling"
+          ]
+        },
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Ref": "CarveSNSTopicArn"
+            },
+            "Id": "SendSNStoCarve"
+          }
+        ]
+      },
+      "Type": "AWS::Events::Rule"
+    },
+    "Function001": {
+      "Properties": {
+        "Code": {
+          "ZipFile": "import concurrent.futures\nimport os\nimport time\nimport urllib3\n\ndef threaded_test(addr):\n    http = urllib3.PoolManager()\n    try:\n        r = http.request('GET', f'http://{addr}/up', timeout={os.environ['BeaconTimeout']})\n        if r.status == 200:\n            result = 'pass'\n        else:\n            result = 'fail'\n    except:\n        result = 'fail'\n    return {addr: result}\n\ndef lambda_handler(event, context):\n    if len(event) < 1:\n        print('no payload to test')\n        return None\n    else:\n        print(f'testing endpoints: {event}')\n    results = []\n    with concurrent.futures.ThreadPoolExecutor() as executor:\n        futures = []\n        for addr in event:\n            futures.append(executor.submit(threaded_test, addr=addr))\n        for future in concurrent.futures.as_completed(futures):\n            results.append(future.result())\n    print(results)\n    test_result = {f\"{os.environ[VpcSubnetId]}\": results}\n    return test_result\n"
+        },
+        "Description": "Continuous AWS Route Verification Engine",
+        "Environment": {
+          "Variables": {
+            "BeaconTimeout": {
+              "Ref": "BeaconTimeout"
+            },
+            "VpcId": "vpc-0011",
+            "VpcSubnetIds": [
+              "subnet-001"
+            ]
+          }
+        },
+        "FunctionName": "CarveSubnetFunction",
+        "Handler": "index.lambda_handler",
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "LambdaRole",
+            "Arn"
+          ]
+        },
+        "Runtime": "python3.8",
+        "Timeout": 20,
+        "VpcConfig": {
+          "SecurityGroupIds": [
+            {
+              "Ref": "LambdaSecurityGroup"
+            }
+          ],
+          "SubnetIds": [
+            "subnet-001"
+          ]
+        }
+      },
+      "Type": "AWS::Lambda::Function"
+    },
+    "Function002": {
+      "Properties": {
+        "Code": {
+          "ZipFile": "import concurrent.futures\nimport os\nimport time\nimport urllib3\n\ndef threaded_test(addr):\n    http = urllib3.PoolManager()\n    try:\n        r = http.request('GET', f'http://{addr}/up', timeout={os.environ['BeaconTimeout']})\n        if r.status == 200:\n            result = 'pass'\n        else:\n            result = 'fail'\n    except:\n        result = 'fail'\n    return {addr: result}\n\ndef lambda_handler(event, context):\n    if len(event) < 1:\n        print('no payload to test')\n        return None\n    else:\n        print(f'testing endpoints: {event}')\n    results = []\n    with concurrent.futures.ThreadPoolExecutor() as executor:\n        futures = []\n        for addr in event:\n            futures.append(executor.submit(threaded_test, addr=addr))\n        for future in concurrent.futures.as_completed(futures):\n            results.append(future.result())\n    print(results)\n    test_result = {f\"{os.environ[VpcSubnetId]}\": results}\n    return test_result\n"
+        },
+        "Description": "Continuous AWS Route Verification Engine",
+        "Environment": {
+          "Variables": {
+            "BeaconTimeout": {
+              "Ref": "BeaconTimeout"
+            },
+            "VpcId": "vpc-0012",
+            "VpcSubnetIds": [
+              "subnet-002"
+            ]
+          }
+        },
+        "FunctionName": "CarveSubnetFunction",
+        "Handler": "index.lambda_handler",
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "LambdaRole",
+            "Arn"
+          ]
+        },
+        "Runtime": "python3.8",
+        "Timeout": 20,
+        "VpcConfig": {
+          "SecurityGroupIds": [
+            {
+              "Ref": "LambdaSecurityGroup"
+            }
+          ],
+          "SubnetIds": [
+            "subnet-002"
+          ]
+        }
+      },
+      "Type": "AWS::Lambda::Function"
+    },
+    "Function003": {
+      "Properties": {
+        "Code": {
+          "ZipFile": "import concurrent.futures\nimport os\nimport time\nimport urllib3\n\ndef threaded_test(addr):\n    http = urllib3.PoolManager()\n    try:\n        r = http.request('GET', f'http://{addr}/up', timeout={os.environ['BeaconTimeout']})\n        if r.status == 200:\n            result = 'pass'\n        else:\n            result = 'fail'\n    except:\n        result = 'fail'\n    return {addr: result}\n\ndef lambda_handler(event, context):\n    if len(event) < 1:\n        print('no payload to test')\n        return None\n    else:\n        print(f'testing endpoints: {event}')\n    results = []\n    with concurrent.futures.ThreadPoolExecutor() as executor:\n        futures = []\n        for addr in event:\n            futures.append(executor.submit(threaded_test, addr=addr))\n        for future in concurrent.futures.as_completed(futures):\n            results.append(future.result())\n    print(results)\n    test_result = {f\"{os.environ[VpcSubnetId]}\": results}\n    return test_result\n"
+        },
+        "Description": "Continuous AWS Route Verification Engine",
+        "Environment": {
+          "Variables": {
+            "BeaconTimeout": {
+              "Ref": "BeaconTimeout"
+            },
+            "VpcId": "vpc-0013",
+            "VpcSubnetIds": [
+              "subnet-003"
+            ]
+          }
+        },
+        "FunctionName": "CarveSubnetFunction",
+        "Handler": "index.lambda_handler",
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "LambdaRole",
+            "Arn"
+          ]
+        },
+        "Runtime": "python3.8",
+        "Timeout": 20,
+        "VpcConfig": {
+          "SecurityGroupIds": [
+            {
+              "Ref": "LambdaSecurityGroup"
+            }
+          ],
+          "SubnetIds": [
+            "subnet-003"
+          ]
+        }
+      },
+      "Type": "AWS::Lambda::Function"
+    },
+    "InstanceProfile": {
+      "Properties": {
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "InstanceRole"
+          }
+        ]
+      },
+      "Type": "AWS::IAM::InstanceProfile"
+    },
+    "InstanceRole": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "sts:AssumeRole"
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "ec2.amazonaws.com"
+                ]
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/AmazonSSMManagedInstanceCore"
+          }
+        ],
+        "Path": "/",
+        "RoleName": {
+          "Fn::Sub": "${ResourcePrefix}carve-beacon-${VpcId}"
+        }
+      },
+      "Type": "AWS::IAM::Role"
+    },
+    "InstanceSecurityGroup": {
+      "Properties": {
+        "GroupDescription": "allow http healthcheck",
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": 80,
+            "IpProtocol": "tcp",
+            "ToPort": 80
+          }
+        ],
+        "VpcId": {
+          "Ref": "VpcId"
+        }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "LambdaRole": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "sts:AssumeRole"
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+        ],
+        "Path": "/"
+      },
+      "Type": "AWS::IAM::Role"
+    },
+    "LambdaSecurityGroup": {
+      "Properties": {
+        "GroupDescription": "Carve Lambda Egress",
+        "VpcId": {
+          "Ref": "VpcId"
+        }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "LaunchConfig": {
+      "Properties": {
+        "AssociatePublicIpAddress": "true",
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/xvda",
+            "Ebs": {
+              "DeleteOnTermination": "true",
+              "Encrypted": "true",
+              "VolumeSize": "8",
+              "VolumeType": "gp2"
+            }
+          }
+        ],
+        "IamInstanceProfile": {
+          "Ref": "InstanceProfile"
+        },
+        "ImageId": {
+          "Ref": "ImageId"
+        },
+        "InstanceMonitoring": "false",
+        "InstanceType": "t4g.nano",
+        "SecurityGroups": [
+          {
+            "Ref": "InstanceSecurityGroup"
+          }
+        ]
+      },
+      "Type": "AWS::AutoScaling::LaunchConfiguration"
+    }
+  }
+}{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Carve VPC Testing Endpoint",
+  "Outputs": {
+    "AutoScalingGroup": {
+      "Description": "The name of the AutoScaling Group",
+      "Value": {
+        "Ref": "AutoScalingGroup"
+      }
+    }
+  },
+  "Parameters": {
+    "BeaconTimeout": {
+      "Default": "1",
+      "Description": "Timeout in seconds for testing beacons",
+      "Type": "String"
+    },
+    "CarveSNSTopicArn": {
+      "Description": "Carve SNS Topic Arn",
+      "Type": "String"
+    },
+    "ImageId": {
+      "Default": "",
+      "Description": "The ImageId from the Carve imagebuilder",
+      "Type": "String"
+    },
+    "MaxSize": {
+      "Default": "1",
+      "Description": "Maximum number of instances in the ASG",
+      "Type": "Number"
+    },
+    "MinSize": {
+      "Default": "1",
+      "Description": "Minimum number of instances in the ASG",
+      "Type": "Number"
+    },
+    "ResourcePrefix": {
+      "Default": "",
+      "Description": "Prefix all carve resources with this",
+      "Type": "String"
+    },
+    "VpcId": {
+      "Default": "vpc-0ffafac6841402ebb",
+      "Description": "VPC ID in which the VPC Endpoint should be created",
+      "Type": "AWS::EC2::VPC::Id"
+    },
+    "VpcSubnetIds": {
+      "Default": "subnet-0d310df8338186b7f",
+      "Description": "one or more subnets in which to create endpoints",
+      "Type": "CommaDelimitedList<AWS::EC2::Subnet::Id>"
+    }
+  },
+  "Resources": {
+    "AutoScalingGroup": {
+      "Properties": {
+        "AutoScalingGroupName": {
+          "Fn::Sub": "${ResourcePrefix}carve-beacon-asg-${VpcId}"
+        },
+        "HealthCheckGracePeriod": "60",
+        "HealthCheckType": "EC2",
+        "LaunchConfigurationName": {
+          "Ref": "LaunchConfig"
+        },
+        "MaxSize": {
+          "Ref": "MaxSize"
+        },
+        "MetricsCollection": [
+          {
+            "Granularity": "1Minute"
+          }
+        ],
+        "MinSize": {
+          "Ref": "MinSize"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "PropagateAtLaunch": true,
+            "Value": {
+              "Fn::Sub": "${ResourcePrefix}carve-beacon-${VpcId}"
+            }
+          }
+        ],
+        "VPCZoneIdentifier": {
+          "Fn::Split": [
+            ",",
+            {
+              "Ref": "VpcSubnetIds"
+            }
+          ]
+        }
+      },
+      "Type": "AWS::AutoScaling::AutoScalingGroup"
+    },
+    "EventRule": {
+      "Properties": {
+        "Description": "ASG notifications to SNS",
+        "EventPattern": {
+          "detail": {
+            "AutoScalingGroupName": [
+              {
+                "Ref": "AutoScalingGroup"
+              }
+            ]
+          },
+          "detail-type": [
+            "EC2 Instance Terminate Successful",
+            "EC2 Instance Launch Successful"
+          ],
+          "source": [
+            "aws.autoscaling"
+          ]
+        },
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Ref": "CarveSNSTopicArn"
+            },
+            "Id": "SendSNStoCarve"
+          }
+        ]
+      },
+      "Type": "AWS::Events::Rule"
+    },
+    "Function001": {
+      "Properties": {
+        "Code": {
+          "ZipFile": "import concurrent.futures\nimport os\nimport time\nimport urllib3\n\ndef threaded_test(addr):\n    http = urllib3.PoolManager()\n    try:\n        r = http.request('GET', f'http://{addr}/up', timeout={os.environ['BeaconTimeout']})\n        if r.status == 200:\n            result = 'pass'\n        else:\n            result = 'fail'\n    except:\n        result = 'fail'\n    return {addr: result}\n\ndef lambda_handler(event, context):\n    if len(event) < 1:\n        print('no payload to test')\n        return None\n    else:\n        print(f'testing endpoints: {event}')\n    results = []\n    with concurrent.futures.ThreadPoolExecutor() as executor:\n        futures = []\n        for addr in event:\n            futures.append(executor.submit(threaded_test, addr=addr))\n        for future in concurrent.futures.as_completed(futures):\n            results.append(future.result())\n    print(results)\n    test_result = {f\"{os.environ[VpcSubnetId]}\": results}\n    return test_result\n"
+        },
+        "Description": "Continuous AWS Route Verification Engine",
+        "Environment": {
+          "Variables": {
+            "BeaconTimeout": {
+              "Ref": "BeaconTimeout"
+            },
+            "VpcId": "vpc-0011",
+            "VpcSubnetIds": [
+              "subnet-001"
+            ]
+          }
+        },
+        "FunctionName": "CarveSubnetFunction",
+        "Handler": "index.lambda_handler",
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "LambdaRole",
+            "Arn"
+          ]
+        },
+        "Runtime": "python3.8",
+        "Timeout": 20,
+        "VpcConfig": {
+          "SecurityGroupIds": [
+            {
+              "Ref": "LambdaSecurityGroup"
+            }
+          ],
+          "SubnetIds": [
+            "subnet-001"
+          ]
+        }
+      },
+      "Type": "AWS::Lambda::Function"
+    },
+    "Function002": {
+      "Properties": {
+        "Code": {
+          "ZipFile": "import concurrent.futures\nimport os\nimport time\nimport urllib3\n\ndef threaded_test(addr):\n    http = urllib3.PoolManager()\n    try:\n        r = http.request('GET', f'http://{addr}/up', timeout={os.environ['BeaconTimeout']})\n        if r.status == 200:\n            result = 'pass'\n        else:\n            result = 'fail'\n    except:\n        result = 'fail'\n    return {addr: result}\n\ndef lambda_handler(event, context):\n    if len(event) < 1:\n        print('no payload to test')\n        return None\n    else:\n        print(f'testing endpoints: {event}')\n    results = []\n    with concurrent.futures.ThreadPoolExecutor() as executor:\n        futures = []\n        for addr in event:\n            futures.append(executor.submit(threaded_test, addr=addr))\n        for future in concurrent.futures.as_completed(futures):\n            results.append(future.result())\n    print(results)\n    test_result = {f\"{os.environ[VpcSubnetId]}\": results}\n    return test_result\n"
+        },
+        "Description": "Continuous AWS Route Verification Engine",
+        "Environment": {
+          "Variables": {
+            "BeaconTimeout": {
+              "Ref": "BeaconTimeout"
+            },
+            "VpcId": "vpc-0012",
+            "VpcSubnetIds": [
+              "subnet-002"
+            ]
+          }
+        },
+        "FunctionName": "CarveSubnetFunction",
+        "Handler": "index.lambda_handler",
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "LambdaRole",
+            "Arn"
+          ]
+        },
+        "Runtime": "python3.8",
+        "Timeout": 20,
+        "VpcConfig": {
+          "SecurityGroupIds": [
+            {
+              "Ref": "LambdaSecurityGroup"
+            }
+          ],
+          "SubnetIds": [
+            "subnet-002"
+          ]
+        }
+      },
+      "Type": "AWS::Lambda::Function"
+    },
+    "Function003": {
+      "Properties": {
+        "Code": {
+          "ZipFile": "import concurrent.futures\nimport os\nimport time\nimport urllib3\n\ndef threaded_test(addr):\n    http = urllib3.PoolManager()\n    try:\n        r = http.request('GET', f'http://{addr}/up', timeout={os.environ['BeaconTimeout']})\n        if r.status == 200:\n            result = 'pass'\n        else:\n            result = 'fail'\n    except:\n        result = 'fail'\n    return {addr: result}\n\ndef lambda_handler(event, context):\n    if len(event) < 1:\n        print('no payload to test')\n        return None\n    else:\n        print(f'testing endpoints: {event}')\n    results = []\n    with concurrent.futures.ThreadPoolExecutor() as executor:\n        futures = []\n        for addr in event:\n            futures.append(executor.submit(threaded_test, addr=addr))\n        for future in concurrent.futures.as_completed(futures):\n            results.append(future.result())\n    print(results)\n    test_result = {f\"{os.environ[VpcSubnetId]}\": results}\n    return test_result\n"
+        },
+        "Description": "Continuous AWS Route Verification Engine",
+        "Environment": {
+          "Variables": {
+            "BeaconTimeout": {
+              "Ref": "BeaconTimeout"
+            },
+            "VpcId": "vpc-0013",
+            "VpcSubnetIds": [
+              "subnet-003"
+            ]
+          }
+        },
+        "FunctionName": "CarveSubnetFunction",
+        "Handler": "index.lambda_handler",
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "LambdaRole",
+            "Arn"
+          ]
+        },
+        "Runtime": "python3.8",
+        "Timeout": 20,
+        "VpcConfig": {
+          "SecurityGroupIds": [
+            {
+              "Ref": "LambdaSecurityGroup"
+            }
+          ],
+          "SubnetIds": [
+            "subnet-003"
+          ]
+        }
+      },
+      "Type": "AWS::Lambda::Function"
+    },
+    "InstanceProfile": {
+      "Properties": {
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "InstanceRole"
+          }
+        ]
+      },
+      "Type": "AWS::IAM::InstanceProfile"
+    },
+    "InstanceRole": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "sts:AssumeRole"
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "ec2.amazonaws.com"
+                ]
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/AmazonSSMManagedInstanceCore"
+          }
+        ],
+        "Path": "/",
+        "RoleName": {
+          "Fn::Sub": "${ResourcePrefix}carve-beacon-${VpcId}"
+        }
+      },
+      "Type": "AWS::IAM::Role"
+    },
+    "InstanceSecurityGroup": {
+      "Properties": {
+        "GroupDescription": "allow http healthcheck",
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": 80,
+            "IpProtocol": "tcp",
+            "ToPort": 80
+          }
+        ],
+        "VpcId": {
+          "Ref": "VpcId"
+        }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "LambdaRole": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "sts:AssumeRole"
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+        ],
+        "Path": "/"
+      },
+      "Type": "AWS::IAM::Role"
+    },
+    "LambdaSecurityGroup": {
+      "Properties": {
+        "GroupDescription": "Carve Lambda Egress",
+        "VpcId": {
+          "Ref": "VpcId"
+        }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "LaunchConfig": {
+      "Properties": {
+        "AssociatePublicIpAddress": "true",
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/xvda",
+            "Ebs": {
+              "DeleteOnTermination": "true",
+              "Encrypted": "true",
+              "VolumeSize": "8",
+              "VolumeType": "gp2"
+            }
+          }
+        ],
+        "IamInstanceProfile": {
+          "Ref": "InstanceProfile"
+        },
+        "ImageId": {
+          "Ref": "ImageId"
+        },
+        "InstanceMonitoring": "false",
+        "InstanceType": "t4g.nano",
+        "SecurityGroups": [
+          {
+            "Ref": "InstanceSecurityGroup"
+          }
+        ]
+      },
+      "Type": "AWS::AutoScaling::LaunchConfiguration"
+    }
+  }
+}

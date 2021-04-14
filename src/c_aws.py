@@ -441,6 +441,18 @@ def aws_read_s3_direct(key, region):
         print(f"error reading s3: {e}")
         return None
 
+def aws_put_direct(data, key, bucket=os.environ['CarveS3Bucket'])
+    resource = boto3.resource('s3', config=boto_config)
+    try:
+        response = s3.put_object(
+            Bucket=bucket,
+            Body=data,
+            Key=key)
+        return response
+    except ClientError as e:
+        print(f"error writing to s3: {e}")
+        return None
+
 
 def aws_copy_s3_object(key, target_key, source_bucket=os.environ['CarveS3Bucket'], target_bucket=os.environ['CarveS3Bucket']):
     resource = boto3.resource('s3', config=boto_config)

@@ -5,6 +5,9 @@ curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip
 unzip -q awscliv2.zip
 ./aws/install
 
+# install CFN flip to convert CFN YML to JSON 
+pip install cfn_flip
+
 ###
 ###  REPLACE LOGIC IMMEDIATELY BELOW BY DETERMINING GITSHA OF CURRENTLY DEPLOYED STACK INSTEAD
 ###
@@ -25,6 +28,10 @@ aws s3 sync "$BUILDPATH/deployment/step_functions" s3://$DEPLOYMENT_BUCKET/step_
 
 # copy carve IAM template into deployment folder in lambda src
 cp "$BUILDPATH/deployment/carve-iam.cfn.yml" "$BUILDPATH/src/deployment/"
+
+# convert the VPC template to JSON
+cfn-flip "$BUILDPATH/src/managed_deployment/carve-vpc-stack.cfn.yml" \
+    "$BUILDPATH/src/managed_deployment/carve-vpc-stack.cfn.json"
 
 # package lambda
 echo "packaging lambda"

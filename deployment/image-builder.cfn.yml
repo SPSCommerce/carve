@@ -142,7 +142,7 @@ Resources:
     Type: AWS::SSM::Parameter
     Properties:
       Description: Image Id for Carve
-      Name: !Sub /${ResourcePrefix}carve-resources/carve-endpoint-ami
+      Name: !Sub /${ResourcePrefix}carve-resources/carve-beacon-ami
       Type: String
       Value: !GetAtt CarveAMI.ImageId
 

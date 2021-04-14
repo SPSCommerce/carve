@@ -15,7 +15,7 @@ import concurrent.futures
 
 def execute_carve(event, context):
     # get all registered beacons from SSM
-    print('running carve')
+    print('running carve test')
 
     beacon_params = aws_ssm_get_parameters(f"/{os.environ['ResourcePrefix']}carve-resources/vpc-beacons/")
 
@@ -48,7 +48,6 @@ def execute_carve(event, context):
         for vpc in list(G.nodes):
             a = G.nodes().data()[vpc]['Account']
             r = G.nodes().data()[vpc]['Region']
-            print(f'adding test for {vpc}')
             futures.append(executor.submit(
                 aws_invoke_lambda,
                 arn=f"arn:aws:lambda:{r}:{a}:function:{p}carve-{vpc}",

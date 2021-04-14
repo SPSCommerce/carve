@@ -1,0 +1,104 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Carve VPC Lambda",
+    "Parameters": {
+        "VpcId": {
+            "Type": "AWS::EC2::VPC::Id",
+            "Description": "VpcId containing the VpcSubnetId"
+        },
+        "VpcSubnetId": {
+            "Type": "String",
+            "Description": "Subnet for lambda to run in",
+            "Default": "subnet-0d310df8338186b7f"
+        },
+        "ResourcePrefix": {
+            "Type": "String",
+            "Description": "Prefix all carve resources with this",
+            "Default": ""
+        },
+        "BeaconTimeout": {
+            "Type": "String",
+            "Description": "Timeout in seconds for testing beacons",
+            "Default": "1"
+        }
+    },
+    "Resources": {
+        "CarveFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "FunctionName": {
+                    "Fn::Sub": "${ResourcePrefix}carve-${VpcSubnetId}"
+                },
+                "Description": "Continuous AWS Route Verification Engine",
+                "Handler": "index.lambda_handler",
+                "Role": {
+                    "Fn::GetAtt": [
+                        "LambdaRole",
+                        "Arn"
+                    ]
+                },
+                "Runtime": "python3.8",
+                "Timeout": 20,
+                "MemorySize": 128,
+                "Environment": {
+                    "Variables": {
+                        "VpcSubnetId": "VpcSubnetId",
+                        "VpcId": "VpcId",
+                        "BeaconTimeout": {
+                            "Ref": "BeaconTimeout"
+                        }
+                    }
+                },
+                "VpcConfig": {
+                    "SecurityGroupIds": [
+                        {
+                            "Ref": "SecurityGroup"
+                        }
+                    ],
+                    "SubnetIds": [
+                        {
+                            "Ref": "VpcSubnetId"
+                        }
+                    ]
+                },
+                "Code": {
+                    "ZipFile": "import concurrent.futures\nimport os\nimport time\nimport urllib3\n\ndef threaded_test(addr):\n    http = urllib3.PoolManager()\n    try:\n        r = http.request('GET', f'http://{addr}/up', timeout={os.environ['BeaconTimeout']})\n        if r.status == 200:\n            result = 'pass'\n        else:\n            result = 'fail'\n    except:\n        result = 'fail'\n    return {addr: result}\n\ndef lambda_handler(event, context):\n    if len(event) < 1:\n        print('no payload to test')\n        return None\n    else:\n        print(f'testing endpoints: {event}')\n    results = []\n    with concurrent.futures.ThreadPoolExecutor() as executor:\n        futures = []\n        for addr in event:\n            futures.append(executor.submit(threaded_test, addr=addr))\n        for future in concurrent.futures.as_completed(futures):\n            results.append(future.result())\n    print(results)\n    test_result = {f\"{os.environ[VpcSubnetId]}\": results}\n    return test_result\n"
+                }
+            }
+        },
+        "LambdaRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "Path": "/",
+                "ManagedPolicyArns": [
+                    "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+                ],
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "lambda.amazonaws.com"
+                                ]
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                }
+            }
+        },
+        "SecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "VpcId"
+                },
+                "GroupDescription": "Carve Lambda Egress"
+            }
+        }
+    }
+}

@@ -28,9 +28,8 @@ def start_carve_deployment(event, context, key=False):
 
     print(f'deploying graph: {key}')
 
-    regions = deploy_regions(G)
-
     # create deploy buckets in all required regions for deployment files
+    regions = deploy_regions(G)
     deploy_buckets = []
 
     for r in regions:
@@ -127,10 +126,10 @@ def propagate_carve_ami(G):
     regions = deploy_regions(G)
 
     # all copies get the same time stamped name, use that to compare
-    source_image = aws_ssm_get_parameter(f"/{os.environ['ResourcePrefix']}carve-resources/carve-endpoint-ami")
+    source_image = aws_ssm_get_parameter(f"/{os.environ['ResourcePrefix']}carve-resources/carve-beacon-ami")
     source_name = aws_describe_image(source_image)['Name']
 
-    parameter = f"/{os.environ['ResourcePrefix']}carve-resources/carve-endpoint-ami"
+    parameter = f"/{os.environ['ResourcePrefix']}carve-resources/carve-beacon-ami"
 
     # threaded copy of all AMIs
     results = []
@@ -161,33 +160,71 @@ def deployment_list(G, context):
     ''' return a list of stacks to deploy 
         1 lambda and 1 EC2 instance per VPC
     '''
-    # create a ranking of AZ from most to least occuring
-    azs_ranked = az_rank(G)
+
+    # # create a ranking of AZ from most to least occuring
+    # azs_ranked = az_rank(G)
 
     # create a list of deployment dicts
     deployment_targets = []
     concurrent = len(list(G.nodes))
+
+    with open("managed_deployment/carve-vpc-stack.json") as f:
+        template = json.load(f)
+
+    if not os.path.exists('my_folder'):
+
+
     for vpc in list(G.nodes):
+
         vpc_data = G.nodes().data()[vpc]
 
+        # pretty sure I'm abandoning this logic... delete when sure
+        #
         # of available subnets, select the the highest ranked AZ for the region
         # this logic minimizes cross AZ traffic across the Org
-        s = False
-        subnet_id = ""
-        while not s:
-            for ranked_az in azs_ranked[vpc_data['Region']]:
-                for subnet in vpc_data['Subnets']:
-                    az = subnet['AvailabilityZoneId']
-                    if az == ranked_az[0]:
-                        subnet_id = subnet['SubnetId']
-                        s = True
+        # s = False
+        # subnet_id = ""
+        # while not s:
+        #     for ranked_az in azs_ranked[vpc_data['Region']]:
+        #         for subnet in vpc_data['Subnets']:
+        #             az = subnet['AvailabilityZoneId']
+        #             if az == ranked_az[0]:
+        #                 subnet_id = subnet['SubnetId']
+        #                 s = True
+
+        vpc_template = deepcopy(template)
+
+        # update the CFN template with 1 lambda function per subnet
+        for subnet in vpc['Subnets']:
+            Function = deepcopy(vpc_template['Resources']['Function'])
+            Function['Properties']['Environment']['Variables']['VpcSubnetIds'] = [subnet['SubnetId']]
+            Function['Properties']['VpcConfig']['SubnetIds'] = [subnet['SubnetId']]
+            name = f"Function{subnet['SubnetId'].split('-')[-1]}"
+            vpc_template['Resources'][name] = deepcopy(Function)
+
+        # remote template function
+        del vpc_template['Resources']['Function']
+
+        # push template to s3
+        key = f"managed_deployment/{vpc}.cfn.json"
+        data = json.dumps(vpc_template, ensure_ascii=True, indent=2, sort_keys=True)
+        aws_put_direct(data, key)
+    
+        image_id = aws_ssm_get_parameter(f"/{os.environ['ResourcePrefix']}carve-resources/carve-beacon-ami", region=vpc_data['Region'])
+
+        # need to paramaterize this as a choice
+        all_subnets = False
+        if all_subnets:
+            max_size = len(vpc['Subnets'])
+        else:
+            max_size = 1
 
         # add lambda stack first
         target = {}
-        target['StackName'] = f"{os.environ['ResourcePrefix']}carve-managed-lambda-{vpc}"
+        target['StackName'] = f"{os.environ['ResourcePrefix']}carve-managed-{vpc}"
         target['Account'] = vpc_data['Account']
         target['Region'] = vpc_data['Region']
-        target['Template'] = "managed_deployment/carve-vpc-lambda.cfn.yml"
+        target['Template'] = key
         target['Parameters'] = [
           {
             "ParameterKey": "VpcId",
@@ -195,30 +232,7 @@ def deployment_list(G, context):
           },
           {
             "ParameterKey": "VpcSubnetIds",
-            "ParameterValue": subnet_id
-          },
-          {
-            "ParameterKey": "ResourcePrefix",
-            "ParameterValue": os.environ['ResourcePrefix']
-          }
-        ]
-
-        deployment_targets.append(target)
-
-        # add ec2 stack next
-        target = {}
-        target['StackName'] = f"{os.environ['ResourcePrefix']}carve-managed-beacon-{vpc}"
-        target['Account'] = vpc_data['Account']
-        target['Region'] = vpc_data['Region']
-        target['Template'] = "managed_deployment/carve-vpc-beacon.cfn.yml"
-        target['Parameters'] = [
-          {
-            "ParameterKey": "VpcId",
-            "ParameterValue": vpc
-          },
-          {
-            "ParameterKey": "VpcSubnetIds",
-            "ParameterValue": subnet_id
+            "ParameterValue": ','.join(vpc['Subnets'])
           },      
           {
             "ParameterKey": "ResourcePrefix",
@@ -226,11 +240,15 @@ def deployment_list(G, context):
           },
           {
             "ParameterKey": "ImageId",
-            "ParameterValue": aws_ssm_get_parameter(f"/{os.environ['ResourcePrefix']}carve-resources/carve-endpoint-ami", region=vpc_data['Region'])
+            "ParameterValue": image_id
           },
           {
             "ParameterKey": "CarveSNSTopicArn",
             "ParameterValue": os.environ['CarveSNSTopicArn']
+          },
+          {
+            "ParameterKey": "MaxSize",
+            "ParameterValue": max_size
           }
         ]
 
@@ -241,29 +259,29 @@ def deployment_list(G, context):
 
 
 
-def az_rank(G):
-    # sort all AZs in graph by most to least used per region
-    # returns regions with sorted list of AZs = {<region>: [<az>, <az>, <az>]}
+# def az_rank(G):
+#     # sort all AZs in graph by most to least used per region
+#     # returns regions with sorted list of AZs = {<region>: [<az>, <az>, <az>]}
 
-    ### really need other criteria options here... first would be subnets with IGW, then maybe tags?
-    regions = {}
-    for vpc in list(G.nodes):
-        region = G.nodes().data()[vpc]['Region']
-        for subnet in G.nodes().data()[vpc]['Subnets']:
-            az = subnet['AvailabilityZoneId']
-            if region not in regions:
-                regions[region] = {az: 1}
-            else:
-                if az in regions[region].keys():
-                    regions[region][az] = regions[region][az] + 1
-                else:
-                    regions[region][az] = 1
+#     ### really need other criteria options here... first would be subnets with IGW, then maybe tags?
+#     regions = {}
+#     for vpc in list(G.nodes):
+#         region = G.nodes().data()[vpc]['Region']
+#         for subnet in G.nodes().data()[vpc]['Subnets']:
+#             az = subnet['AvailabilityZoneId']
+#             if region not in regions:
+#                 regions[region] = {az: 1}
+#             else:
+#                 if az in regions[region].keys():
+#                     regions[region][az] = regions[region][az] + 1
+#                 else:
+#                     regions[region][az] = 1
 
-    sorted_regions = {}
-    for region, azs in regions.items():
-        sorted_regions[region] = sorted(regions[region].items(), key=lambda x: x[1], reverse=True)
+#     sorted_regions = {}
+#     for region, azs in regions.items():
+#         sorted_regions[region] = sorted(regions[region].items(), key=lambda x: x[1], reverse=True)
 
-    return sorted_regions
+#     return sorted_regions
 
 
 

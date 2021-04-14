@@ -4,41 +4,52 @@ Description: Carve VPC Lambda
 Parameters:
   VpcId:
     Type: "AWS::EC2::VPC::Id"
-    Description: VPC ID in which the VPC Endpoint should be created
-  VpcSubnetIds:
-    Type: "CommaDelimitedList<AWS::EC2::Subnet::Id>"
-    Description: one subnet in which to create endpoints
+    Description: VpcId containing the VpcSubnetId
+  VpcSubnetId:
+    Type: "String"
+    Description: Subnet for lambda to run in
     Default: "subnet-0d310df8338186b7f"
   ResourcePrefix:
     Type: String
     Description: "Prefix all carve resources with this"
     Default: ""
+  BeaconTimeout:
+    Type: String
+    Description: Timeout in seconds for testing beacons
+    Default: "1"
 
 Resources:
   CarveFunction:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Sub "${ResourcePrefix}carve-${VpcId}"
+      FunctionName: !Sub "${ResourcePrefix}carve-${VpcSubnetId}"
       Description: Continuous AWS Route Verification Engine
       Handler: index.lambda_handler
       Role: !GetAtt LambdaRole.Arn
       Runtime: python3.8
       Timeout: 20
       MemorySize: 128
+      Environment:
+        Variables:
+          VpcSubnetId: !Ref VpcSubnetId
+          VpcId: !Ref VpcId
+          BeaconTimeout: !Ref BeaconTimeout
       VpcConfig :
         SecurityGroupIds:
           - !Ref SecurityGroup
-        SubnetIds: !Split [ ",", !Ref VpcSubnetIds ]
+        SubnetIds: 
+          - !Ref VpcSubnetId
       Code: 
-        ZipFile: !Sub |
+        ZipFile: |
           import concurrent.futures
+          import os
           import time
           import urllib3
 
           def threaded_test(addr):
               http = urllib3.PoolManager()
               try:
-                  r = http.request('GET', f'http://{addr}/up', timeout=1)
+                  r = http.request('GET', f'http://{addr}/up', timeout={os.environ['BeaconTimeout']})
                   if r.status == 200:
                       result = 'pass'
                   else:
@@ -61,7 +72,7 @@ Resources:
                   for future in concurrent.futures.as_completed(futures):
                       results.append(future.result())
               print(results)
-              test_result = {${VpcId}: results}
+              test_result = {f"{os.environ[VpcSubnetId]}": results}
               return test_result
 
   LambdaRole:
@@ -84,6 +95,6 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId: !Ref VpcId
-      GroupDescription: Egress
+      GroupDescription: Carve Lambda Egress
 
 

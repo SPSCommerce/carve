@@ -39,7 +39,7 @@ def lambda_handler(event, context):
         if 'Sns' in event['Records'][0]:
             print(f"TRIGGERED by SNS: {event['Records'][0]['EventSubscriptionArn']}")
             message = json.loads(event['Records'][0]['Sns']['Message'])
-            print(message)
+            # print(message)
             if 'source' in message:
                 if message['source'] == 'aws.autoscaling':
                     asg_event(message)
