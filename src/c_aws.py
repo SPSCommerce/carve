@@ -17,7 +17,8 @@ def get_credentials_using_arn(arn):
     account = arn.split(':')[4]
     role_name = f"{os.environ['ResourcePrefix']}carve-lambda-{os.environ['OrganizationsId']}"
     role = f"arn:aws:iam::{account}:role/{role_name}"
-    credentials = aws_assume_role(role, arn.split(':')[-1])
+    session_name = "carve-network-test"
+    credentials = aws_assume_role(role, session_name)
     return credentials
 
 
@@ -424,13 +425,21 @@ def aws_find_stacks(startswith, region, credentials):
         aws_secret_access_key = credentials['SecretAccessKey'],
         aws_session_token = credentials['SessionToken']
         )
-    paginator = client.get_paginator('list_stacks')
+
+    sfilter = [
+        'CREATE_FAILED', 'CREATE_COMPLETE', 'ROLLBACK_IN_PROGRESS',
+        'ROLLBACK_FAILED', 'ROLLBACK_COMPLETE', 'DELETE_FAILED', 
+        'UPDATE_IN_PROGRESS', 'UPDATE_COMPLETE_CLEANUP_IN_PROGRESS',
+        'UPDATE_COMPLETE', 'UPDATE_ROLLBACK_IN_PROGRESS', 'UPDATE_ROLLBACK_FAILED',
+        'UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS', 'UPDATE_ROLLBACK_COMPLETE'
+    ]
+
+    paginator = client.get_paginator('list_stacks', StackStatusFilter=sfilter)
     stacks = []
     for page in paginator.paginate():
         for stack in page['StackSummaries']:
             if stack['StackName'].startswith(startswith):
-                if stack['StackStatus'] != 'DELETE_COMPLETE':
-                    stacks.append(stack)
+                stacks.append(stack)
     return stacks
 
 

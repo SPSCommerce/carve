@@ -90,7 +90,7 @@ Resources:
                   for future in concurrent.futures.as_completed(futures):
                       results.append(future.result())
               print(results)
-              test_result = {f"{os.environ[VpcSubnetId]}": results}
+              test_result = {f"{os.environ[VpcSubnetIds]}": results}
               return test_result
 
   LambdaRole:

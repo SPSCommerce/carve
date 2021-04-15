@@ -36,30 +36,37 @@ def execute_carve(event, context):
     print(f'beacons: {beacons}')
 
     # create a list of all monitored VPCs for testing
-    subnets = []
     G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
     print('loaded graph')
-    for vpc in list(G.nodes):
-        vpcs.append({
-            'vpc': vpc,
-            'account': G.nodes().data()[vpc]['Account'],
-            'region': G.nodes().data()[vpc]['Region']})
 
-    print(f'vpcs: {vpcs}')
+    subnets = []
+    for vpc in list(G.nodes):
+        for subnet in G.nodes().data()[vpc]['Subnets']:
+            subnets.append({
+                'subnet': subnet['SubnetId'],
+                'account': G.nodes().data()[vpc]['Account'],
+                'region': G.nodes().data()[vpc]['Region']
+                })
+
+    print(f'subnets: {subnets}')
 
     results = []
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = []
         p = os.environ['ResourcePrefix']
 
-        for vpc in list(G.nodes):
-            a = G.nodes().data()[vpc]['Account']
-            r = G.nodes().data()[vpc]['Region']
+        # for vpc in list(G.nodes):
+
+        #     a = G.nodes().data()[vpc]['Account']
+        #     r = G.nodes().data()[vpc]['Region']
+
+        for subnet in subnets:
+
             futures.append(executor.submit(
                 aws_invoke_lambda,
-                arn=f"arn:aws:lambda:{r}:{a}:function:{p}carve-{vpc}",
+                arn=f"arn:aws:lambda:{subnet['region']}:{subnet['account']}:function:{p}carve-{subnet['subnet']}",
                 payload=beacons,
-                region=r,
+                region=subnet['region'],
                 credentials=None))
 
         for future in concurrent.futures.as_completed(futures):
@@ -98,7 +105,7 @@ def asg_event(message):
         credentials = aws_assume_role(carve_role_arn(message['account']), f"event-{message['detail']['AutoScalingGroupName']}")
 
         # get instance metadata from account and update SSM
-        ec2 = aws_describe_instances(instance_id, message['region'], credentials)[0]
+        ec2 = aws_describe_instances([instance_id], message['region'], credentials)[0]
 
         parameter = f"/{os.environ['ResourcePrefix']}carve-resources/vpc-beacons/{vpc}/{ec2['InstanceId']}"
 
