@@ -64,13 +64,16 @@ Resources:
           def threaded_test(addr):
               http = urllib3.PoolManager()
               try:
+                  a = time.perf_counter()
                   r = http.request('GET', f'http://{addr}/up', timeout={os.environ['BeaconTimeout']})
+                  b = time.perf_counter()
+                  elapsed = b - a
                   if r.status == 200:
-                      result = 'pass'
+                      result = elapsed
                   else:
-                      result = 'fail'
+                      result = 0
               except:
-                  result = 'fail'
+                  result = 0
               return {addr: result}
 
           def lambda_handler(event, context):

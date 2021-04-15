@@ -429,7 +429,8 @@ def aws_find_stacks(startswith, region, credentials):
     for page in paginator.paginate():
         for stack in page['StackSummaries']:
             if stack['StackName'].startswith(startswith):
-                stacks.append(stack)
+                if stack['StackStatus'] != 'DELETE_COMPLETE':
+                    stacks.append(stack)
     return stacks
 
 
