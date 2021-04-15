@@ -174,13 +174,12 @@ def deployment_list(G, context):
     deploy_beacons = []
     concurrent = len(list(G.nodes))
 
-    with open("managed_deployment/carve-vpc-stack.json") as f:
+    with open("managed_deployment/carve-vpc-stack.cfn.json") as f:
         template = json.load(f)
 
     for vpc in list(G.nodes):
 
         vpc_data = G.nodes().data()[vpc]
-        print(vpc_data)
 
         # pretty sure I'm abandoning this logic... delete when sure
         #
@@ -203,6 +202,7 @@ def deployment_list(G, context):
         subnets = []
         for subnet in vpc_data['Subnets']:
             Function = deepcopy(vpc_template['Resources']['Function'])
+            Function['Properties']['FunctionName'] = f"{os.environ['ResourcePrefix']}carve-{subnet['SubnetId']}"
             Function['Properties']['Environment']['Variables']['VpcSubnetIds'] = subnet['SubnetId']
             Function['Properties']['VpcConfig']['SubnetIds'] = [subnet['SubnetId']]
 
@@ -210,7 +210,6 @@ def deployment_list(G, context):
 
             name = f"Function{subnet['SubnetId'].split('-')[-1]}"
             vpc_template['Resources'][name] = deepcopy(Function)
-
 
         # remote template function
         del vpc_template['Resources']['Function']

@@ -214,6 +214,21 @@ def aws_describe_instances(instances, region, credentials):
     return results
 
 
+def aws_rename_instance(instance, name, region, credentials):
+    client = boto3.client(
+        'ec2',
+        config=boto_config,
+        region_name=region,
+        aws_access_key_id = credentials['AccessKeyId'],
+        aws_secret_access_key = credentials['SecretAccessKey'],
+        aws_session_token = credentials['SessionToken']
+    )
+    response = client.create_tags(
+        Resources=[instance],
+        Tags=[{'Key': 'Name', 'Value': name}]
+    )
+
+
 def aws_describe_transit_gateways(region, credentials):
     client = boto3.client(
         'ec2',
@@ -649,7 +664,7 @@ def aws_describe_peers(region, credentials):
     return pcxs
 
 
-def aws_describe_subnets(region, credentials, account_id):
+def aws_describe_subnets(region, credentials, account_id, subnet_id=None):
     client = boto3.client(
         'ec2',
         config=boto_config,
@@ -659,7 +674,10 @@ def aws_describe_subnets(region, credentials, account_id):
         aws_session_token = credentials['SessionToken']
         )
     try:
-        paginator = client.get_paginator('describe_subnets')
+        if subnet_id is None:
+            paginator = client.get_paginator('describe_subnets')
+        else:
+            paginator = client.get_paginator('describe_subnets', SubnetIds=[subnet_id])
         subnets = []
         for page in paginator.paginate():
             for subnet in page['Subnets']:

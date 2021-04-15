@@ -1,0 +1,211 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Carve VPC Testing Endpoint
+
+Parameters:
+  VpcId:
+    Type: String
+    Description: VPC ID in which the VPC Endpoint should be created
+    Default: ""
+  VpcSubnetIds:
+    Type: String
+    Description: one or more comma separated subnets in which to create endpoints
+    Default: ""
+  ResourcePrefix:
+    Type: String
+    Description: "Prefix all carve resources with this"
+    Default: ""
+  ImageId:
+    Type: String
+    Description: The ImageId from the Carve imagebuilder
+    Default: ''
+  CarveSNSTopicArn:
+    Type: String
+    Description: Carve SNS Topic Arn
+  MinSize:
+    Description: Minimum number of instances in the ASG
+    Type: Number
+    Default: '1'
+  MaxSize:
+    Description: Maximum number of instances in the ASG
+    Type: Number
+    Default: '1'
+  BeaconTimeout:
+    Type: String
+    Description: Timeout in seconds for testing beacons
+    Default: "1"
+
+Resources:
+  Function:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: CarveSubnetFunction
+      Description: Continuous AWS Route Verification Engine
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: python3.8
+      Timeout: 20
+      MemorySize: 128
+      Environment:
+        Variables:
+          VpcSubnetIds: !Ref VpcSubnetIds
+          VpcId: !Ref VpcId
+          BeaconTimeout: !Ref BeaconTimeout
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroup
+        SubnetIds: !Split [ ",", !Ref VpcSubnetIds ]
+      Code: 
+        ZipFile: |
+          import concurrent.futures
+          import os
+          import time
+          import urllib3
+
+          def threaded_test(addr):
+              http = urllib3.PoolManager()
+              try:
+                  a = time.perf_counter()
+                  r = http.request('GET', f'http://{addr}/up', timeout={os.environ['BeaconTimeout']})
+                  b = time.perf_counter()
+                  elapsed = b - a
+                  if r.status == 200:
+                      result = elapsed
+                  else:
+                      result = 0
+              except:
+                  result = 0
+              return {addr: result}
+
+          def lambda_handler(event, context):
+              if len(event) < 1:
+                  print('no payload to test')
+                  return None
+              else:
+                  print(f'testing endpoints: {event}')
+              results = []
+              with concurrent.futures.ThreadPoolExecutor() as executor:
+                  futures = []
+                  for addr in event:
+                      futures.append(executor.submit(threaded_test, addr=addr))
+                  for future in concurrent.futures.as_completed(futures):
+                      results.append(future.result())
+              print(results)
+              test_result = {f"{os.environ[VpcSubnetId]}": results}
+              return test_result
+
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: "Allow"
+          Principal:
+            Service:
+              - "lambda.amazonaws.com"
+          Action:
+            - "sts:AssumeRole"
+
+  LambdaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VpcId
+      GroupDescription: Carve Lambda Egress
+
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: !Sub ${ResourcePrefix}carve-beacon-asg-${VpcId}
+      LaunchConfigurationName: !Ref LaunchConfig
+      VPCZoneIdentifier: !Split [ ",", !Ref VpcSubnetIds ]
+      HealthCheckGracePeriod: '60'
+      HealthCheckType: EC2
+      MinSize: !Ref MinSize
+      MaxSize: !Ref MaxSize
+      MetricsCollection:
+        - Granularity: 1Minute
+      Tags:
+        - Key: Name
+          Value: !Sub ${ResourcePrefix}carve-beacon-${VpcId}
+          PropagateAtLaunch: true
+
+  LaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      AssociatePublicIpAddress: 'true'
+      SecurityGroups:
+        - !Ref 'InstanceSecurityGroup'
+      IamInstanceProfile: !Ref 'InstanceProfile'
+      ImageId: !Ref 'ImageId'
+      InstanceMonitoring: 'false'
+      InstanceType: t4g.nano
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeType: gp2
+            VolumeSize: '8'
+            DeleteOnTermination: 'true'
+            Encrypted: 'true'
+
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VpcId
+      GroupDescription: allow http healthcheck
+      SecurityGroupIngress:
+        -
+          IpProtocol: "tcp"
+          FromPort: 80
+          ToPort: 80
+          CidrIp: "0.0.0.0/0"
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles:
+        - !Ref 'InstanceRole'
+
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ResourcePrefix}carve-beacon-${VpcId}"
+      Path: /
+      ManagedPolicyArns:
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonSSMManagedInstanceCore
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: "Allow"
+          Principal:
+            Service:
+              - "ec2.amazonaws.com"
+          Action:
+            - "sts:AssumeRole"
+
+  EventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "ASG notifications to SNS"
+      EventPattern: 
+        source:
+          - "aws.autoscaling"
+        detail-type:
+          - "EC2 Instance Terminate Successful"
+          - "EC2 Instance Launch Successful"
+        detail:
+          AutoScalingGroupName:
+            - !Ref 'AutoScalingGroup'
+      State: "ENABLED"
+      Targets:
+        - Id: "SendSNStoCarve"
+          Arn: !Ref CarveSNSTopicArn
+  
+Outputs:
+  AutoScalingGroup:
+    Description: The name of the AutoScaling Group
+    Value: !Ref 'AutoScalingGroup'
+

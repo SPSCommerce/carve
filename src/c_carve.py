@@ -12,6 +12,13 @@ import concurrent.futures
 # from pprint import pprint
 
 
+# how do you want to orchestrate tests?
+# maybe a StepFunction per lambda?
+# could start step func by assume role from core
+# step function sends back SNS?
+# works cross account and region, but need to track results for failure
+# look at event bridge https://dashbird.io/blog/cutting-step-functions-costs-on-enterprise-scale-workflows/
+
 
 def execute_carve(event, context):
     # get all registered beacons from SSM
@@ -82,28 +89,37 @@ def asg_event(message):
         print(f"TRIGGERED by ASG: {message['detail']['AutoScalingGroupName']}")
 
         # get insances from event data
-        instances = []
+        instance_id = ""
         for resource in message['resources']:
             if resource.startswith("arn:aws:ec2"):
-                instances.append(resource.split('/')[1])
+                instance_id = resource.split('/')[1]
 
         vpc = message['detail']['AutoScalingGroupName'].split(f"{os.environ['ResourcePrefix']}carve-beacon-asg-")[-1]
         credentials = aws_assume_role(carve_role_arn(message['account']), f"event-{message['detail']['AutoScalingGroupName']}")
 
         # get instance metadata from account and update SSM
-        for ec2 in aws_describe_instances(instances, message['region'], credentials):
+        ec2 = aws_describe_instances(instance_id, message['region'], credentials)[0]
 
-            parameter = f"/{os.environ['ResourcePrefix']}carve-resources/vpc-beacons/{vpc}/{ec2['InstanceId']}"
+        parameter = f"/{os.environ['ResourcePrefix']}carve-resources/vpc-beacons/{vpc}/{ec2['InstanceId']}"
 
-            if 'EC2 Instance Launch Successful' == message['detail-type']:
-                print(f"adding beacon to ssm: {ec2['InstanceId']} - {ec2['PrivateIpAddress']} - {ec2['SubnetId']}")
-                beacon = {ec2['PrivateIpAddress']: ec2['SubnetId']}
-                aws_ssm_put_parameter(parameter, json.dumps(beacon))
+        if 'EC2 Instance Launch Successful' == message['detail-type']:
 
-            elif 'EC2 Instance Terminate Successful' == message['detail-type']:
-                print(f"removing beacon from ssm: {parameter}")
-                aws_ssm_delete_parameter(parameter)
+            # add to SSM
+            print(f"adding beacon to ssm: {instance_id} - {ec2['PrivateIpAddress']} - {ec2['SubnetId']}")
+            beacon = {ec2['PrivateIpAddress']: ec2['SubnetId']}
+            aws_ssm_put_parameter(parameter, json.dumps(beacon))
 
+            # add azid code to end of instance name
+            subnet = aws_describe_subnets(message['region'], credentials, message['account'], ec2['SubnetId'])[0]
+            az = subnet['AvailabilityZoneId'].split('-')[-1]
+            name = f"{os.environ['ResourcePrefix']}carve-beacon-{vpc}-{az}"
+            aws_rename_instance(ec2['InstanceId'], name, region, credentials)
+
+        elif 'EC2 Instance Terminate Successful' == message['detail-type']:
+
+            # remove from SSM
+            print(f"removing beacon from ssm: {parameter}")
+            aws_ssm_delete_parameter(parameter)
 
 
 def carve_role_arn(account):
@@ -111,31 +127,6 @@ def carve_role_arn(account):
     role_name = f"{os.environ['ResourcePrefix']}carve-lambda-{os.environ['OrganizationsId']}"
     role = f"arn:aws:iam::{account}:role/{role_name}"
     return role
-
-
-# how do you want to orchestrate tests?
-# maybe a StepFunction per lambda?
-# could start step func by assume role from core
-# step function sends back SNS?
-# works cross account and region
-# look at event bridge https://dashbird.io/blog/cutting-step-functions-costs-on-enterprise-scale-workflows/
-
-
-# def run_test(G, c_context):
-#     targets = []
-#     for edge in list(G.edges):
-#         # edge example:  ('vpc-id', 'vpc-id')
-#         if c_context['VpcId'] in edge:
-#             for v in edge:
-#                 if v != c_context['VpcId']:
-#                     targets.append(str(v))
-#     # get values
-#     for target in targets:
-#         PrivateEndpoint = G.nodes[target]['PrivateEndpoint']
-#         ApiGatewayUrl = G.nodes[target]['ApiGatewayUrl']
-#         # do some cool shit
-    
-#     print(targets)
 
 
 def network_diff(A, B):
