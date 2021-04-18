@@ -1,8 +1,8 @@
-"/carve/socket_server.py":
+"/carve/updater.py":
   mode: "000644"
   owner: "root"
   group: "root"
-  content: !Sub |
+  content: |
     import os
     import socket
     import json

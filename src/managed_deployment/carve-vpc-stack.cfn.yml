@@ -151,11 +151,11 @@ Resources:
               Name: AWS::Include
               Parameters:
                 Location: s3://a-carve-managed-bucket-o-dvdaw54vmt-us-east-1/managed_deployment/carve-config.json
-            # get the socket server snippet from S3
+            # get the carve update python snippet from S3
             Fn::Transform:
               Name: AWS::Include
               Parameters:
-                Location: s3://a-carve-managed-bucket-o-dvdaw54vmt-us-east-1/managed_deployment/socket-server.yml
+                Location: s3://a-carve-managed-bucket-o-dvdaw54vmt-us-east-1/managed_deployment/carve-updater.yml
             # The cfn-hup.conf file stores the name of the stack and the AWS credentials that the cfn-hup daemon targets.
             "/etc/cfn/cfn-hup.conf":
               content: !Sub |
@@ -213,8 +213,8 @@ Resources:
             chmod a+x /carve/carve.sh
             # run carve script continuous in the background
             /carve/carve.sh &
-            # start socket server to receive beacon address updates
-            docker run -d --restart unless-stopped --name socket_server -p 8008:8008 -v "/carve:/carve" -w /carve python:slim python socket_server.py
+            # start update server to receive beacon address updates
+            docker run -d --restart unless-stopped --name updater -p 8008:8008 -v "/carve:/carve" -w /carve python:slim python updater.py
             # All done so signal success
             /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource LaunchConfig --region ${AWS::Region} || echo 'cfn-signal error - stack is probably complete'
 

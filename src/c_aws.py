@@ -445,7 +445,7 @@ def aws_find_stacks(startswith, region, credentials):
 
 def aws_asg_instances(asg, region, credentials):
     client = boto3.client(
-        'autoscaling'
+        'autoscaling',
         config=boto_config,
         region_name=region,
         aws_access_key_id = credentials['AccessKeyId'],

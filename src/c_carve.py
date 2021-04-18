@@ -31,7 +31,7 @@ def carve_results(event, context):
                 aws_invoke_lambda,
                 arn=f"arn:aws:lambda:{subnet['region']}:{subnet['account']}:function:{p}carve-{subnet['subnet']}",
                 payload={
-                    'action': 'results'
+                    'action': 'results',
                     'beacon': subnet['beacon']
                     },
                 region=subnet['region'],
@@ -67,7 +67,7 @@ def get_subnet_beacons():
             if subnet['SubnetId'] in subnet_beacons:
                 subnets.append({
                     'subnet': subnet['SubnetId'],
-                    'beacon': subnet_beacons[subnet['SubnetId']]
+                    'beacon': subnet_beacons[subnet['SubnetId']],
                     'account': G.nodes().data()[vpc]['Account'],
                     'region': G.nodes().data()[vpc]['Region']
                     })
@@ -148,7 +148,7 @@ def update_carve_beacons():
                 aws_invoke_lambda,
                 arn=f"arn:aws:lambda:{subnet['region']}:{subnet['account']}:function:{p}carve-{subnet['subnet']}",
                 payload={
-                    'action': 'update'
+                    'action': 'update',
                     'beacon': subnet_beacons[subnet['subnet']],
                     'beacons': ','.join(beacons)
                     },

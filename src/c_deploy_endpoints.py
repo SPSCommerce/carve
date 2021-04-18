@@ -106,7 +106,7 @@ def sf_DeployPrep(event, context):
 
     for r in regions:
         bucket=f"{os.environ['ResourcePrefix']}carve-managed-bucket-{os.environ['OrganizationsId']}-{r}"
-        aws_s3_upload('managed_deployment/socket-server.yml', bucket=bucket)
+        aws_s3_upload('managed_deployment/carve-updater.yml', bucket=bucket)
         aws_s3_upload('managed_deployment/carve-config.json', bucket=bucket)
 
     deployment_targets = deploy_layers(G, context)
