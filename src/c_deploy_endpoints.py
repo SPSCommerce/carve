@@ -97,30 +97,17 @@ def sf_DeployPrep(event, context):
 
     # # update_bucket_policies(G)
 
-    # # push lambda deploy pkg and reqs layer pkg to regional S3 buckets
-    # # get all other regions where buckets are needed
-    # regions = set()
-    # for vpc in list(G.nodes):
-    #     r = G.nodes().data()[vpc]['Region']
-    #     if r not in regions:
-    #         regions.add(r)
+    # push CFN snippets to each region
+    regions = set()
+    for vpc in list(G.nodes):
+        r = G.nodes().data()[vpc]['Region']
+        if r not in regions:
+            regions.add(r)
 
-    # codekey = f"lambda_packages/{os.environ['GITSHA']}/package.zip"
-    # reqskey = f"lambda_packages/{os.environ['GITSHA']}/reqs_package.zip"
-
-    # for r in regions:
-    #     aws_copy_s3_object(
-    #         key=codekey,
-    #         target_key=codekey,
-    #         source_bucket=os.environ['CodeBucket'],
-    #         target_bucket=f"{os.environ['ResourcePrefix']}carve-managed-bucket-{os.environ['OrganizationsId']}-{r}"
-    #         )
-    #     aws_copy_s3_object(
-    #         key=reqskey,
-    #         target_key=reqskey,
-    #         source_bucket=os.environ['CodeBucket'],
-    #         target_bucket=f"{os.environ['ResourcePrefix']}carve-managed-bucket-{os.environ['OrganizationsId']}-{r}"
-    #         )
+    for r in regions:
+        bucket=f"{os.environ['ResourcePrefix']}carve-managed-bucket-{os.environ['OrganizationsId']}-{r}"
+        aws_s3_upload('managed_deployment/socket-server.yml', bucket=bucket)
+        aws_s3_upload('managed_deployment/carve-config.json', bucket=bucket)
 
     deployment_targets = deploy_layers(G, context)
 

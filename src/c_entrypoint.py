@@ -5,7 +5,7 @@ from c_deploy_stack import deploy_stack_entrypoint
 from c_cleanup import cleanup_steps_entrypoint
 from c_disco import disco_entrypoint
 from c_aws import aws_put_bucket_notification, aws_codepipeline_success
-from c_carve import asg_event, execute_carve
+from c_carve import asg_event, carve_results
 import logging
 
 logger = logging.getLogger()
@@ -32,7 +32,7 @@ def lambda_handler(event, context):
         if event['source'] == 'aws.events':
             cw_arn = event['resources'][0]
             print(f'TRIGGERED by CW: {cw_arn}')
-            execute_carve(event, context)
+            carve_results(event, context)
 
     elif 'Records' in event:
 

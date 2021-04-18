@@ -29,10 +29,6 @@ Parameters:
     Description: Maximum number of instances in the ASG
     Type: Number
     Default: '1'
-  BeaconTimeout:
-    Type: String
-    Description: Timeout in seconds for testing beacons
-    Default: "1"
 
 Resources:
   Function:
@@ -55,43 +51,51 @@ Resources:
           - !Ref LambdaSecurityGroup
         SubnetIds: !Split [ ",", !Ref VpcSubnetIds ]
       Code: 
-        ZipFile: |
-          import concurrent.futures
-          import os
-          import time
+        ZipFile: !Sub |
           import urllib3
+          import socket
+          import json
 
-          def threaded_test(addr):
+          def hc(beacon):
               http = urllib3.PoolManager()
               try:
-                  a = time.perf_counter()
-                  r = http.request('GET', f'http://{addr}/up', timeout={os.environ['BeaconTimeout']})
-                  b = time.perf_counter()
-                  elapsed = b - a
-                  if r.status == 200:
-                      result = elapsed
-                  else:
-                      result = 0
+                response = http.request('GET', f'http://{beacon}/up')
+                if r.status == 200:
+                    result = 'up'
+                else:
+                    result = 'down'
               except:
-                  result = 0
-              return {addr: result}
+                result = 'down'
+              return result
+
+          def get_results(beacon):
+              http = urllib3.PoolManager()
+              try:
+                  r = http.request('GET', f'http://{beacon}/result')
+                  if r.status == 200:
+                      result = {'results': r.data}
+                  else:
+                      result = {'error': r.status, 'health': hc(beacon)}
+              except Exception as e:
+                  result = {'error': r.status, 'health': hc(beacon)}
+              return result
+
+          def update_beacon(beacon, beacons):
+            config = json.dumps(beacons).encode()
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.connect((beacon, 8008))
+                s.sendall(config)
+                data = s.recv(1024)
+            if data.decode() == config:
+                print('beacon update successful')
+            else:
+                print('ERROR: beacon update confirmation failed')
 
           def lambda_handler(event, context):
-              if len(event) < 1:
-                  print('no payload to test')
-                  return None
-              else:
-                  print(f'testing endpoints: {event}')
-              results = []
-              with concurrent.futures.ThreadPoolExecutor() as executor:
-                  futures = []
-                  for addr in event:
-                      futures.append(executor.submit(threaded_test, addr=addr))
-                  for future in concurrent.futures.as_completed(futures):
-                      results.append(future.result())
-              print(results)
-              test_result = {f"{os.environ[VpcSubnetIds]}": results}
-              return test_result
+              if event['action'] == 'results'
+                get_results(event['beacon'])
+              elif event['action'] == 'update'
+                update_beacon(event['beacon'], event['beacons'])
 
   LambdaRole:
     Type: AWS::IAM::Role
@@ -117,6 +121,10 @@ Resources:
 
   AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT5M
+        Count: !Ref MinSize
     Properties:
       AutoScalingGroupName: !Sub ${ResourcePrefix}carve-beacon-asg-${VpcId}
       LaunchConfigurationName: !Ref LaunchConfig
@@ -134,6 +142,41 @@ Resources:
 
   LaunchConfig:
     Type: AWS::AutoScaling::LaunchConfiguration
+    Metadata:
+      AWS::CloudFormation::Init:
+        config:
+          files:
+            # get the carve config snippet from S3
+            Fn::Transform:
+              Name: AWS::Include
+              Parameters:
+                Location: s3://a-carve-managed-bucket-o-dvdaw54vmt-us-east-1/managed_deployment/carve-config.json
+            # get the socket server snippet from S3
+            Fn::Transform:
+              Name: AWS::Include
+              Parameters:
+                Location: s3://a-carve-managed-bucket-o-dvdaw54vmt-us-east-1/managed_deployment/socket-server.yml
+            # The cfn-hup.conf file stores the name of the stack and the AWS credentials that the cfn-hup daemon targets.
+            "/etc/cfn/cfn-hup.conf":
+              content: !Sub |
+                [main]
+                stack=${AWS::StackId}
+                region=${AWS::Region}
+                # The interval used to check for changes to the resource metadata in minutes. Default is 15
+                interval=1
+              mode: "000400"
+              owner: "root"
+              group: "root"
+            # The user actions that the cfn-hup daemon calls periodically are defined in the hooks.conf configuration file.
+            "/etc/cfn/hooks.d/cfn-auto-reloader.conf":
+              content: !Sub |
+                [cfn-auto-reloader-hook]
+                triggers=post.update
+                path=Resources.LaunchConfig.Metadata.AWS::CloudFormation::Init
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource LaunchConfig --region ${AWS::Region}
+              mode: "000400"
+              owner: "root"
+              group: "root"
     Properties:
       AssociatePublicIpAddress: 'true'
       SecurityGroups:
@@ -142,6 +185,7 @@ Resources:
       ImageId: !Ref 'ImageId'
       InstanceMonitoring: 'false'
       InstanceType: t4g.nano
+      KeyName: carve
       BlockDeviceMappings:
         - DeviceName: /dev/xvda
           Ebs:
@@ -149,18 +193,52 @@ Resources:
             VolumeSize: '8'
             DeleteOnTermination: 'true'
             Encrypted: 'true'
+      UserData:
+        "Fn::Base64":
+          !Sub |
+            #!/bin/bash -xe
+            # Start cfn-init
+            /opt/aws/bin/cfn-init -s ${AWS::StackId} -r LaunchConfig --region ${AWS::Region} || error_exit 'Failed to run cfn-init'
+            # Start up the cfn-hup daemon to listen for changes to the EC2 instance metadata
+            /opt/aws/bin/cfn-hup || error_exit 'Failed to start cfn-hup'
+            # create carve testing script
+            echo '#!/bin/bash' > /carve/carve.sh
+            echo 'while true; do' >> /carve/carve.sh
+            echo '  /sbin/fping -C 5 -i 1 -q -f /carve/carve.cfg &> /www/results-out' >> /carve/carve.sh
+            echo '  mv -f /www/results-out /www/results' >> /carve/carve.sh
+            echo '  date +%s > /www/ts-out' >> /carve/carve.sh
+            echo '  mv -f /www/ts-out /www/ts' >> /carve/carve.sh
+            echo '  sleep 10' >> /carve/carve.sh
+            echo 'done' >> /carve/carve.sh
+            chmod a+x /carve/carve.sh
+            # run carve script continuous in the background
+            /carve/carve.sh &
+            # start socket server to receive beacon address updates
+            docker run -d --restart unless-stopped --name socket_server -p 8008:8008 -v "/carve:/carve" -w /carve python:slim python socket_server.py
+            # All done so signal success
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource LaunchConfig --region ${AWS::Region} || echo 'cfn-signal error - stack is probably complete'
 
   InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId: !Ref VpcId
-      GroupDescription: allow http healthcheck
+      GroupDescription: Carve EC2 ingress
       SecurityGroupIngress:
-        -
-          IpProtocol: "tcp"
+          # ingress to update beacon only from the Lambda SG
+        - IpProtocol: "tcp"
+          FromPort: 8008
+          ToPort: 8008
+          SourceSecurityGroupId: !Ref LambdaSecurityGroup
+          # ingress for beacon reults only from Lambda SG
+        - IpProtocol: "tcp"
           FromPort: 80
           ToPort: 80
-          CidrIp: "0.0.0.0/0"
+          SourceSecurityGroupId: !Ref LambdaSecurityGroup
+          # ICMP from everywhere else
+        - IpProtocol: icmp
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
 
   InstanceProfile:
     Type: AWS::IAM::InstanceProfile

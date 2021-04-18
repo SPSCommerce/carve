@@ -390,7 +390,7 @@ def aws_create_changeset(stackname, changeset_name, region, template, parameters
         TemplateBody=template,
         Tags=tags,
         Parameters=parameters,
-        Capabilities=['CAPABILITY_NAMED_IAM']
+        Capabilities=['CAPABILITY_NAMED_IAM','CAPABILITY_AUTO_EXPAND']
         )
 
     # returns...
@@ -434,13 +434,30 @@ def aws_find_stacks(startswith, region, credentials):
         'UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS', 'UPDATE_ROLLBACK_COMPLETE'
     ]
 
-    paginator = client.get_paginator('list_stacks', StackStatusFilter=sfilter)
+    paginator = client.get_paginator('list_stacks')
     stacks = []
-    for page in paginator.paginate():
+    for page in paginator.paginate(StackStatusFilter=sfilter):
         for stack in page['StackSummaries']:
             if stack['StackName'].startswith(startswith):
                 stacks.append(stack)
     return stacks
+
+
+def aws_asg_instances(asg, region, credentials):
+    client = boto3.client(
+        'autoscaling'
+        config=boto_config,
+        region_name=region,
+        aws_access_key_id = credentials['AccessKeyId'],
+        aws_secret_access_key = credentials['SecretAccessKey'],
+        aws_session_token = credentials['SessionToken']
+        )
+    response = client.describe_auto_scaling_groups(AutoScalingGroupNames=asg)
+    instances = []
+    for instance in response['Instances']:
+        if instance['LifecycleState'] == "InService":
+            instances.append(instance['InstanceId'])
+    return instances
 
 
 def aws_newest_s3(path, bucket=os.environ['CarveS3Bucket']):
@@ -466,6 +483,7 @@ def aws_read_s3_direct(key, region):
         print(f"error reading s3: {e}")
         return None
 
+
 def aws_put_direct(data, key, bucket=os.environ['CarveS3Bucket']):
     client = boto3.client('s3', config=boto_config)
     try:
@@ -477,6 +495,19 @@ def aws_put_direct(data, key, bucket=os.environ['CarveS3Bucket']):
     except ClientError as e:
         print(f"error writing to s3: {e}")
         return None
+
+
+def aws_s3_upload(file_name, object_name=None, bucket=os.environ['CarveS3Bucket']):
+    client = boto3.client('s3', config=boto_config)
+
+    if object_name is None:
+        object_name = file_name
+    try:
+        response = client.upload_file(file_name, bucket, object_name)
+    except ClientError as e:
+        print(f"error writing to s3: {e}")
+        return False
+    return True
 
 
 def aws_copy_s3_object(key, target_key, source_bucket=os.environ['CarveS3Bucket'], target_bucket=os.environ['CarveS3Bucket']):
@@ -684,15 +715,19 @@ def aws_describe_subnets(region, credentials, account_id, subnet_id=None):
         aws_session_token = credentials['SessionToken']
         )
     try:
+        paginator = client.get_paginator('describe_subnets')
+
         if subnet_id is None:
-            paginator = client.get_paginator('describe_subnets')
+            pages = paginator.paginate()
         else:
-            paginator = client.get_paginator('describe_subnets', SubnetIds=[subnet_id])
+            pages = paginator.paginate(SubnetIds=[subnet_id])
+
         subnets = []
-        for page in paginator.paginate():
+        for page in pages:
             for subnet in page['Subnets']:
                 subnets.append(subnet)
         return subnets
+
     except ClientError as e:
         print(f"error descibing subnets in {region} in {account_id}: {e}")
         return []

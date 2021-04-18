@@ -54,3 +54,7 @@ aws s3 cp "reqs_package.zip" \
     s3://$DEPLOYMENT_BUCKET/lambda_packages/$GITSHA/ \
     --metadata GIT_SHA=$CODEBUILD_SOURCE_VERSION
 
+# upload socket_server to S3
+echo "uploading socket_server to S3"
+aws s3 cp "$BUILDPATH/deployment/carve_image/socket_server.py" \
+    s3://$DEPLOYMENT_BUCKET/carve_image/

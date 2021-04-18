@@ -1,0 +1,62 @@
+"/carve/socket_server.py":
+  mode: "000644"
+  owner: "root"
+  group: "root"
+  content: !Sub |
+    import os
+    import socket
+    import json
+    import ipaddress
+
+    '''
+    Basic socket server to receive data on port 8008
+    It is used to update the carve config beacon data
+    Data must be submitted as byte encoded valid json
+    '''
+
+    def socket_server():
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(('0.0.0.0', 8008))
+            s.listen()
+            while True:
+                conn, addr = s.accept()
+                with conn:
+                    print('Connected by', addr)
+                    while True:
+                        data = conn.recv(1024)
+                        if not data:
+                            break
+                        conn.sendall(data)
+                        received(data)
+
+    def received(data):
+        try:
+            post = (json.loads(data))
+        except:
+            post = {}
+            print('socket did not receive json data')
+
+        # process based on json data
+        if 'beacons' in post:
+            beacons = post['beacons'].split(',')
+            with open('new.cfg', 'a') as file:
+                for beacon in beacons:
+                    if valid_addr(beacon):
+                        file.write(f'{beacon}\n')
+                    else:
+                        pass
+
+            os.replace('new.cfg', 'carve.cfg')
+
+    def valid_addr(ipaddr):
+        # validate if string is a valid IP address
+        try:
+            ip = ipaddress.ip_address(ipaddr)
+            return True
+        except ValueError:
+            return False
+        except:
+            return False
+
+    if __name__ == '__main__':
+        socket_server()

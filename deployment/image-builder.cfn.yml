@@ -32,6 +32,13 @@ Parameters:
     Type: String
     Description: "Prefix all carve resources with this"
     Default: ""
+  DeployBucket:
+    Type: String
+    Description: Bucket containing the socket server code (CodePipeline bucket)
+  Version:
+    Type: String
+    Description: "MUST be incremented with changes to image builder in this template"
+    Default: "0.0.3"
 
 Conditions:
   CreateVpc: !Equals [ !Ref ExistingVpcId, "" ]
@@ -60,8 +67,11 @@ Resources:
             Statement:
               - Action:
                   - s3:PutObject
+                  - s3:GetObject
                 Effect: Allow
-                Resource: !Sub "arn:aws:s3:::${ResourcePrefix}carve-managed-bucket-${OrganizationsId}-${AWS::Region}/*"
+                Resource: 
+                  - !Sub "arn:aws:s3:::${ResourcePrefix}carve-managed-bucket-${OrganizationsId}-${AWS::Region}/*"
+                  - !Sub "arn:aws:s3:::${DeployBucket}/*"
 
   InstanceProfile:
     Type: AWS::IAM::InstanceProfile
@@ -86,30 +96,35 @@ Resources:
       SecurityGroupIds:
         - !Ref InstanceSecurityGroup
 
-  InstallNginxComponent:
+  CarveSetupComponent:
     Type: AWS::ImageBuilder::Component
     Properties:
-      Name: NGINX
-      Version: 0.0.1
-      Description: Update and install nginx
+      Name: CarveSetup
+      Version: !Ref Version
+      Description: Install and setup Carve dependencies
       Platform: Linux
-      Data: |
+      Data: !Sub |
         name: install
-        description: install nginx
+        description: Carve setup
         schemaVersion: 1.0
         phases:
           - name: build
             steps:
-              - name: InstallNginx
+              - name: SetupCarveDependencies
                 action: ExecuteBash
                 inputs:
                   commands:
-                    - yum update -y
                     - amazon-linux-extras install -y nginx1
+                    - amazon-linux-extras install -y epel
+                    - yum update -y
+                    - yum install -y fping
+                    - yum install -y docker
+                    - mkdir /www
+                    - chown nginx:nginx /www
                     - echo "server {" > /etc/nginx/conf.d/default.conf
                     - echo "listen      *:80;" >> /etc/nginx/conf.d/default.conf
                     - echo "server_name carve;" >> /etc/nginx/conf.d/default.conf
-                    - echo "root        /home/www;" >> /etc/nginx/conf.d/default.conf
+                    - echo "root        /www;" >> /etc/nginx/conf.d/default.conf
                     - echo "access_log  /var/log/nginx/carve_access.log;" >> /etc/nginx/conf.d/default.conf
                     - echo "error_log   /var/log/nginx/carve_error.log;" >> /etc/nginx/conf.d/default.conf
                     - echo "location /up {" >> /etc/nginx/conf.d/default.conf
@@ -119,16 +134,22 @@ Resources:
                     - echo "}" >> /etc/nginx/conf.d/default.conf
                     - systemctl enable nginx
                     - systemctl start nginx
+                    - systemctl enable docker
+                    - systemctl start docker
+                    - docker pull python:slim
+                    - mkdir /carve
+
+  # aws s3 cp s3://${DeployBucket}/carve_image/socket_server.py /carve/
 
   CarveImageRecipe:
     Type: AWS::ImageBuilder::ImageRecipe
     Properties:
       Name: CarveAMI
-      Version: 0.0.1
+      Version: !Ref Version
       ParentImage: !Ref ImageId
       Components:
         - ComponentArn:
-            Ref: InstallNginxComponent
+            Ref: CarveSetupComponent
 
   CarveAMI:
     Type: AWS::ImageBuilder::Image
