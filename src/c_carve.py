@@ -58,12 +58,13 @@ def get_subnet_beacons():
     # create a list of all monitored subnets running testing
     G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
 
-    subnet_beacons = aws_read_s3_direct('managed_deployment/subnet-beacons.json', current_region)
+    subnet_beacons = json.loads(aws_read_s3_direct('managed_deployment/subnet-beacons.json', current_region))
 
     subnets = []
     for vpc in list(G.nodes):
         for subnet in G.nodes().data()[vpc]['Subnets']:
             # only get results if there is an active beacon in the subnet
+            print(f"subnet: {subnet['SubnetId']}")
             if subnet['SubnetId'] in subnet_beacons:
                 subnets.append({
                     'subnet': subnet['SubnetId'],
@@ -112,8 +113,9 @@ def update_carve_beacons():
                 region=asg['region']))
 
         for future in concurrent.futures.as_completed(futures):
-            subnet_beacons.update(future)
-            for subnet, beacon in future.items():
+            result = future.result()
+            subnet_beacons.update(result)
+            for subnet, beacon in result.items():
                 all_beacons.append(beacon)
 
     # push subnet beacons data to S3
@@ -150,7 +152,7 @@ def update_carve_beacons():
                 payload={
                     'action': 'update',
                     'beacon': subnet_beacons[subnet['subnet']],
-                    'beacons': ','.join(beacons)
+                    'beacons': ','.join(all_beacons)
                     },
                 region=subnet['region'],
                 credentials=None))
@@ -181,9 +183,9 @@ def update_carve_beacons():
 
 def get_beacons_thread(asg, account, region):
     # threaded lookup of all beacon IP addresses in an ASG
-    credentials = aws_assume_role(carve_role_arn(a), f"lookup-{asg}")
-    instance_ids = aws_asg_instances(asg, r, credentials)
-    instances = aws_describe_instances(instance_ids, r, credentials)
+    credentials = aws_assume_role(carve_role_arn(account), f"lookup-{asg}")
+    instance_ids = aws_asg_instances(asg, region, credentials)
+    instances = aws_describe_instances(instance_ids, region, credentials)
 
     beacons = {}
     for instance in instances:

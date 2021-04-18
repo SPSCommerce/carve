@@ -452,9 +452,10 @@ def aws_asg_instances(asg, region, credentials):
         aws_secret_access_key = credentials['SecretAccessKey'],
         aws_session_token = credentials['SessionToken']
         )
-    response = client.describe_auto_scaling_groups(AutoScalingGroupNames=asg)
+    response = client.describe_auto_scaling_groups(AutoScalingGroupNames=[asg])
     instances = []
-    for instance in response['Instances']:
+    print(response)
+    for instance in response['AutoScalingGroups'][0]['Instances']:
         if instance['LifecycleState'] == "InService":
             instances.append(instance['InstanceId'])
     return instances

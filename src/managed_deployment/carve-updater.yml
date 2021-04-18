@@ -26,27 +26,35 @@
                         data = conn.recv(1024)
                         if not data:
                             break
-                        conn.sendall(data)
-                        received(data)
+                        result = received(data)
+                        if result == 'success':
+                            conn.sendall(data)
+                        else:
+                            conn.sendall(bytes(result.encode()))
 
     def received(data):
         try:
             post = (json.loads(data))
         except:
             post = {}
-            print('socket did not receive json data')
-
+            result = 'socket did not receive json data'
         # process based on json data
-        if 'beacons' in post:
-            beacons = post['beacons'].split(',')
-            with open('new.cfg', 'a') as file:
-                for beacon in beacons:
-                    if valid_addr(beacon):
-                        file.write(f'{beacon}\n')
-                    else:
-                        pass
-
-            os.replace('new.cfg', 'carve.cfg')
+        try:
+            if 'beacons' in post:
+                beacons = post['beacons'].split(',')
+                with open('new.cfg', 'a') as file:
+                    for beacon in beacons:
+                        if valid_addr(beacon):
+                            file.write(f'{beacon}\n')
+                        else:
+                            pass
+                os.replace('new.cfg', 'carve.cfg')
+                result = 'success'
+            else:
+                result = f'beacons not in post: {post}'
+        except:
+            result = 'try exception'
+        return result
 
     def valid_addr(ipaddr):
         # validate if string is a valid IP address

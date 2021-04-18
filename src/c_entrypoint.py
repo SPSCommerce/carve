@@ -27,6 +27,10 @@ def lambda_handler(event, context):
     if 'CodePipeline.job' not in event:
         print(event)
 
+    if 'update-beacons' in event:
+        from c_carve import update_carve_beacons
+        update_carve_beacons()
+
     if 'detail-type' in event:
 
         if event['source'] == 'aws.events':

@@ -45,7 +45,6 @@ Resources:
         Variables:
           VpcSubnetIds: !Ref VpcSubnetIds
           VpcId: !Ref VpcId
-          BeaconTimeout: !Ref BeaconTimeout
       VpcConfig:
         SecurityGroupIds:
           - !Ref LambdaSecurityGroup
@@ -81,21 +80,24 @@ Resources:
               return result
 
           def update_beacon(beacon, beacons):
-            config = json.dumps(beacons).encode()
+            config = json.dumps({'beacons': beacons}).encode()
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.connect((beacon, 8008))
                 s.sendall(config)
                 data = s.recv(1024)
-            if data.decode() == config:
+            if data == config:
                 print('beacon update successful')
             else:
-                print('ERROR: beacon update confirmation failed')
+                print(f'ERROR: beacon update confirmation failed for {beacon}')
+                print(f'submitted: {config}')
+                print(f'returned: {data}')
 
           def lambda_handler(event, context):
-              if event['action'] == 'results'
+              if event['action'] == 'results':
                 get_results(event['beacon'])
-              elif event['action'] == 'update'
+              elif event['action'] == 'update':
                 update_beacon(event['beacon'], event['beacons'])
+
 
   LambdaRole:
     Type: AWS::IAM::Role
