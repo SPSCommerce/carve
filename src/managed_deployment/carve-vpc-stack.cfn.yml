@@ -70,9 +70,10 @@ Resources:
           def get_results(beacon):
               http = urllib3.PoolManager()
               try:
-                  r = http.request('GET', f'http://{beacon}/result')
+                  r = http.request('GET', f'http://{beacon}/results')
+                  ts = http.request('GET', f'http://{beacon}/ts')
                   if r.status == 200:
-                      result = {'results': r.data}
+                      result = {'results': r.data, 'ts': ts.data}
                   else:
                       result = {'error': r.status, 'health': hc(beacon)}
               except Exception as e:

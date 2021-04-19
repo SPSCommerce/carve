@@ -26,14 +26,15 @@ def carve_results(event, context):
         p = os.environ['ResourcePrefix']
 
         for subnet in subnets:
-
+            print(f"getting results from {subnet['beacon']}")
+            payload = {
+                    'action': 'results',
+                    'beacon': subnet['beacon']
+                    }
             futures.append(executor.submit(
                 aws_invoke_lambda,
                 arn=f"arn:aws:lambda:{subnet['region']}:{subnet['account']}:function:{p}carve-{subnet['subnet']}",
-                payload={
-                    'action': 'results',
-                    'beacon': subnet['beacon']
-                    },
+                payload=payload,
                 region=subnet['region'],
                 credentials=None))
 
@@ -64,7 +65,6 @@ def get_subnet_beacons():
     for vpc in list(G.nodes):
         for subnet in G.nodes().data()[vpc]['Subnets']:
             # only get results if there is an active beacon in the subnet
-            print(f"subnet: {subnet['SubnetId']}")
             if subnet['SubnetId'] in subnet_beacons:
                 subnets.append({
                     'subnet': subnet['SubnetId'],
