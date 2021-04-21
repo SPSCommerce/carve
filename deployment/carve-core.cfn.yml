@@ -240,49 +240,72 @@ Resources:
           #       aws:PrincipalOrgID: !Ref OrganizationsId
           #     ArnLike:
           #       AWS:SourceArn: !Sub "arn:aws:lambda:*:*:function:${ResourcePrefix}carve-vpc-*"
+  SSMParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${ResourcePrefix}carve-resources/scale"
+      Description: "Valid Values: none, subnet, vpc"
+      Type: String
+      Value: subnet
 
+  SSMParameterChange:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "ASG notifications to SNS"
+      EventPattern: 
+        source:
+          - "aws.ssm"
+        detail-type:
+          - "Parameter Store Change"
+        detail:
+          name:
+            - !Ref SSMParameter
+      State: "ENABLED"
+      Targets:
+        - Id: "InvokeCarve"
+          Arn: !GetAtt CarveFunction.Arn
 
- # CloudWatchInvokeLambda:
- #    Type: AWS::Lambda::Permission
- #    Properties:
- #      FunctionName: !Ref CraveFunction
- #      Action: "lambda:InvokeFunction"
- #      Principal: "events.amazonaws.com"
- #      SourceArn: !GetAtt ScheduleRule.Arn
+  CloudWatchInvokeLambda:
+     Type: AWS::Lambda::Permission
+     Properties:
+       FunctionName: !Ref CarveFunction
+       Action: "lambda:InvokeFunction"
+       Principal: "events.amazonaws.com"
+       SourceArn: !GetAtt SSMParameterChange.Arn
 
- #  CloudWatchRole:
- #    Type: AWS::IAM::Role
- #    Properties:
- #      AssumeRolePolicyDocument:
- #        Version: "2012-10-17"
- #        Statement:
- #        - Effect: "Allow"
- #          Principal:
- #            Service:
- #              - "events.amazonaws.com"
- #          Action:
- #            - "sts:AssumeRole"
- #      Policies:
- #        - PolicyName: LambdaInvocation
- #          PolicyDocument:
- #            Version: "2012-10-17"
- #            Statement:
- #              - Effect: Allow
- #                Action:
- #                  - lambda:Invoke*
- #                Resource:
- #                  - !GetAtt CraveFunction.arn
+   # CloudWatchRole:
+   #   Type: AWS::IAM::Role
+   #   Properties:
+   #     AssumeRolePolicyDocument:
+   #       Version: "2012-10-17"
+   #       Statement:
+   #       - Effect: "Allow"
+   #         Principal:
+   #           Service:
+   #             - "events.amazonaws.com"
+   #         Action:
+   #           - "sts:AssumeRole"
+   #     Policies:
+   #       - PolicyName: LambdaInvocation
+   #         PolicyDocument:
+   #           Version: "2012-10-17"
+   #           Statement:
+   #             - Effect: Allow
+   #               Action:
+   #                 - lambda:Invoke*
+   #               Resource:
+   #                 - !GetAtt CraveFunction.arn
 
- #  ScheduleRule:
- #    Type: AWS::Events::Rule
- #    Properties:
- #      Description: execute VPC route test every minute
- #      RoleArn: !GetAtt CloudWatchRole.Arn
- #      ScheduleExpression:  "cron(* * * * *)"  # Every Minute
- #      State: ENABLED
- #      Targets:
- #        - Arn: !GetAtt CraveFunction.Arn
- #          Id: !Ref CraveFunction
+   # ScheduleRule:
+   #   Type: AWS::Events::Rule
+   #   Properties:
+   #     Description: execute VPC route test every minute
+   #     RoleArn: !GetAtt CloudWatchRole.Arn
+   #     ScheduleExpression:  "cron(* * * * *)"  # Every Minute
+   #     State: ENABLED
+   #     Targets:
+   #       - Arn: !GetAtt CraveFunction.Arn
+   #         Id: !Ref CraveFunction
 
 
 Outputs:

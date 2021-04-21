@@ -45,18 +45,87 @@ def carve_results(event, context):
     # process_test_results(results)
 
 
-### when should I update beacon lists?
-### stack updates using the step functions could be expensive if frequent
-### should have a method to handle asg messages after deployment
-### should have a flag to ignore asg messages if rolling ASGs
-### Don't need any security for inbound TCP since it's 1:1 SG from lambda to beacon
-###    - push updates to EC2 thru tcp socket instead
-###    - https://realpython.com/python-sockets/
-###    - port: 8080
+
+def process_test_results(results):
+    # determine verification beacons here
+    G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
+
+    subnet_beacons = json.loads(aws_read_s3_direct('managed_deployment/subnet-beacons.json', current_region))
+
+    verify_beacons = []
+    for edge in G.edges:
+        if vpc not in edge:
+            G.remove_edge(edge[0], edge[1])
+
+
+def ssm_event(event, context):
+    ssm_param = event['detail']['name']
+    ssm_value = aws_ssm_get_parameter(ssm_param)
+
+    if name.split['/'][-1] == 'scale':
+        scale_beacons(ssm_value)
+
+
+def scale_beacons(scale):
+    ''' 
+        discover all beacon IP address 
+        add the beacons to the carve-config cloudformation snippet
+        push the snipped to regional s3 buckets to be used as a cloudformation include
+    '''
+
+    G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
+
+    # determine VPCs and regions
+    vpcs = {}
+    for subnet in list(G.nodes):
+        r = G.nodes().data()[subnet]['Region']
+        a = G.nodes().data()[subnet]['Account']
+        vpcs[G.nodes().data()[subnet]['VpcId']] = (a, r)
+
+    asgs = []
+    for vpc, ar in vpcs.items():
+        vpc_subnets = [x for x,y in G.nodes(data=True) if y['VpcId'] == vpc]
+        asgs.append({
+            'asg': f"{os.environ['ResourcePrefix']}carve-beacon-asg-{vpc}",
+            'account': ar[0],
+            'region': ar[1],
+            'subnets': vpc_subnets
+            })
+
+    # using threading, set all ASGs to 0 hosts to terminal all beacons
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = []
+        for asg in asgs:
+
+            if scale == none:
+                desired = 0
+            elif scale == subnet:
+                desired = len(asg['subnets'])
+            elif scale == vpc:
+                desired = 1:
+
+            futures.append(executor.submit(
+                aws_update_asg_size,
+                asg=asg['asg'],
+                minsize=0, 
+                maxsize=len(asg['subnets'],
+                desired=desired,
+                region=asg['region'],
+                credentials=aws_assume_role(
+                    carve_role_arn(asg['account']), f"lookup-{asg['asg']}")
+                    )
+                )
+            )
+
+        for future in concurrent.futures.as_completed(futures):
+            result = future.result()
+
 
 
 def get_subnet_beacons():
     # create a list of all monitored subnets running testing
+
+    # load latest graph
     G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
 
     subnet_beacons = json.loads(aws_read_s3_direct('managed_deployment/subnet-beacons.json', current_region))
@@ -206,8 +275,6 @@ def update_beacons_thread(arn, beacon, beacons):
     return beacons
 
 
-def process_test_results(results):
-    pass
 
 
 def asg_event(message):
@@ -374,7 +441,6 @@ def load_graph(graph, local=True):
             graph_data = aws_read_s3_direct(graph, current_region)
             G = json_graph.node_link_graph(json.loads(graph_data))
             return G
-
     except Exception as e:
         print(f'error opening json_graph {json_graph}: {e}')
         sys.exit()

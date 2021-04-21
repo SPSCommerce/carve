@@ -1,0 +1,61 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: CloudWatch Alarm for Carve
+
+Parameters:
+  OrganizationsId:
+    Type: String
+    Description: AWS Organizations Id
+    Default: ""
+  UniqueId:
+    Type: String
+    Description: A unique string for S3 buckets. If none, will use AWS Organizations Id
+    Default: ""
+  ResourcePrefix:
+    Type: String
+    Description: "Prefix all carve resources with this"
+    Default: ""
+  AlarmWebhook:
+    Type: String
+    Default: <No Webhook>
+
+
+Conditions:
+  UseAlarmWebhook: !Not
+    - !Equals
+      - !Ref AlarmWebhook
+      - <No Webhook>
+
+Resources:
+  CarveAlerts:
+    Type: AWS::SNS::Topic
+    Condition: UseAlarmWebhook
+    Properties:
+      DisplayName: 'CarveAlerts'
+      Subscription:
+        - Protocol: https
+          Endpoint: !Ref AlarmWebhook
+
+  CarveAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: UseAlarmWebhook
+    Properties:
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref 'CarveAlerts'
+      AlarmDescription: Notify when Carve fails a route verification
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: FunctionName
+          Value: !Sub "${ResourcePrefix}carve-${OrganizationsId}"
+        - Name: Resource
+          Value: !Sub "arn:aws:lambda:*:*:function:${ResourcePrefix}carve-${OrganizationsId}"
+      EvaluationPeriods: '1'
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      OKActions:
+        - !Ref 'CarveAlerts'
+      Period: '86400'
+      Statistic: Sum
+      Threshold: 1
+      Unit: Count
+

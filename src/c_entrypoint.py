@@ -1,11 +1,5 @@
 import json
 import os
-from c_deploy_endpoints import deploy_steps_entrypoint, start_carve_deployment, codepipline_job
-from c_deploy_stack import deploy_stack_entrypoint
-from c_cleanup import cleanup_steps_entrypoint
-from c_disco import disco_entrypoint
-from c_aws import aws_put_bucket_notification, aws_codepipeline_success
-from c_carve import asg_event, carve_results
 import logging
 
 logger = logging.getLogger()
@@ -34,9 +28,18 @@ def lambda_handler(event, context):
     if 'detail-type' in event:
 
         if event['source'] == 'aws.events':
+            from c_carve import carve_results
+
             cw_arn = event['resources'][0]
             print(f'TRIGGERED by CW: {cw_arn}')
             carve_results(event, context)
+
+        if event['source'] == 'aws.ssm':
+            from c_carve import ssm_event
+
+            ssm_arn = event['resources'][0]
+            print(f'TRIGGERED by SSM: {cw_arn}')
+            ssm_event(event, context)
 
     elif 'Records' in event:
 
@@ -46,33 +49,30 @@ def lambda_handler(event, context):
             # print(message)
             if 'source' in message:
                 if message['source'] == 'aws.autoscaling':
+                    from c_carve import asg_event
                     asg_event(message)
 
         elif 's3' in event['Records'][0]:
             if event['Records'][0]['s3']['bucket']['name'] == os.environ['CarveS3Bucket']:
                 start_carve_deployment(event, context)
 
-    elif 'queryStringParameters' in event:
-        print(f'TRIGGERED by API Gateway: {event["requestContext"]["apiId"]}')
-        send_api_response(event)
-
     elif 'DeployStart' in event:
+        from c_deploy_endpoints import start_carve_deployment
         print('Starting deployment process')
         return start_carve_deployment(event, context)
 
     elif 'DeployAction' in event:
+        from c_deploy_endpoints import start_carve_deployment
         print('TRIGGERED by Endpoint Deployment Step Function')
         return deploy_steps_entrypoint(event, context)
 
     elif 'DeployStack' in event:
+        from c_deploy_stack import deploy_stack_entrypoint
         print('TRIGGERED by Deploy Stack Step Function')
         return deploy_stack_entrypoint(event, context)
 
-    elif 'VerifyAction' in event:
-        print('TRIGGERED by Route Verification Step Function')
-        # return verify_steps_entrypoint(event)
-    
     elif 'DiscoveryAction' in event:
+        from c_disco import disco_entrypoint
         print('TRIGGERED by Discovery Step Function')
         return disco_entrypoint(event, context)
 
@@ -82,10 +82,12 @@ def lambda_handler(event, context):
 
     elif 'Payload' in event:
         if 'CleanupAction' in event['Payload']:
+            from c_cleanup import cleanup_steps_entrypoint
             print('TRIGGERED by Cleanup Step Function')
             return cleanup_steps_entrypoint(event, context)
 
     elif 'CodePipeline.job' in event:
+        from c_deploy_endpoints import codepipline_job
         print('TRIGGERED by CodePipeline')
         codepipline_job(event, context)
 

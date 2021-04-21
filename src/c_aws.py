@@ -461,6 +461,25 @@ def aws_asg_instances(asg, region, credentials):
     return instances
 
 
+
+def aws_update_asg_size(asg, minsize, maxsize, desired, region, credentials):
+    client = boto3.client(
+        'autoscaling',
+        config=boto_config,
+        region_name=region,
+        aws_access_key_id = credentials['AccessKeyId'],
+        aws_secret_access_key = credentials['SecretAccessKey'],
+        aws_session_token = credentials['SessionToken']
+        )
+    response = client.update_auto_scaling_group(
+        AutoScalingGroupName=asg,
+        MinSize=minsize,
+        MaxSize=maxsize,
+        DesiredCapacity=desired_capacity
+        )
+    return response
+
+
 def aws_newest_s3(path, bucket=os.environ['CarveS3Bucket']):
     # return the newest file in an S3 path
     client = boto3.client('s3', config=boto_config)

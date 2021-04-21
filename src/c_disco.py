@@ -66,6 +66,66 @@ def discover_org_accounts():
     return accounts
 
 
+def discover_subnets(region, account_id, account_name, credentials):
+    ''' get VPCs in account/region, returns nx.Graph object of VPC nodes'''
+
+
+    # create graph structure for VPCs
+    G = nx.Graph()
+
+    subnets = aws_describe_subnets(region, credentials, account_id)
+
+    # get all non-default VpcIds owned by this account
+    vpcids = []
+
+    vpcs = aws_describe_vpcs(region, credentials)
+    for vpc in vpcs:
+
+        if vpc['OwnerId'] != account_id:
+            # don't add shared VPCs
+            continue
+
+        if vpc['IsDefault']:
+            # don't add default VPCs
+            continue
+
+        vpcids.append(vpc['VpcId'])
+
+
+    for subnet in aws_describe_subnets(region, credentials, account_id):
+
+        # ignore default VPCs and shared subnets
+        if subnet['VpcId'] not in vpcids:
+            continue
+
+        # get subnet name from tag if available
+        name = subnet['SubnetId']
+        if 'Tags' in subnet:
+            for tag in subnet['Tags']:
+                if tag['Key'] == 'Name':
+                    name = tag['Value']
+                    break
+
+        # vpc_subnets.append({
+        #     "AvailabilityZoneId": subnet['AvailabilityZoneId'],
+        #     "SubnetId": subnet['SubnetId']
+        #     })
+
+        # create graph nodes
+        G.add_node(
+            subnet['SubnetId'],
+            Name=name,
+            Account=account_id,
+            AccountName=account_name,
+            Region=region,
+            CidrBlock=vpc['CidrBlock'],
+            VpcId=subnet['VpcId']
+            )
+
+    return G
+
+
+
 def discover_vpcs(region, account_id, account_name, credentials):
     ''' get VPCs in account/region, returns nx.Graph object of VPC nodes'''
 
@@ -155,11 +215,13 @@ def discover_tgws(region, credentials):
 
 
 def discover_resources(resource, region, account_id, account_name, credentials):
-    if resource == 'vpcs':
-        G = discover_vpcs(region, account_id, account_name, credentials)
-    if resource == 'pcxs':
-        G = discover_pcxs(region, account_id, account_name, credentials)
+    # if resource == 'vpcs':
+    #     G = discover_vpcs(region, account_id, account_name, credentials)
+    # if resource == 'pcxs':
+    #     G = discover_pcxs(region, account_id, account_name, credentials)
 
+    G = discover_subnets(region, account_id, account_name, credentials)
+    
     name = f'{resource}_{account_id}_{region}_{int(time.time())}'
     G.graph['Name'] = name
 
@@ -183,8 +245,8 @@ def sf_DiscoverAccount(event):
 
     credentials = aws_assume_role(carve_role_arn(account_id), f"carve-discovery-{region}")
 
-    for resource in ['vpcs', 'pcxs']:
-        discovered.append(discover_resources(resource, region, account_id, account_name, credentials))
+    # for resource in ['vpcs', 'pcxs']:
+    discovered.append(discover_resources('subnets', region, account_id, account_name, credentials))
 
     return discovered
 
@@ -212,52 +274,52 @@ def sf_StartDiscovery():
 
 def sf_OrganizeDiscovery(event):
 
-    vpcs = []
-    pcxs = []
+    subnets = []
+    # pcxs = []
 
     for payload in event['Input']:
         for s3_path in payload['Payload']:
-            if 'vpcs' in s3_path:
-                vpcs.append(s3_path['vpcs'])
-            elif 'pcxs' in s3_path:
-                pcxs.append(s3_path['pcxs'])
+            if 'subnets' in s3_path:
+                subnets.append(s3_path['subnets'])
+            # elif 'pcxs' in s3_path:
+            #     pcxs.append(s3_path['pcxs'])
 
-    # Load all VPCs into discovered graph G
+    # Load all subnets into discovered graph G
     name = f"carve-discovered-{int(time.time())}"
     G = nx.Graph(Name=name)
-    for vpc in vpcs:
-        path = f"/tmp/{vpc.split('/')[-1]}"
+    for subnet in subnets:
+        path = f"/tmp/{subnet.split('/')[-1]}"
         if not os.path.isfile(path):
-            aws_get_carve_s3(vpc, path)
+            aws_get_carve_s3(subnet, path)
 
-        V = load_graph(path)
-        G.add_nodes_from(V.nodes.data())
+        S = load_graph(path)
+        G.add_nodes_from(S.nodes.data())
 
-    # Load all peering connections into temp P
-    P = nx.Graph()
-    for pcx in pcxs:
-        path = f"/tmp/{pcx.split('/')[-1]}"
-        if not os.path.isfile(path):
-            aws_get_carve_s3(pcx, path)
-        X = load_graph(path)
-        P.add_nodes_from(X.nodes.data())
+    # # Load all peering connections into temp P
+    # P = nx.Graph()
+    # for pcx in pcxs:
+    #     path = f"/tmp/{pcx.split('/')[-1]}"
+    #     if not os.path.isfile(path):
+    #         aws_get_carve_s3(pcx, path)
+    #     X = load_graph(path)
+    #     P.add_nodes_from(X.nodes.data())
 
-    # add edges to G by looking at all peering connections
-    accounts = discover_org_accounts()
-    for pcx in P.nodes.data():
-        G.add_edge(
-            pcx[1]['AccepterVpcId'],
-            pcx[1]['RequesterVpcId'],
-            Account=pcx[1]['Account'],
-            VpcPeeringConnectionId=pcx[1]['VpcPeeringConnectionId'],
-            AccountName=accounts[pcx[1]['Account']],
-            AccepterAccount=pcx[1]['AccepterAccount'],
-            AccepterAccountName=accounts[pcx[1]['AccepterAccount']],
-            AccepterVPCName=G.nodes[pcx[1]['AccepterVpcId']]['Name'],
-            RequesterAccount=pcx[1]['RequesterAccount'],
-            RequesterAccountName=accounts[pcx[1]['RequesterAccount']],
-            RequesterVPCName=G.nodes[pcx[1]['RequesterVpcId']]['Name']
-            )
+    # # add edges to G by looking at all peering connections
+    # accounts = discover_org_accounts()
+    # for pcx in P.nodes.data():
+    #     G.add_edge(
+    #         pcx[1]['AccepterVpcId'],
+    #         pcx[1]['RequesterVpcId'],
+    #         Account=pcx[1]['Account'],
+    #         VpcPeeringConnectionId=pcx[1]['VpcPeeringConnectionId'],
+    #         AccountName=accounts[pcx[1]['Account']],
+    #         AccepterAccount=pcx[1]['AccepterAccount'],
+    #         AccepterAccountName=accounts[pcx[1]['AccepterAccount']],
+    #         AccepterVPCName=G.nodes[pcx[1]['AccepterVpcId']]['Name'],
+    #         RequesterAccount=pcx[1]['RequesterAccount'],
+    #         RequesterAccountName=accounts[pcx[1]['RequesterAccount']],
+    #         RequesterVPCName=G.nodes[pcx[1]['RequesterVpcId']]['Name']
+    #         )
 
     save_graph(G, f"/tmp/{name}.json")
 
