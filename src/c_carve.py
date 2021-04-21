@@ -78,8 +78,8 @@ def scale_beacons(scale):
     # determine VPCs and regions
     vpcs = {}
     for subnet in list(G.nodes):
-        r = G.nodes().data()[subnet]['Region']
         a = G.nodes().data()[subnet]['Account']
+        r = G.nodes().data()[subnet]['Region']
         vpcs[G.nodes().data()[subnet]['VpcId']] = (a, r)
 
     asgs = []
@@ -97,12 +97,12 @@ def scale_beacons(scale):
         futures = []
         for asg in asgs:
 
-            if scale == none:
+            if scale == 'none':
                 desired = 0
-            elif scale == subnet:
+            elif scale == 'subnet':
                 desired = len(asg['subnets'])
-            elif scale == vpc:
-                desired = 1:
+            elif scale == 'vpc':
+                desired = 1
 
             futures.append(executor.submit(
                 aws_update_asg_size,

@@ -62,7 +62,7 @@ def lambda_handler(event, context):
         return start_carve_deployment(event, context)
 
     elif 'DeployAction' in event:
-        from c_deploy_endpoints import start_carve_deployment
+        from c_deploy_endpoints import deploy_steps_entrypoint
         print('TRIGGERED by Endpoint Deployment Step Function')
         return deploy_steps_entrypoint(event, context)
 

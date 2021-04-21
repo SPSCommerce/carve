@@ -29,6 +29,10 @@ Parameters:
     Description: Maximum number of instances in the ASG
     Type: Number
     Default: '1'
+  DesiredSize:
+    Description: Desored number of instances in the ASG
+    Type: Number
+    Default: '1'
 
 Resources:
   Function:

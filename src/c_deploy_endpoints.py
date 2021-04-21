@@ -79,9 +79,8 @@ def get_deploy_key(last=False):
 def deploy_regions(G):
     # get all other regions where buckets are needed
     regions = set()
-    for vpc in list(G.nodes):
-        r = G.nodes().data()[vpc]['Region']
-        # if r != current_region:
+    for node in list(G.nodes):
+        r = G.nodes().data()[node]['Region']
         if r not in regions:
             regions.add(r)
     return regions    
@@ -94,24 +93,17 @@ def sf_DeployPrep(event, context):
     G = load_graph(get_deploy_key(), local=False)
 
     propagate_carve_ami(G)
+    regions = deploy_regions(G)
 
     # # update_bucket_policies(G)
 
     # push CFN snippets to each region
-    regions = set()
-    for vpc in list(G.nodes):
-        r = G.nodes().data()[vpc]['Region']
-        if r not in regions:
-            regions.add(r)
-
     for r in regions:
         bucket=f"{os.environ['ResourcePrefix']}carve-managed-bucket-{os.environ['OrganizationsId']}-{r}"
         aws_s3_upload('managed_deployment/carve-updater.yml', bucket=bucket)
         aws_s3_upload('managed_deployment/carve-config.json', bucket=bucket)
 
-    deployment_targets = deploy_layers(G, context)
-
-    return deployment_targets
+    return []
 
 
 def propagate_carve_ami(G):
@@ -144,11 +136,6 @@ def propagate_carve_ami(G):
         aws_ssm_put_parameter(parameter, r['ImageId'], r['region'])
 
 
-def deploy_layers(G, context):
-    # function no longer used, will refactor out
-    return []
-
-
 def deployment_list(G, context):
     ''' return a list of stacks to deploy 
         1 lambda and 1 EC2 instance per VPC
@@ -164,41 +151,37 @@ def deployment_list(G, context):
     with open("managed_deployment/carve-vpc-stack.cfn.json") as f:
         template = json.load(f)
 
-    for vpc in list(G.nodes):
+    # determine all VPCs and their account and region
+    vpcs = {}
+    for subnet in list(G.nodes):
+        a = G.nodes().data()[subnet]['Account']
+        r = G.nodes().data()[subnet]['Region']
+        vpcs[G.nodes().data()[subnet]['VpcId']] = (a, r)
 
-        vpc_data = G.nodes().data()[vpc]
+    # generate 1 CFN stack per VPC
+    for vpc, ar in vpcs.items():
 
-        # pretty sure I'm abandoning this logic... delete when sure
-        #
-        # of available subnets, select the the highest ranked AZ for the region
-        # this logic minimizes cross AZ traffic across the Org
-        # s = False
-        # subnet_id = ""
-        # while not s:
-        #     for ranked_az in azs_ranked[vpc_data['Region']]:
-        #         for subnet in vpc_data['Subnets']:
-        #             az = subnet['AvailabilityZoneId']
-        #             if az == ranked_az[0]:
-        #                 subnet_id = subnet['SubnetId']
-        #                 s = True
+        account = ar[0]
+        region = ar[1]
 
+        # copy the CFN template to make a new stack from
         vpc_template = deepcopy(template)
 
-        # update the CFN template with 1 lambda function per subnet
+        # all subnets in the VPC
+        vpc_subnets = [x for x,y in G.nodes(data=True) if y['VpcId'] == vpc]
+
+        # update the VPC CFN template with 1 lambda function per subnet
         # create a list of subnets for CFN parameters
-        subnets = []
-        for subnet in vpc_data['Subnets']:
+        for subnet in vpc_subnets:
             Function = deepcopy(vpc_template['Resources']['Function'])
-            Function['Properties']['FunctionName'] = f"{os.environ['ResourcePrefix']}carve-{subnet['SubnetId']}"
-            Function['Properties']['Environment']['Variables']['VpcSubnetIds'] = subnet['SubnetId']
-            Function['Properties']['VpcConfig']['SubnetIds'] = [subnet['SubnetId']]
+            Function['Properties']['FunctionName'] = f"{os.environ['ResourcePrefix']}carve-{subnet}"
+            Function['Properties']['Environment']['Variables']['VpcSubnetIds'] = subnet
+            Function['Properties']['VpcConfig']['SubnetIds'] = [subnet]
 
-            subnets.append(subnet['SubnetId'])
-
-            name = f"Function{subnet['SubnetId'].split('-')[-1]}"
+            name = f"Function{subnet.split('-')[-1]}"
             vpc_template['Resources'][name] = deepcopy(Function)
 
-        # remote template function
+        # remove orig templated function
         del vpc_template['Resources']['Function']
 
         # push template to s3
@@ -206,19 +189,20 @@ def deployment_list(G, context):
         data = json.dumps(vpc_template, ensure_ascii=True, indent=2, sort_keys=True)
         aws_put_direct(data, key)
     
-        image_id = aws_ssm_get_parameter(f"/{os.environ['ResourcePrefix']}carve-resources/carve-beacon-ami", region=vpc_data['Region'])
+        image_id = aws_ssm_get_parameter(f"/{os.environ['ResourcePrefix']}carve-resources/carve-beacon-ami", region=region)
+        scale = aws_ssm_get_parameter(f"/{os.environ['ResourcePrefix']}carve-resources/scale")
 
-        # need to paramaterize this as a choice
-        all_subnets = False
-        if all_subnets:
-            max_size = len(vpc_data['Subnets'])
-        else:
-            max_size = 1
+        if scale == 'none':
+            desired = 0
+        elif scale == 'subnet':
+            desired = len(vpc_subnets)
+        elif scale == 'vpc':
+            desired = 1
 
         stack = {}
         stack['StackName'] = f"{os.environ['ResourcePrefix']}carve-managed-{vpc}"
-        stack['Account'] = vpc_data['Account']
-        stack['Region'] = vpc_data['Region']
+        stack['Account'] = account
+        stack['Region'] = region
         stack['Template'] = key
         stack['Parameters'] = [
           {
@@ -227,7 +211,7 @@ def deployment_list(G, context):
           },
           {
             "ParameterKey": "VpcSubnetIds",
-            "ParameterValue": ','.join(subnets)
+            "ParameterValue": ','.join(vpc_subnets)
           },      
           {
             "ParameterKey": "ResourcePrefix",
@@ -243,7 +227,11 @@ def deployment_list(G, context):
           },
           {
             "ParameterKey": "MaxSize",
-            "ParameterValue": str(max_size)
+            "ParameterValue": len(vpc_subnets)
+          },
+          {
+            "ParameterKey": "DesiredSize",
+            "ParameterValue": desired
           }
         ]
 
