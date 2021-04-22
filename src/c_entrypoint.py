@@ -54,6 +54,7 @@ def lambda_handler(event, context):
 
         elif 's3' in event['Records'][0]:
             if event['Records'][0]['s3']['bucket']['name'] == os.environ['CarveS3Bucket']:
+                from c_deploy_endpoints import start_carve_deployment
                 start_carve_deployment(event, context)
 
     elif 'DeployStart' in event:

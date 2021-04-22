@@ -13,8 +13,9 @@ current_region = os.environ['AWS_REGION']
 boto_config = Config(retries=dict(max_attempts=10))
 
 
-def get_credentials_using_arn(arn):
-    account = arn.split(':')[4]
+def _get_credentials(arn=None, account=None):
+    if arn not None:
+        account = arn.split(':')[4]        
     role_name = f"{os.environ['ResourcePrefix']}carve-lambda-{os.environ['OrganizationsId']}"
     role = f"arn:aws:iam::{account}:role/{role_name}"
     session_name = "carve-network-test"
@@ -53,6 +54,36 @@ def _aws_assume_role_process(account, role, child_conn):
     response = {"account": account, "credentials": credentials}
     child_conn.send(response)
     child_conn.close()
+
+
+def discover_org_accounts():
+    ''' discover all accounts in the AWS Org'''
+    orgs = boto3.client('organizations')
+    root = orgs.describe_organization()['Organization']['MasterAccountArn'].split(':')[4]
+    sts = boto3.client('sts')
+    account = sts.get_caller_identity()['Account']
+
+    if account == root:
+        client = orgs
+    else:
+        credentials = _get_credentials(account=root)
+        client = boto3.client(
+            'organizations'
+            aws_access_key_id = credentials['AccessKeyId'],
+            aws_secret_access_key = credentials['SecretAccessKey'],
+            aws_session_token = credentials['SessionToken']
+            )
+
+    paginator = client.get_paginator('list_accounts')
+    pages = paginator.paginate(PaginationConfig={'PageSize': 20})
+
+    for page in pages:
+        # add each account that is active
+        for account in page['Accounts']:
+            if account['Status'] == 'ACTIVE':
+                # create new account object
+                accounts[account['Id']] = account['Name']
+    return accounts
 
 
 def aws_parallel_role_creation(accounts, role):
@@ -597,6 +628,26 @@ def aws_delete_bucket_notification():
         print(f'error creating bucket notification: {e}')
 
 
+def tag_value( tags, key ):
+    if type(tags) != list:
+        return None
+    res = map( lambda tag: tag['Value'] , filter( lambda tag: tag['Key'] == key, tags ) )
+    if len(res) == 0:
+        return None
+    else:    # tags are unique, so this is the _only_ value
+        return res[0]
+
+
+# def aws_latest_ami(region=current_region):
+#     client = boto3.client(
+#         'ec2',
+#         config=boto_config,
+#         region_name=region,
+#         )
+#     response = client.describe_images(Owners=['self'])
+#     return response['Images'][0]
+
+
 def aws_copy_image(name, source_image, region):
     client = boto3.client('ec2', region_name=region, config=boto_config)
     response = client.copy_image(
@@ -611,13 +662,28 @@ def aws_copy_image(name, source_image, region):
 
 
 def aws_describe_image(image, region=current_region):
-    client = boto3.client(
-        'ec2',
-        config=boto_config,
-        region_name=region,
-        )
+    client = boto3.client('ec2', config=boto_config, region_name=region)
     response = client.describe_images(ImageIds=[image])
     return response['Images'][0]
+
+
+def aws_share_image(image, accounts, region=current_region):
+    lp = {}
+    lp['Add'] = []
+    for a in accounts:
+        lp['Add'].append(a)
+
+    all_accounts = discover_org_accounts()
+
+    ### add logic for which accounts should not have the share and remove them
+
+    client = boto3.client('ec2', config=boto_config, region_name=region)
+    response = client.client.modify_image_attribute(
+        ImageId=image,
+        LaunchPermission=lp
+        )
+    return response['Images'][0]
+
 
 
 def aws_ssm_put_parameter(parameter, value, region=current_region):
@@ -665,7 +731,7 @@ def aws_ssm_delete_parameter(path):
 
 def aws_invoke_lambda(arn, payload, region, credentials):
     if credentials is None:
-        credentials = get_credentials_using_arn(arn)
+        credentials = _get_credentials(arn=arn)
 
     client = boto3.client(
         'lambda',

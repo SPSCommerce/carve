@@ -86,6 +86,16 @@ def deploy_regions(G):
     return regions    
 
 
+def deploy_accounts(G):
+    # get all other regions where buckets are needed
+    accounts = set()
+    for node in list(G.nodes):
+        r = G.nodes().data()[node]['Account']
+        if r not in accounts:
+            accounts.add(r)
+    return accounts
+
+
 def sf_DeployPrep(event, context):
     # input will be the completion of all the deploy buckets
     # need to use above logic to load G and determine 
@@ -109,6 +119,7 @@ def sf_DeployPrep(event, context):
 def propagate_carve_ami(G):
     ''' if the carve ami in the current region is newer, update the regional copies '''
     regions = deploy_regions(G)
+    accounts = deploy_accounts(G)
 
     # all copies get the same time stamped name, use that to compare
     source_image = aws_ssm_get_parameter(f"/{os.environ['ResourcePrefix']}carve-resources/carve-beacon-ami")
@@ -121,19 +132,30 @@ def propagate_carve_ami(G):
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = []
         for region in regions:
-            ami = aws_ssm_get_parameter(parameter, region=region)
-            name = aws_describe_image(ami)['Name']
-            if name != source_name:
+            dupe = False
+            try:
+                ami = aws_ssm_get_parameter(parameter, region=region)
+                name = aws_describe_image(ami)['Name']
+                if name != source_name:
+                    print(f'ami names {ami} and {name} do not match (copying image to {region}): {e}')
+                    dupe = True
+
+            except Exception as e:
+                print(f'error checking regional AMI (copying image to {region}): {e}')
+                dupe = True
+
+            if dupe:
                 futures.append(executor.submit(
                     aws_copy_image,
                     name=source_name,
                     source_image=source_image,
                     region=region))
-        for future in concurrent.futures.as_completed(futures):
-            results.append(future.result())
 
-    for r in results:
-        aws_ssm_put_parameter(parameter, r['ImageId'], r['region'])
+        for future in concurrent.futures.as_completed(futures):
+            r = future.result()
+            if 'ImageId' in r:
+                aws_ssm_put_parameter(parameter, r['ImageId'], r['region'])
+                aws_share_image(r['ImageId'], accounts, r['region'])
 
 
 def deployment_list(G, context):
@@ -227,11 +249,11 @@ def deployment_list(G, context):
           },
           {
             "ParameterKey": "MaxSize",
-            "ParameterValue": len(vpc_subnets)
+            "ParameterValue": str(len(vpc_subnets))
           },
           {
             "ParameterKey": "DesiredSize",
-            "ParameterValue": desired
+            "ParameterValue": str(desired)
           }
         ]
 
