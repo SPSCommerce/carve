@@ -37,6 +37,9 @@ Parameters:
     Description: IP range (CIDR notation) for subnet in new VPC if needed
     Type: String
     Default: "10.0.0.0/28"
+  ImageBuilderKmsKeyId:
+    Type: String
+    Description: "Key for encrpyting Carve image"
 
 Resources:
   CarvePipelineRole:
@@ -225,7 +228,7 @@ Resources:
                 RoleArn: !GetAtt 'CarvePipelineRole.Arn'
                 StackName: !Sub '${ResourcePrefix}carve-imagebuilder'
                 TemplatePath: GithubRepo::deployment/image-builder.cfn.yml
-                ParameterOverrides: !Sub '{"ExistingSubnetId":"${ImageBuilderExistingSubnetId}","ExistingVpcId":"${ImageBuilderExistingVpcId}","VpcCIDR":"${ImageBuilderVpcCIDR}","PublicSubnetCIDR":"${ImageBuilderPublicSubnetCIDR}","OrganizationsId":"${OrganizationsId}","ResourcePrefix":"${ResourcePrefix}","DeployBucket":"${DeployBucket}"}'
+                ParameterOverrides: !Sub '{"ExistingSubnetId":"${ImageBuilderExistingSubnetId}","ExistingVpcId":"${ImageBuilderExistingVpcId}","VpcCIDR":"${ImageBuilderVpcCIDR}","PublicSubnetCIDR":"${ImageBuilderPublicSubnetCIDR}","OrganizationsId":"${OrganizationsId}","ResourcePrefix":"${ResourcePrefix}","DeployBucket":"${DeployBucket}","KmsKeyId":"${ImageBuilderKmsKeyId}"}'
               OutputArtifacts: []
               InputArtifacts:
                 - Name: GithubRepo

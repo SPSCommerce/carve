@@ -119,11 +119,11 @@ def sf_DeployPrep(event, context):
 def propagate_carve_ami(G):
     ''' if the carve ami in the current region is newer, update the regional copies '''
     regions = deploy_regions(G)
-    accounts = deploy_accounts(G)
 
     # all copies get the same time stamped name, use that to compare
     source_image = aws_ssm_get_parameter(f"/{os.environ['ResourcePrefix']}carve-resources/carve-beacon-ami")
     source_name = aws_describe_image(source_image)['Name']
+    print(f'AMI source_name: {source_name}')
 
     parameter = f"/{os.environ['ResourcePrefix']}carve-resources/carve-beacon-ami"
 
@@ -135,9 +135,11 @@ def propagate_carve_ami(G):
             dupe = False
             try:
                 ami = aws_ssm_get_parameter(parameter, region=region)
-                name = aws_describe_image(ami)['Name']
+                image = aws_describe_image(ami, region=region)
+                print(f'ami in {region}: {image}')
+                name = image['Name']
                 if name != source_name:
-                    print(f'ami names {ami} and {name} do not match (copying image to {region}): {e}')
+                    print(f'ami names {ami} and {name} do not match (copying image to {region})')
                     dupe = True
 
             except Exception as e:
@@ -155,7 +157,21 @@ def propagate_carve_ami(G):
             r = future.result()
             if 'ImageId' in r:
                 aws_ssm_put_parameter(parameter, r['ImageId'], r['region'])
-                aws_share_image(r['ImageId'], accounts, r['region'])
+                # wait until AMI is available before proceeding
+                while True:
+                    status = aws_describe_image(r['ImageId'], region=r['region'])['State']
+                    if status == 'available':
+                        break
+                    else:
+                        print(f"ami status for {r['ImageId']}: {status}")
+                        time.sleep(1)
+
+    # update AMI sharing for deployment accounts
+    accounts = deploy_accounts(G)
+    for region in regions:
+        ami = aws_ssm_get_parameter(parameter, region=region)
+        print(f'sharing {ami} to {accounts}')
+        aws_share_image(ami, accounts, region)
 
 
 def deployment_list(G, context):

@@ -14,7 +14,7 @@ boto_config = Config(retries=dict(max_attempts=10))
 
 
 def _get_credentials(arn=None, account=None):
-    if arn not None:
+    if arn is not None:
         account = arn.split(':')[4]        
     role_name = f"{os.environ['ResourcePrefix']}carve-lambda-{os.environ['OrganizationsId']}"
     role = f"arn:aws:iam::{account}:role/{role_name}"
@@ -68,7 +68,7 @@ def discover_org_accounts():
     else:
         credentials = _get_credentials(account=root)
         client = boto3.client(
-            'organizations'
+            'organizations',
             aws_access_key_id = credentials['AccessKeyId'],
             aws_secret_access_key = credentials['SecretAccessKey'],
             aws_session_token = credentials['SessionToken']
@@ -76,7 +76,7 @@ def discover_org_accounts():
 
     paginator = client.get_paginator('list_accounts')
     pages = paginator.paginate(PaginationConfig={'PageSize': 20})
-
+    accounts = {}
     for page in pages:
         # add each account that is active
         for account in page['Accounts']:
@@ -664,25 +664,34 @@ def aws_copy_image(name, source_image, region):
 def aws_describe_image(image, region=current_region):
     client = boto3.client('ec2', config=boto_config, region_name=region)
     response = client.describe_images(ImageIds=[image])
-    return response['Images'][0]
+    if len(response['Images']) > 0:
+        return response['Images'][0]
+    else:
+        return None
 
 
 def aws_share_image(image, accounts, region=current_region):
     lp = {}
     lp['Add'] = []
+    lp['Remove'] = []
+
+    # add permission for all requested accounts
     for a in accounts:
-        lp['Add'].append(a)
+        lp['Add'].append({'UserId': a})
 
-    all_accounts = discover_org_accounts()
+    # remove permission for any account in org not requested
+    for a in discover_org_accounts():
+        if a not in accounts:
+            lp['Remove'].append({'UserId': a})
 
-    ### add logic for which accounts should not have the share and remove them
+    print(f'AMI LaunchPermission: {lp}')
 
     client = boto3.client('ec2', config=boto_config, region_name=region)
-    response = client.client.modify_image_attribute(
+    response = client.modify_image_attribute(
         ImageId=image,
         LaunchPermission=lp
         )
-    return response['Images'][0]
+    return response
 
 
 

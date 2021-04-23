@@ -39,6 +39,10 @@ Parameters:
     Type: String
     Description: "MUST be incremented with changes to image builder in this template"
     Default: "0.0.3"
+  KmsKeyId:
+    Type: String
+    Description: "Key ARN for encrpyting Carve image"
+
 
 Conditions:
   CreateVpc: !Equals [ !Ref ExistingVpcId, "" ]
@@ -72,6 +76,13 @@ Resources:
                 Resource: 
                   - !Sub "arn:aws:s3:::${ResourcePrefix}carve-managed-bucket-${OrganizationsId}-${AWS::Region}/*"
                   - !Sub "arn:aws:s3:::${DeployBucket}/*"
+              - Action:
+                  - kms:Encrypt
+                  - kms:GenerateDataKey
+                  - kms:GenerateDataKeyWithoutPlaintext
+                Effect: Allow
+                Resource: 
+                  - !Ref KmsKeyId
 
   InstanceProfile:
     Type: AWS::IAM::InstanceProfile
@@ -103,6 +114,7 @@ Resources:
       Version: !Ref Version
       Description: Install and setup Carve dependencies
       Platform: Linux
+      KmsKeyId: !Ref KmsKeyId
       Data: !Sub |
         name: install
         description: Carve setup
