@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: IAM Role For Every AWS Account Running Carve
+Description: Resources For Every AWS Account Running Carve
 
 Parameters:
 
@@ -112,5 +112,37 @@ Resources:
                   - !Sub "arn:aws:s3:::${ResourcePrefix}carve-managed-bucket-${OrganizationsId}-${AWS::Region}"
                   - !Sub "arn:aws:s3:::${ResourcePrefix}carve-managed-bucket-${OrganizationsId}-${AWS::Region}/*"
 
+  SNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: !Sub "${ResourcePrefix}carve-events"
+      TopicName: !Sub "${ResourcePrefix}carve-events"
 
+  TopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics:
+        - !Ref SNSTopic
+      PolicyDocument:
+        Id: Carve SNS Policy
+        Version: "2012-10-17"
+        Statement:
+          - Sid: Allow events
+            Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: 'sns:Publish'
+            Resource: '*'
+          - Sid: Allow Carve Lambdas
+            Effect: "Allow"
+            Principal:
+              AWS: "*"
+            Action:
+              - "sns:Subscribe"
+              - "sns:Receive"
+              - "sns:Publish"
+            Resource: !Ref SNSTopic
+            Condition:
+              StringEquals:
+                aws:PrincipalOrgID: !Ref OrganizationsId
 

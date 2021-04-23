@@ -182,21 +182,6 @@ Resources:
       DisplayName: !Sub "${ResourcePrefix}carve-events-${OrganizationsId}"
       TopicName: !Sub "${ResourcePrefix}carve-events-${OrganizationsId}"
 
-  CarveSNSSubscription:
-    Type: AWS::SNS::Subscription
-    Properties:
-      Endpoint: !GetAtt CarveFunction.Arn
-      Protocol: Lambda
-      TopicArn: !Ref SNSTopic
-
-  CarveLambdaSNSInvoke:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      Principal: sns.amazonaws.com
-      SourceArn: !Ref SNSTopic
-      FunctionName: !GetAtt CarveFunction.Arn
-
   TopicPolicy:
     Type: AWS::SNS::TopicPolicy
     Properties:
