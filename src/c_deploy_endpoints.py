@@ -123,6 +123,7 @@ def propagate_carve_ami(G):
     # all copies get the same time stamped name, use that to compare
     source_image = aws_ssm_get_parameter(f"/{os.environ['ResourcePrefix']}carve-resources/carve-beacon-ami")
     source_name = aws_describe_image(source_image)['Name']
+    # kms_key = aws_ssm_get_parameter(f"/{os.environ['ResourcePrefix']}carve-resources/carve-kms-key")
     print(f'AMI source_name: {source_name}')
 
     parameter = f"/{os.environ['ResourcePrefix']}carve-resources/carve-beacon-ami"
@@ -139,7 +140,7 @@ def propagate_carve_ami(G):
                 print(f'ami in {region}: {image}')
                 name = image['Name']
                 if name != source_name:
-                    print(f'ami names {ami} and {name} do not match (copying image to {region})')
+                    print(f'ami names {name} and {source_name} do not match (copying image to {region})')
                     dupe = True
 
             except Exception as e:
@@ -151,27 +152,36 @@ def propagate_carve_ami(G):
                     aws_copy_image,
                     name=source_name,
                     source_image=source_image,
+                    # source_kms=kms_key,
                     region=region))
 
         for future in concurrent.futures.as_completed(futures):
             r = future.result()
             if 'ImageId' in r:
                 aws_ssm_put_parameter(parameter, r['ImageId'], r['region'])
-                # wait until AMI is available before proceeding
-                while True:
-                    status = aws_describe_image(r['ImageId'], region=r['region'])['State']
-                    if status == 'available':
-                        break
-                    else:
-                        print(f"ami status for {r['ImageId']}: {status}")
-                        time.sleep(1)
 
     # update AMI sharing for deployment accounts
     accounts = deploy_accounts(G)
     for region in regions:
         ami = aws_ssm_get_parameter(parameter, region=region)
-        print(f'sharing {ami} to {accounts}')
-        aws_share_image(ami, accounts, region)
+        while True:
+            if ami_ready(ami, region):
+                print(f'sharing {ami} in {region} to: {accounts}')
+                aws_share_image(ami, accounts, region)
+                break
+            else:
+                # waiting here is not the best... ami sharing should be migrated into deploy steps
+                print(f'ami is not ready to share... waiting 30s to check again')
+                time.sleep(30)
+
+
+def ami_ready(ami, region):
+    # wait until AMI is available before proceeding
+    status = aws_describe_image(ami, region=region)['State']
+    if status == 'available':
+        return True
+    else:
+        return False
 
 
 def deployment_list(G, context):

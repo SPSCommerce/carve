@@ -56,7 +56,7 @@ Resources:
       Handler: c_entrypoint.lambda_handler
       Runtime: python3.8
       MemorySize: 1024
-      Timeout: 120
+      Timeout: 900
       Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ResourcePrefix}carve-lambda-${OrganizationsId}"
       ReservedConcurrentExecutions: 200
       Layers:

@@ -653,7 +653,8 @@ def aws_copy_image(name, source_image, region):
     response = client.copy_image(
         # ClientToken='string',
         Description='Carve AMI',
-        Encrypted=True,
+        Encrypted=False,
+        # KmsKeyId=source_kms,
         Name=name,
         SourceImageId=source_image,
         SourceRegion=current_region

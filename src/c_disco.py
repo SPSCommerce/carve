@@ -48,23 +48,6 @@ from c_carve import carve_role_arn, save_graph, load_graph
 #     return G
 
 
-def discover_org_accounts():
-    ''' discover all accounts in the AWS Org'''
-    client = boto3.client('organizations')
-    accounts = {}
-
-    # get top level accounts in root
-    paginator = client.get_paginator('list_accounts')
-    pages = paginator.paginate(PaginationConfig={'PageSize': 20})
-
-    for page in pages:
-        # add each account that is active
-        for account in page['Accounts']:
-            if account['Status'] == 'ACTIVE':
-                # create new account object
-                accounts[account['Id']] = account['Name']
-    return accounts
-
 
 def discover_subnets(region, account_id, account_name, credentials):
     ''' get VPCs in account/region, returns nx.Graph object of VPC nodes'''
@@ -251,9 +234,9 @@ def sf_DiscoverAccount(event):
     return discovered
 
 
-def sf_StartDiscovery():
+def sf_StartDiscovery(context):
     # discover AWS Organizations accounts/regions to pass to next step
-    accounts = discover_org_accounts()
+    accounts = discover_org_accounts(context)
     regions = aws_all_regions()
     discovery_targets = []
     for account_id, account_name in accounts.items():
@@ -331,7 +314,7 @@ def sf_OrganizeDiscovery(event):
 def disco_entrypoint(event, context):
     ''' step function tasks for deployment all flow thru here after the lambda_hanlder '''
     if event['DiscoveryAction'] == 'StartDiscovery':
-        response = sf_StartDiscovery()
+        response = sf_StartDiscovery(context)
         # need to return an array?
 
     elif event['DiscoveryAction'] == 'DiscoverAccount':

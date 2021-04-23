@@ -37,9 +37,6 @@ Parameters:
     Description: IP range (CIDR notation) for subnet in new VPC if needed
     Type: String
     Default: "10.0.0.0/28"
-  ImageBuilderKmsKeyId:
-    Type: String
-    Description: "Key for encrpyting Carve image"
 
 Resources:
   CarvePipelineRole:
@@ -90,6 +87,7 @@ Resources:
       ArtifactStore:
         Location: !Ref 'DeployBucket'
         Type: S3
+      RestartExecutionOnUpdate: true
       Stages:
         - Name: CarveSource
           Actions:
@@ -108,6 +106,25 @@ Resources:
                 Repo: carve
                 Branch: main
                 OAuthToken: !Sub '{{resolve:secretsmanager:${GitHubOAUTHTokenASMPath}:SecretString:token}}'
+        - Name: CarvePipeline
+          Actions:
+            - Name: carve-pipeline-updates
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              Configuration:
+                ChangeSetName: pipeline-changeset
+                ActionMode: CREATE_UPDATE
+                Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
+                RoleArn: !GetAtt 'CarvePipelineRole.Arn'
+                StackName: !Sub 'carve-pipeline'
+                TemplatePath: GithubRepo::deployment/codepipeline/carve-pipeline.cfn.yml
+                # ParameterOverrides: !Sub '{"OrganizationsId": "${OrganizationsId}","ResourcePrefix":"${ResourcePrefix}"}'
+              OutputArtifacts: []
+              InputArtifacts:
+                - Name: GithubRepo
         - Name: PackageLambda-DeployIAM
           Actions:
             - Name: carve-lambda-packaging
@@ -228,7 +245,7 @@ Resources:
                 RoleArn: !GetAtt 'CarvePipelineRole.Arn'
                 StackName: !Sub '${ResourcePrefix}carve-imagebuilder'
                 TemplatePath: GithubRepo::deployment/image-builder.cfn.yml
-                ParameterOverrides: !Sub '{"ExistingSubnetId":"${ImageBuilderExistingSubnetId}","ExistingVpcId":"${ImageBuilderExistingVpcId}","VpcCIDR":"${ImageBuilderVpcCIDR}","PublicSubnetCIDR":"${ImageBuilderPublicSubnetCIDR}","OrganizationsId":"${OrganizationsId}","ResourcePrefix":"${ResourcePrefix}","DeployBucket":"${DeployBucket}","KmsKeyId":"${ImageBuilderKmsKeyId}"}'
+                ParameterOverrides: !Sub '{"ExistingSubnetId":"${ImageBuilderExistingSubnetId}","ExistingVpcId":"${ImageBuilderExistingVpcId}","VpcCIDR":"${ImageBuilderVpcCIDR}","PublicSubnetCIDR":"${ImageBuilderPublicSubnetCIDR}","OrganizationsId":"${OrganizationsId}","ResourcePrefix":"${ResourcePrefix}","DeployBucket":"${DeployBucket}"}'
               OutputArtifacts: []
               InputArtifacts:
                 - Name: GithubRepo

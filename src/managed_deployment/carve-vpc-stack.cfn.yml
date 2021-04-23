@@ -192,7 +192,6 @@ Resources:
       ImageId: !Ref 'ImageId'
       InstanceMonitoring: 'false'
       InstanceType: t4g.nano
-      KeyName: carve
       BlockDeviceMappings:
         - DeviceName: /dev/xvda
           Ebs:
