@@ -99,7 +99,7 @@ Resources:
       StateMachineName: !Sub "${ResourcePrefix}carve-deploy-stacks-statemachine"
       StateMachineType: STANDARD
 
-  CarveTokenStacksStepFunction:
+  CarveTokenStepFunction:
     Type: AWS::StepFunctions::StateMachine
     Properties: 
       DefinitionS3Location: 

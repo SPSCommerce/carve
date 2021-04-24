@@ -31,10 +31,10 @@ def token_entrypoint(event, context):
     print(event)
 
     if event['Payload']['Tokens'] == 'SaveTokens':
-        response = sf_SaveToken(payload)
+        response = sf_SaveToken(event, context)
 
-    if event['Payload']['Tokens'] == 'SaveTokens':
-        response = sf_SaveToken(payload)
+    if event['Payload']['Tokens'] == 'ProcessReturns':
+        response = sf_ProcessReturns(event, context)
 
     # return json to step function
     return json.dumps(response, default=str)

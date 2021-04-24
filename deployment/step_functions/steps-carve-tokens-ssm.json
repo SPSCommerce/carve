@@ -32,18 +32,16 @@
     },
     "ProcessReturns": {
       "Type": "Task",
-      "Resource": "${CarveFunction}",
-      "ResultSelector": {
-        "Payload.$": "States.StringToJson($)"
-      },
+      "Resource": "arn:aws:states:::lambda:invoke",
       "Parameters": {
+        "FunctionName": "${CarveFunction}",
         "Payload": {
           "Tokens": "ProcessReturns",
           "Input.$": "$"
         }
       },
       "End": true,
-      "TimeoutSeconds": 20
+      "TimeoutSeconds": 30
     }
   }
 }
