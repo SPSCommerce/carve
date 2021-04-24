@@ -133,7 +133,7 @@ Resources:
               Service: events.amazonaws.com
             Action: 'sns:Publish'
             Resource: '*'
-          - Sid: Allow Carve Lambdas
+          - Sid: Allow Carve
             Effect: "Allow"
             Principal:
               AWS: "*"

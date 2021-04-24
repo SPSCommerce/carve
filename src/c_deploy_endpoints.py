@@ -382,13 +382,62 @@ def codepipline_job(event, context):
     aws_codepipeline_success(event['CodePipeline.job']['id'])
 
 
+def sf_CreateSubscriptions(context):
+    # create SNS subscriptions to all accounts with deployments
+    G = load_graph(get_deploy_key(), local=False)
+    accounts = deploy_accounts(G)
+    prefix = os.environ['ResourcePrefix']
 
+    # create a CFN template with SNS subscriptions and lambda invoke permissions
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "SNS Topic Subscriptions for Carve",
+        "Resources": {}
+    }
+    for account in accounts:
+        template['Resources'][f'Sub{account}'] = {
+            "Type": "AWS::SNS::Subscription",
+            "Properties": {
+                "Endpoint": context.invoked_function_arn,
+                "Protocol": "Lambda",
+                "TopicArn": f"arn:aws:sns:{current_region}:{account}:{prefix}-carve-events"
+            }
+        }
+        template['Resources'][f'Invoke{account}'] = {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+                "Action": "lambda:InvokeFunction",
+                "Principal": "sns.amazonaws.com",
+                "SourceArn": f"arn:aws:sns:{current_region}:{account}:{prefix}-carve-events",
+                "FunctionName": context.invoked_function_arn
+            }
+        }
+
+    # deploy the template
+    stackname = f"{os.environ['ResourcePrefix']}carve-sns-subscriptions"
+    key = f"managed_deployment/{stackname}.json"
+    aws_put_direct(template, key)
+
+    deploy_sns = [{
+            "StackName": stackname,
+            "Parameters": [],
+            "Account": context.invoked_function_arn.split(":")[4],
+            "Region": current_region,
+            "Template": key
+        }]
+
+    return deploy_sns
+
+    # name = f"deploy-sns-{int(time.time())}"
+    # aws_start_stepfunction(os.environ['DeployEndpointsStateMachine'], deploy_sns, name)
+
+ 
 def sf_GetDeploymentList(context):
     G = load_graph(get_deploy_key(), local=False)
     return deployment_list(G, context)
 
 
-def sf_DeploymentComplete():
+def sf_DeploymentComplete(context):
     # move deployment object
     deploy_key = get_deploy_key()
     key_name = deploy_key.split('/')[-1]
@@ -406,8 +455,11 @@ def deploy_steps_entrypoint(event, context):
     if event['DeployAction'] == 'GetDeploymentList':
         response = sf_GetDeploymentList(context)
 
+    if event['DeployAction'] == 'CreateSubscriptions':
+        response = sf_CreateSubscriptions(context)
+
     if event['DeployAction'] == 'DeploymentComplete':
-        response = sf_DeploymentComplete()
+        response = sf_DeploymentComplete(context)
         
     # return json to step function
     return json.dumps(response, default=str)

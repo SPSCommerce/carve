@@ -47,6 +47,7 @@ Resources:
           DeployEndpointsStateMachine: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ResourcePrefix}carve-deploy-endpoints-statemachine"
           DeployStacksStateMachine: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ResourcePrefix}carve-deploy-stacks-statemachine"
           DiscoveryStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ResourcePrefix}carve-discovery-statemachine"
+          TokenStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ResourcePrefix}carve-token-statemachine"
           GITSHA: !Ref GITSHA
           MPLCONFIGDIR: /tmp/matplotlib
           OrganizationsId: !Ref OrganizationsId
@@ -96,6 +97,18 @@ Resources:
         CarveFunction: !Ref CarveFunction
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ResourcePrefix}carve-stepfunctions-${OrganizationsId}"
       StateMachineName: !Sub "${ResourcePrefix}carve-deploy-stacks-statemachine"
+      StateMachineType: STANDARD
+
+  CarveTokenStacksStepFunction:
+    Type: AWS::StepFunctions::StateMachine
+    Properties: 
+      DefinitionS3Location: 
+        Bucket: !Ref CodeBucket
+        Key: !Sub "step_functions/${GITSHA}/steps-carve-tokens-ssm.json"
+      DefinitionSubstitutions: 
+        CarveFunction: !Ref CarveFunction
+      RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ResourcePrefix}carve-stepfunctions-${OrganizationsId}"
+      StateMachineName: !Sub "${ResourcePrefix}carve-token-statemachine"
       StateMachineType: STANDARD
 
   CarveDeployEndpointsStepFunction:
@@ -181,6 +194,21 @@ Resources:
     Properties:
       DisplayName: !Sub "${ResourcePrefix}carve-events-${OrganizationsId}"
       TopicName: !Sub "${ResourcePrefix}carve-events-${OrganizationsId}"
+
+  CarveSNSSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: !GetAtt CarveFunction.Arn
+      Protocol: Lambda
+      TopicArn: !Ref SNSTopic
+
+  CarveLambdaSNSInvoke:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      Principal: sns.amazonaws.com
+      SourceArn: !Ref SNSTopic
+      FunctionName: !GetAtt CarveFunction.Arn
 
   TopicPolicy:
     Type: AWS::SNS::TopicPolicy

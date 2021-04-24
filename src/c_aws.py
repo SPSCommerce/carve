@@ -20,6 +20,7 @@ def _get_credentials(arn=None, account=None):
     role = f"arn:aws:iam::{account}:role/{role_name}"
     session_name = "carve-network-test"
     credentials = aws_assume_role(role, session_name)
+    credentails['Account'] = account
     return credentials
 
 
@@ -31,12 +32,12 @@ def aws_assume_role(role_arn, session_name, token_life=900):
         endpoint_url=f'https://sts.{current_region}.amazonaws.com',
         config=boto_config
         )
-
     try:
         assumed_role_object = sts_client.assume_role(
             RoleArn=role_arn,
             RoleSessionName=session_name,
             DurationSeconds=int(token_life))
+        assumed_role_object['Credentials']['Account'] = role_arn.split(':')[4]
         return assumed_role_object['Credentials'] 
     except ClientError as e:
         print(f'Failed to assume {role_arn}: {e}')
@@ -381,6 +382,7 @@ def aws_create_stack(stackname, region, template, parameters, credentials, tags)
         TemplateBody=template,
         Parameters=parameters,
         Capabilities=['CAPABILITY_NAMED_IAM'],
+        NotificationARNs=['CarveSNSTopicArn']
         Tags=tags
         )
 
@@ -404,8 +406,7 @@ def aws_delete_stack(stackname, region, credentials):
 
 
 def aws_create_changeset(stackname, changeset_name, region, template, parameters, credentials, tags):
-    '''deploy SAM template thru changesets'''
-
+    '''deploy CFN/SAM templates thru changesets'''
     client = boto3.client(
         'cloudformation',
         config=boto_config,
@@ -415,21 +416,29 @@ def aws_create_changeset(stackname, changeset_name, region, template, parameters
         aws_session_token = credentials['SessionToken']
         )
 
-    response = client.create_change_set(
-        StackName=stackname,
-        ChangeSetName=changeset_name,
-        TemplateBody=template,
-        Tags=tags,
-        Parameters=parameters,
-        Capabilities=['CAPABILITY_NAMED_IAM','CAPABILITY_AUTO_EXPAND']
-        )
-
-    # returns...
-    # {
-    #     'Id': 'string',
-    #     'StackId': 'string'
-    # }
-
+    size = len(template.encode('utf-8'))
+    if size < 51000:
+        response = client.create_change_set(
+            StackName=stackname,
+            ChangeSetName=changeset_name,
+            TemplateBody=template,
+            Tags=tags,
+            Parameters=parameters,
+            Capabilities=['CAPABILITY_NAMED_IAM','CAPABILITY_AUTO_EXPAND']
+            )
+    else:
+        # put larger templates into managed S3 bucket
+        rb = f"{os.environ['ResourcePrefix']}carve-managed-bucket-{os.environ['OrganizationsId']}-{region}"
+        key = f'managed_deployment/{stackname}.json'
+        aws_put_direct(template, key, bucket=rb)
+        response = client.create_change_set(
+            StackName=stackname,
+            ChangeSetName=changeset_name,
+            TemplateURL=f"https://s3.amazonaws.com/{rb}/{key}",
+            Tags=tags,
+            Parameters=parameters,
+            Capabilities=['CAPABILITY_NAMED_IAM','CAPABILITY_AUTO_EXPAND']
+            )
     return response
 
 
@@ -696,12 +705,15 @@ def aws_share_image(image, accounts, region=current_region):
 
 
 
-def aws_ssm_put_parameter(parameter, value, region=current_region):
+def aws_ssm_put_parameter(parameter, value, region=current_region, param_type='String'):
     client = boto3.client('ssm', config=boto_config, region_name=region)
+    if "/" not in parameter:
+        param = 
+
     response = client.put_parameter(
         Name=parameter,
         Description='Carve managed config data',
-        Type='String',
+        Type=param_type,
         Value=value,
         Overwrite=True,
     )
@@ -739,7 +751,7 @@ def aws_ssm_delete_parameter(path):
         pass
 
 
-def aws_invoke_lambda(arn, payload, region, credentials):
+def aws_invoke_lambda(arn, payload, region=current_region, credentials=None):
     if credentials is None:
         credentials = _get_credentials(arn=arn)
 
@@ -757,6 +769,15 @@ def aws_invoke_lambda(arn, payload, region, credentials):
         )
     data = response['Payload'].read()
     return data
+
+# def aws_invoke_self(arn, payload):
+#     client = boto3.client('lambda', config=boto_config)
+#     response = client.invoke(
+#         FunctionName=arn,
+#         Payload=json.dumps(payload)
+#         )
+#     data = response['Payload'].read()
+#     return data
 
 # def aws_empty_bucket():
 #     bucket = os.environ['CarveS3Bucket']

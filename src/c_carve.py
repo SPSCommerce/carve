@@ -63,7 +63,37 @@ def ssm_event(event, context):
     ssm_value = aws_ssm_get_parameter(ssm_param)
 
     if name.split['/'][-1] == 'scale':
-        scale_beacons(ssm_value)
+        G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
+        asgs = set()
+        for subnet in list(G.nodes):
+            asgs.add(f"{os.environ['ResourcePrefix']}carve-beacon-asg-{G.nodes().data()[subnet]['VpcId']}")
+
+        payload = []
+        for asg in asgs:
+            payload.append({'Parameter': f"/{os.environ['ResourcePrefix']}carve-resources/tokens/{asg}"})
+
+        name = f"scale-{ssm_value}-{int(time.time())}"
+        aws_start_stepfunction(os.environ['TokenStateMachine'], payload, name)
+
+
+# def get_asgs(G=None):
+#     if G is None:
+#         G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
+
+#     # determine all deployed ASGs
+#     asgs = {}
+#     for subnet in list(G.nodes):
+#         asg = f"{os.environ['ResourcePrefix']}carve-beacon-asg-{G.nodes().data()[subnet]['VpcId']}"
+#         if asg not in asgs:
+#             asgs[asg] = {
+#                 'account': G.nodes().data()[subnet]['Account'],
+#                 'region': G.nodes().data()[subnet]['Region'],
+#                 }
+
+#     for asg, values in asgs.items():
+
+
+#     return asgs
 
 
 def scale_beacons(scale):
@@ -123,7 +153,7 @@ def scale_beacons(scale):
 
 
 def get_subnet_beacons():
-    # create a list of all monitored subnets running testing
+    # create a list of all subnets and their beacon, account, and region
 
     # load latest graph
     G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
@@ -157,29 +187,23 @@ def update_carve_beacons():
     G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
 
     # determine all deployed ASGs
-    asgs = []
-    regions = set()
-    for vpc in list(G.nodes):
-        a = G.nodes().data()[vpc]['Account']
-        r = G.nodes().data()[vpc]['Region']
-        regions.add(r)
-        asgs.append({
-            'asg': f"{os.environ['ResourcePrefix']}carve-beacon-asg-{vpc}",
-            'account': a,
-            'region': r
-            })
+    asgs = {}
+    for subnet in list(G.nodes):
+        asg = f"{os.environ['ResourcePrefix']}carve-beacon-asg-{G.nodes().data()[subnet]['VpcId']}"
+        if asg not in asgs:
+            asgs[asg] = {
+                'account': G.nodes().data()[subnet]['Account'],
+                'region': G.nodes().data()[subnet]['Region']
+                }
 
-    # using threading, look up the IP address of all beacons in all ASGs
+    # threaded look up the IP address of all beacons in all ASGs
     subnet_beacons = {}
     all_beacons = []
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = []
-        for asg in asgs:
+        for asg, v in asgs:
             futures.append(executor.submit(
-                get_beacons_thread,
-                asg=asg['asg'],
-                account=asg['account'],
-                region=asg['region']))
+                get_beacons_thread, asg=asg, account=v['account'], region=v['region']))
 
         for future in concurrent.futures.as_completed(futures):
             result = future.result()
@@ -261,20 +285,6 @@ def get_beacons_thread(asg, account, region):
         beacons[instance['SubnetId']] = instance['PrivateIpAddress']
 
     return beacons
-
-def update_beacons_thread(arn, beacon, beacons):
-    # threaded lookup of all beacon IP addresses in an ASG
-    credentials = aws_assume_role(carve_role_arn(a), f"lookup-{asg}")
-    instance_ids = aws_asg_instances(asg, r, credentials)
-    instances = aws_describe_instances(instance_ids, r, credentials)
-
-    beacons = {}
-    for instance in instances:
-        beacons[instance['SubnetId']] = instance['PrivateIpAddress']
-
-    return beacons
-
-
 
 
 def asg_event(message):
@@ -455,32 +465,35 @@ def save_graph(G, file_path):
 
     with open(file_path, 'a') as f:
         json.dump(json_graph.node_link_data(G), f)
+
+
+
     
 
-def main(c_context):
+# def main(c_context):
 
 
-    # either load graph data for G from json, or generate dynamically
-    if 'json_graph' in c_context:
-        G = load_graph(c_context['json_graph'])
-    else:
-        G = False
+#     # either load graph data for G from json, or generate dynamically
+#     if 'json_graph' in c_context:
+#         G = load_graph(c_context['json_graph'])
+#     else:
+#         G = False
 
-    if not G:
-        G = discovery(c_context)
+#     if not G:
+#         G = discovery(c_context)
 
-    if 'export_visual' in c_context:
-        if c_context['export_visual'] == 'true':
-            export_visual(G, c_context)
+#     if 'export_visual' in c_context:
+#         if c_context['export_visual'] == 'true':
+#             export_visual(G, c_context)
 
-    if 'diff_graph' in c_context:
-        D = load_graph(c_context['diff_graph'])
-        if D:
-            network_diff(G, D)
-        else:
-            print(f'cannot compare: diff_graph did not load')
+#     if 'diff_graph' in c_context:
+#         D = load_graph(c_context['diff_graph'])
+#         if D:
+#             network_diff(G, D)
+#         else:
+#             print(f'cannot compare: diff_graph did not load')
 
-    draw_vpc(G, c_context['VpcId'])
+#     draw_vpc(G, c_context['VpcId'])
 
 
 

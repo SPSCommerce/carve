@@ -77,6 +77,12 @@ def lambda_handler(event, context):
         print('TRIGGERED by Discovery Step Function')
         return disco_entrypoint(event, context)
 
+    elif 'Tokens' in event:
+        from c_tokens import token_entrypoint
+        print('TRIGGERED by Token Step Function')
+        return token_entrypoint(event, context)
+
+
     # elif 'ResourceProperties' in event:
     #     # this is from CFN custom resource
     #     return custom_resource_entrypoint(event, context)

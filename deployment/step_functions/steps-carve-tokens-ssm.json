@@ -1,0 +1,49 @@
+{
+  "Comment": "Generate Tokens, Push to SSM, and Wait for Returns",
+  "StartAt": "TokenIterator",
+  "States": {
+    "TokenIterator": {
+      "Type": "Map",
+      "Next": "ProcessReturns",
+      "MaxConcurrency": 100,
+      "ItemsPath": "$.Payload",
+      "Iterator": {
+        "StartAt": "SaveTokens",
+        "States": {
+          "SaveTokens": {
+            "End": true,
+            "Type": "Task",
+            "Resource": "arn:aws:states:::lambda:invoke.waitForTaskToken",
+            "HeartbeatSeconds": 600,
+            "ResultSelector": {
+              "Payload.$": "States.StringToJson($.Payload)"
+            },
+            "Parameters": {
+              "FunctionName": "${CarveFunction}",
+              "Payload": {
+                "Tokens": "SaveTokens",
+                "Input.$": "$",
+                "TaskToken.$": "$$.Task.Token"
+              }
+            }
+          }
+        }
+      }
+    },
+    "ProcessReturns": {
+      "Type": "Task",
+      "Resource": "${CarveFunction}",
+      "ResultSelector": {
+        "Payload.$": "States.StringToJson($)"
+      },
+      "Parameters": {
+        "Payload": {
+          "Tokens": "ProcessReturns",
+          "Input.$": "$"
+        }
+      },
+      "End": true,
+      "TimeoutSeconds": 20
+    }
+  }
+}
