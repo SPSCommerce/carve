@@ -115,8 +115,8 @@ Resources:
   SNSTopic:
     Type: AWS::SNS::Topic
     Properties:
-      DisplayName: !Sub "${ResourcePrefix}carve-events"
-      TopicName: !Sub "${ResourcePrefix}carve-events"
+      DisplayName: !Sub "${ResourcePrefix}carve-account-events"
+      TopicName: !Sub "${ResourcePrefix}carve-account-events"
 
   TopicPolicy:
     Type: AWS::SNS::TopicPolicy

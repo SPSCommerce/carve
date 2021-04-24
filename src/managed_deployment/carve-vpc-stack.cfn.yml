@@ -286,7 +286,7 @@ Resources:
       State: "ENABLED"
       Targets:
         - Id: "SendSNStoCarve"
-          Arn: !Sub 'arn:aws:sns:us-east-1:${AWS::AccountId}:a-carve-events'
+          Arn: !Sub 'arn:aws:sns:us-east-1:${AWS::AccountId}:a-carve-account-events'
   
 Outputs:
   AutoScalingGroup:

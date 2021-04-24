@@ -400,7 +400,7 @@ def sf_CreateSubscriptions(context):
             "Properties": {
                 "Endpoint": context.invoked_function_arn,
                 "Protocol": "Lambda",
-                "TopicArn": f"arn:aws:sns:{current_region}:{account}:{prefix}-carve-events"
+                "TopicArn": f"arn:aws:sns:{current_region}:{account}:{prefix}carve-account-events"
             }
         }
         template['Resources'][f'Invoke{account}'] = {
@@ -408,15 +408,15 @@ def sf_CreateSubscriptions(context):
             "Properties": {
                 "Action": "lambda:InvokeFunction",
                 "Principal": "sns.amazonaws.com",
-                "SourceArn": f"arn:aws:sns:{current_region}:{account}:{prefix}-carve-events",
+                "SourceArn": f"arn:aws:sns:{current_region}:{account}:{prefix}carve-account-events",
                 "FunctionName": context.invoked_function_arn
             }
         }
 
     # deploy the template
-    stackname = f"{os.environ['ResourcePrefix']}carve-sns-subscriptions"
+    stackname = f"{os.environ['ResourcePrefix']}carve-managed-sns-subscriptions"
     key = f"managed_deployment/{stackname}.json"
-    aws_put_direct(template, key)
+    aws_put_direct(json.dumps(template, ensure_ascii=True, indent=2, sort_keys=True), key)
 
     deploy_sns = [{
             "StackName": stackname,

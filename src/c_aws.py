@@ -382,7 +382,7 @@ def aws_create_stack(stackname, region, template, parameters, credentials, tags)
         TemplateBody=template,
         Parameters=parameters,
         Capabilities=['CAPABILITY_NAMED_IAM'],
-        NotificationARNs=['CarveSNSTopicArn']
+        NotificationARNs=[os.environ['CarveSNSTopicArn']],
         Tags=tags
         )
 
@@ -707,9 +707,8 @@ def aws_share_image(image, accounts, region=current_region):
 
 def aws_ssm_put_parameter(parameter, value, region=current_region, param_type='String'):
     client = boto3.client('ssm', config=boto_config, region_name=region)
-    if "/" not in parameter:
-        param = 
-
+    # if "/" not in parameter:
+    #     param = f"{os.environ['ResourcePrefix']}carve-resources/"
     response = client.put_parameter(
         Name=parameter,
         Description='Carve managed config data',
