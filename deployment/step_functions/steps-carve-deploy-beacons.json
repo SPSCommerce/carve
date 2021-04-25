@@ -1,11 +1,11 @@
 {
-  "Comment": "Create Carve endpoint stacks",
+  "Comment": "Create Carve Beacon Stacks",
   "StartAt": "DeployS3BucketStacks",
   "States": {
     "DeployS3BucketStacks": {
       "Comment": "Create S3 Buckets in each region for deployments",
       "Type": "Task",
-      "Next": "EndpointDeployPrep",
+      "Next": "BeaconDeployPrep",
       "ResultSelector": {
         "Payload.$": "States.StringToJson($.Input)"
       },
@@ -18,7 +18,7 @@
         }
       }
     },
-    "EndpointDeployPrep": {
+    "BeaconDeployPrep": {
       "Type": "Task",
       "Resource":"arn:aws:states:::lambda:invoke",
       "ResultSelector": {
@@ -27,7 +27,7 @@
       "Parameters": {
         "FunctionName": "${CarveFunction}",
         "Payload": {
-          "DeployAction": "EndpointDeployPrep",
+          "DeployAction": "BeaconDeployPrep",
           "Input.$": "$"
         }
       },
@@ -59,13 +59,13 @@
           "DeployAction": "GetDeploymentList"
         }
       },
-      "Next": "DeployCarveEndpoints",
+      "Next": "DeployCarveBeacons",
       "TimeoutSeconds": 900
     },
-    "DeployCarveEndpoints": {
+    "DeployCarveBeacons": {
       "Comment": "Create one Carve stack per VPC",
       "Type": "Task",
-      "Next": "CleanupCarveEndpoints",
+      "Next": "CleanupCarveBeacons",
       "Resource": "arn:aws:states:::states:startExecution.sync",
       "Parameters": {
         "StateMachineArn": "${CarveDeployStacksStepFunction}",
@@ -75,7 +75,7 @@
         }
       }
     },
-    "CleanupCarveEndpoints": {
+    "CleanupCarveBeacons": {
       "Comment": "Create one Carve stack per VPC",
       "Type": "Task",
       "Next": "CreateSubscriptions",

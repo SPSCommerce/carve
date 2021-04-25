@@ -29,7 +29,7 @@ Parameters:
   PropogateUpdates:
     Type: String
     Default: 'True'
-    Description: Automatically propogate version updates to endpoints 
+    Description: Automatically propogate version updates to managed resources 
 
 Conditions:
   UseOrgId: !Equals 
@@ -56,7 +56,7 @@ Resources:
           CarveSNSTopicArn: !Ref SNSTopic
           CarveVersion: !Ref CarveVersion
           CleanupStateMachine: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-cleanup-statemachine"
-          DeployEndpointsStateMachine: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-deploy-endpoints-statemachine"
+          DeployBeaconsStateMachine: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-deploy-beacons-statemachine"
           DeployStacksStateMachine: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-deploy-stacks-statemachine"
           DiscoveryStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-discovery-statemachine"
           TokenStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-token-statemachine"
@@ -159,7 +159,7 @@ Resources:
                 Action:
                   - cloudformation:*
                 Resource: 
-                  - !Sub "arn:aws:cloudformation:*:${AWS::AccountId}:stack/${Prefix}carve-endpoint-vpc-*"
+                  - !Sub "arn:aws:cloudformation:*:${AWS::AccountId}:stack/${Prefix}carve-managed-*"
               - Effect: Allow
                 Action:
                   - "*"
@@ -216,18 +216,18 @@ Resources:
       StateMachineName: !Sub "${Prefix}carve-token-statemachine"
       StateMachineType: STANDARD
 
-  CarveDeployEndpointsStepFunction:
+  CarveDeployBeaconsStepFunction:
     Type: AWS::StepFunctions::StateMachine
     Properties: 
       DefinitionS3Location: 
         Bucket: !Ref CodeBucket
-        Key: !Sub "step_functions/${GITSHA}/steps-carve-deploy-endpoints.json"
+        Key: !Sub "step_functions/${GITSHA}/steps-carve-deploy-beacons.json"
       DefinitionSubstitutions: 
         CarveFunction: !Ref CarveFunction
         CarveDeployStacksStepFunction: !Ref CarveDeployStacksStepFunction
         CarveCleanupStepFunction: !Ref CarveCleanupStepFunction
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
-      StateMachineName: !Sub "${Prefix}carve-deploy-endpoints-statemachine"
+      StateMachineName: !Sub "${Prefix}carve-deploy-beacons-statemachine"
       StateMachineType: STANDARD
 
   CarveCleanupStepFunction:

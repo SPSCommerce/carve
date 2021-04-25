@@ -1,14 +1,14 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Carve VPC Testing Endpoint
+Description: Carve VPC Testing Beacons
 
 Parameters:
   VpcId:
     Type: String
-    Description: VPC ID in which the VPC Endpoint should be created
+    Description: VPC ID in which the beacons should be created
     Default: ""
   VpcSubnetIds:
     Type: String
-    Description: one or more comma separated subnets in which to create endpoints
+    Description: one or more comma separated subnets in which to create beacons
     Default: ""
   Prefix:
     Type: String

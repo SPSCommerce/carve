@@ -1,5 +1,5 @@
 {
-  "Comment": "Cleanup Carve endpoint stacks",
+  "Comment": "Cleanup Carve Managed Stacks",
   "StartAt": "CleanupDeployments",
   "States": {
     "CleanupDeployments": {

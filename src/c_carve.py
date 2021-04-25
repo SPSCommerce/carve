@@ -11,7 +11,7 @@ import concurrent.futures
 
 
 def carve_results(event, context):
-    # call subnet lambdas to collect their results from their endpoints
+    # call subnet lambdas to collect their results from their beacons
 
     # get all registered beacons from SSM
     print('getting latest test results')

@@ -68,10 +68,10 @@ def start_carve_deployment(event, context, key=False):
 
     if len(list(G.nodes)) > 0:
         name = f"deploy-{filename}-{int(time.time())}"
-        aws_start_stepfunction(os.environ['DeployEndpointsStateMachine'], deploy_buckets, name)
+        aws_start_stepfunction(os.environ['DeployBeaconsStateMachine'], deploy_buckets, name)
     else:
         # if nothing is being deployed, Run cleanup
-        name = f"NO-ENDPOINTS-{filename}-{int(time.time())}"
+        name = f"NO-BEACONS-{filename}-{int(time.time())}"
         aws_start_stepfunction(os.environ['CleanupStateMachine'], [], name)
 
 
@@ -384,7 +384,7 @@ def update_bucket_policies(G):
 def codepipline_job(event, context):
     param = event['CodePipeline.job']['data']['actionConfiguration']['configuration']['UserParameters']
 
-    if param == 'UpdateEndpoints':
+    if param == 'UpdateManagedStacks':
         if os.environ['PropogateUpdates'] == 'True':
             deploy_key = get_deploy_key(last=True)
             if deploy_key is not None:
@@ -395,7 +395,7 @@ def codepipline_job(event, context):
             else:
                 print('No previous deploy key to run updates with')
         else:
-            print('Updating endpoints is disabled')
+            print('Updating Managed Stacks is disabled')
 
     elif param == 'BucketNotification':
         aws_create_s3_path('deploy_input/')
@@ -452,7 +452,7 @@ def sf_CreateSubscriptions(context):
     return deploy_sns
 
     # name = f"deploy-sns-{int(time.time())}"
-    # aws_start_stepfunction(os.environ['DeployEndpointsStateMachine'], deploy_sns, name)
+    # aws_start_stepfunction(os.environ['DeployBeaconsStateMachine'], deploy_sns, name)
 
  
 def sf_GetDeploymentList(context):
@@ -472,7 +472,7 @@ def deploy_steps_entrypoint(event, context):
     ''' step function tasks for deployment all flow thru here after the lambda_hanlder '''
     response = {}
 
-    if event['DeployAction'] == 'EndpointDeployPrep':
+    if event['DeployAction'] == 'BeaconDeployPrep':
         response = sf_DeployPrep(event, context)
 
     if event['DeployAction'] == 'GetDeploymentList':

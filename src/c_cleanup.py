@@ -7,7 +7,7 @@ from copy import deepcopy
 from c_carve import load_graph, save_graph, carve_role_arn
 from c_disco import discover_org_accounts
 from c_aws import *
-from c_deploy_endpoints import deployment_list, deploy_regions, get_deploy_key
+from c_deploy_beacons import deployment_list, deploy_regions, get_deploy_key
 from multiprocessing import Process, Pipe
 from crhelper import CfnResource
 import time

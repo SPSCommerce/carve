@@ -12,7 +12,7 @@ def lambda_handler(event, context):
         - step function executing route test
         - diff 2 json graphs (s3 or payload)
         - discovery process
-        - endpoint deployment
+        - beacon deployment
         - cloudformation custom resources
 
     # lambda needs to log its info at startup
@@ -54,17 +54,17 @@ def lambda_handler(event, context):
 
         elif 's3' in event['Records'][0]:
             if event['Records'][0]['s3']['bucket']['name'] == os.environ['CarveS3Bucket']:
-                from c_deploy_endpoints import start_carve_deployment
+                from c_deploy_beacons import start_carve_deployment
                 start_carve_deployment(event, context)
 
     elif 'DeployStart' in event:
-        from c_deploy_endpoints import start_carve_deployment
+        from c_deploy_beacons import start_carve_deployment
         print('Starting deployment process')
         return start_carve_deployment(event, context)
 
     elif 'DeployAction' in event:
-        from c_deploy_endpoints import deploy_steps_entrypoint
-        print('TRIGGERED by Endpoint Deployment Step Function')
+        from c_deploy_beacons import deploy_steps_entrypoint
+        print('TRIGGERED by Beacons Deployment Step Function')
         return deploy_steps_entrypoint(event, context)
 
     elif 'DeployStack' in event:
@@ -94,7 +94,7 @@ def lambda_handler(event, context):
             return cleanup_steps_entrypoint(event, context)
 
     elif 'CodePipeline.job' in event:
-        from c_deploy_endpoints import codepipline_job
+        from c_deploy_beacons import codepipline_job
         print('TRIGGERED by CodePipeline')
         codepipline_job(event, context)
 

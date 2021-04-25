@@ -249,7 +249,7 @@ Resources:
               RunOrder: 2
               Configuration:
                 FunctionName: !Sub "${Prefix}carve-core"
-                UserParameters: UpdateEndpoints
+                UserParameters: UpdateManagedStacks
               OutputArtifacts: []
               InputArtifacts: []
               Region: !Ref 'AWS::Region'
