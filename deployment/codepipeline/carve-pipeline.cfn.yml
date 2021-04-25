@@ -84,6 +84,7 @@ Resources:
     Properties:
       Name: CarveDeploymentPipeline
       RoleArn: !GetAtt 'CarvePipelineRole.Arn'
+      RestartExecutionOnUpdate: true
       ArtifactStore:
         Location: !Ref 'DeployBucket'
         Type: S3
@@ -160,7 +161,7 @@ Resources:
                 TemplatePath: GithubRepo::deployment/carve-iam.cfn.yml
                 Parameters: !Sub 'ParameterKey=OrganizationsId,ParameterValue=${OrganizationsId}
                   ParameterKey=ResourcePrefix,ParameterValue="${ResourcePrefix}"
-                  ParameterKey=OrgRootAccount,ParameterValue="${AWS::AccountId}"'
+                  ParameterKey=CarveCoreAccount,ParameterValue="${AWS::AccountId}"'
               OutputArtifacts: []
               InputArtifacts:
                 - Name: GithubRepo
@@ -177,7 +178,7 @@ Resources:
                 RoleArn: !GetAtt 'CarvePipelineRole.Arn'
                 StackName: !Sub '${ResourcePrefix}carve-core-iam'
                 TemplatePath: GithubRepo::deployment/carve-iam.cfn.yml
-                ParameterOverrides: !Sub '{"OrganizationsId": "${OrganizationsId}","ResourcePrefix":"${ResourcePrefix}"}'
+                ParameterOverrides: !Sub '{"OrganizationsId": "${OrganizationsId}","ResourcePrefix":"${ResourcePrefix}","CarveCoreAccount":"${AWS::AccountId}"}'
               OutputArtifacts: []
               InputArtifacts:
                 - Name: GithubRepo
