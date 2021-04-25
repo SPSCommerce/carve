@@ -2,7 +2,7 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: Regional S3 Deploy Bucket for Carve
 
 Parameters:
-  OrganizationsId:
+  OrgId:
     Type: String
     Description: AWS Organizations Id
     Default: ""
@@ -10,25 +10,30 @@ Parameters:
     Type: String
     Description: A unique string for S3 buckets. If none, will use AWS Organizations Id
     Default: ""
-  ResourcePrefix:
+  Prefix:
     Type: String
-    Description: "Prefix all carve resources with this"
+    Description: "Prefix carve AWS resources and stacknames with this"
     Default: ""
   CarveCoreRegion:
     Type: String
     Default: us-east-1
 
-
 Conditions:
   CoreRegion: !Equals 
     - !Ref "AWS::Region"
     - !Ref "CarveCoreRegion"
+  UseOrgId: !Equals 
+    - !Ref "UniqueId"
+    - !Ref ""
 
 Resources:
   CarveS3Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "${ResourcePrefix}carve-managed-bucket-${OrganizationsId}-${AWS::Region}"
+      BucketName: !If
+        - UseOrgId
+        - !Sub "${Prefix}carve-managed-bucket-${OrgId}-${AWS::Region}"
+        - !Sub "${Prefix}carve-managed-bucket-${UniqueId}-${AWS::Region}"
       AccessControl: Private
       BucketEncryption:
         ServerSideEncryptionConfiguration:
@@ -47,7 +52,7 @@ Resources:
               - "s3:*"
             Resource: !GetAtt CarveS3Bucket.Arn
             Principal:
-              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ResourcePrefix}carve-lambda-${OrganizationsId}"
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-core"
           - Sid: DeploymentAccess
             Effect: Allow 
             Action:
@@ -60,13 +65,13 @@ Resources:
               AWS: "*"
             Condition:
               StringEquals:
-                aws:PrincipalOrgID: !Ref OrganizationsId
+                aws:PrincipalOrgID: !Ref OrgId
 
   S3InvokeCarvePermission:
     Type: AWS::Lambda::Permission
     Condition: CoreRegion
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ResourcePrefix}carve-${OrganizationsId}"
+      FunctionName: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${Prefix}carve-core"
       Principal: s3.amazonaws.com
       SourceArn: !GetAtt CarveS3Bucket.Arn

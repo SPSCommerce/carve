@@ -2,7 +2,7 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: CloudWatch Alarm for Carve
 
 Parameters:
-  OrganizationsId:
+  OrgId:
     Type: String
     Description: AWS Organizations Id
     Default: ""
@@ -10,7 +10,7 @@ Parameters:
     Type: String
     Description: A unique string for S3 buckets. If none, will use AWS Organizations Id
     Default: ""
-  ResourcePrefix:
+  Prefix:
     Type: String
     Description: "Prefix all carve resources with this"
     Default: ""
@@ -46,9 +46,9 @@ Resources:
       ComparisonOperator: GreaterThanThreshold
       Dimensions:
         - Name: FunctionName
-          Value: !Sub "${ResourcePrefix}carve-${OrganizationsId}"
+          Value: !Sub "${Prefix}carve-core"
         - Name: Resource
-          Value: !Sub "arn:aws:lambda:*:*:function:${ResourcePrefix}carve-${OrganizationsId}"
+          Value: !Sub "arn:aws:lambda:*:*:function:${Prefix}carve-core"
       EvaluationPeriods: '1'
       MetricName: Errors
       Namespace: AWS/Lambda

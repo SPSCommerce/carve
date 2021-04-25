@@ -2,9 +2,13 @@
     "AWSTemplateFormatVersion": "2010-09-09",
     "Description": "Carve managed stack",
     "Parameters": {
-        "OrganizationsId": {
+        "OrgId": {
             "Type": "String",
             "Description": "AWS Organizations Id"
+        },
+        "Prefix": {
+            "Type": "String",
+            "Description": "Prefix carve AWS resources and stacknames with this"
         }
     },
     "Resources": {
@@ -12,7 +16,7 @@
             "Type": "AWS::SSM::Parameter",
             "Properties": {
                 "Name": {
-                    "Fn::Sub": "/carve-${OrganizationsId}/${AWS::StackName}"
+                    "Fn::Sub": "/${Prefix}carve-stack-${AWS::StackName}"
                 },
                 "Description": "bootstrap carve API deployment",
                 "Type": "String",

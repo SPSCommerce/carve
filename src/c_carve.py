@@ -23,7 +23,7 @@ def carve_results(event, context):
     results = []
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = []
-        p = os.environ['ResourcePrefix']
+        p = os.environ['Prefix']
 
         for subnet in subnets:
             print(f"getting results from {subnet['beacon']}")
@@ -66,11 +66,11 @@ def ssm_event(event, context):
         G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
         asgs = set()
         for subnet in list(G.nodes):
-            asgs.add(f"{os.environ['ResourcePrefix']}carve-beacon-asg-{G.nodes().data()[subnet]['VpcId']}")
+            asgs.add(f"{os.environ['Prefix']}carve-beacon-asg-{G.nodes().data()[subnet]['VpcId']}")
 
         payload = []
         for asg in asgs:
-            payload.append({'Parameter': f"/{os.environ['ResourcePrefix']}carve-resources/tokens/{asg}"})
+            payload.append({'Parameter': f"/{os.environ['Prefix']}carve-resources/tokens/{asg}"})
 
         name = f"scale-{ssm_value}-{int(time.time())}"
         aws_start_stepfunction(os.environ['TokenStateMachine'], payload, name)
@@ -83,7 +83,7 @@ def ssm_event(event, context):
 #     # determine all deployed ASGs
 #     asgs = {}
 #     for subnet in list(G.nodes):
-#         asg = f"{os.environ['ResourcePrefix']}carve-beacon-asg-{G.nodes().data()[subnet]['VpcId']}"
+#         asg = f"{os.environ['Prefix']}carve-beacon-asg-{G.nodes().data()[subnet]['VpcId']}"
 #         if asg not in asgs:
 #             asgs[asg] = {
 #                 'account': G.nodes().data()[subnet]['Account'],
@@ -116,7 +116,7 @@ def scale_beacons(scale):
     for vpc, ar in vpcs.items():
         vpc_subnets = [x for x,y in G.nodes(data=True) if y['VpcId'] == vpc]
         asgs.append({
-            'asg': f"{os.environ['ResourcePrefix']}carve-beacon-asg-{vpc}",
+            'asg': f"{os.environ['Prefix']}carve-beacon-asg-{vpc}",
             'account': ar[0],
             'region': ar[1],
             'subnets': vpc_subnets
@@ -189,7 +189,7 @@ def update_carve_beacons():
     # determine all deployed ASGs
     asgs = {}
     for subnet in list(G.nodes):
-        asg = f"{os.environ['ResourcePrefix']}carve-beacon-asg-{G.nodes().data()[subnet]['VpcId']}"
+        asg = f"{os.environ['Prefix']}carve-beacon-asg-{G.nodes().data()[subnet]['VpcId']}"
         if asg not in asgs:
             asgs[asg] = {
                 'account': G.nodes().data()[subnet]['Account'],
@@ -235,7 +235,7 @@ def update_carve_beacons():
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = []
-        p = os.environ['ResourcePrefix']
+        p = os.environ['Prefix']
 
         for subnet in subnets:
 
@@ -256,8 +256,8 @@ def update_carve_beacons():
     print(results)
 
     # # copy config file to all required regions for CloudFormation includes
-    # prefix = os.environ['ResourcePrefix']
-    # org = os.environ['OrganizationsId']
+    # prefix = os.environ['Prefix']
+    # org = os.environ['OrgId']
     # for r in regions:
     #     aws_copy_s3_object(
     #         key=config_path,
@@ -297,13 +297,13 @@ def asg_event(message):
         if resource.startswith("arn:aws:ec2"):
             instance_id = resource.split('/')[1]
 
-    vpc = message['detail']['AutoScalingGroupName'].split(f"{os.environ['ResourcePrefix']}carve-beacon-asg-")[-1]
+    vpc = message['detail']['AutoScalingGroupName'].split(f"{os.environ['Prefix']}carve-beacon-asg-")[-1]
     credentials = aws_assume_role(carve_role_arn(message['account']), f"event-{message['detail']['AutoScalingGroupName']}")
 
     # get instance metadata from account and update SSM
     ec2 = aws_describe_instances([instance_id], message['region'], credentials)[0]
 
-    parameter = f"/{os.environ['ResourcePrefix']}carve-resources/vpc-beacons/{vpc}/{ec2['InstanceId']}"
+    parameter = f"/{os.environ['Prefix']}carve-resources/vpc-beacons/{vpc}/{ec2['InstanceId']}"
 
     if 'EC2 Instance Launch Successful' == message['detail-type']:
 
@@ -315,7 +315,7 @@ def asg_event(message):
         # add azid code to end of instance name
         subnet = aws_describe_subnets(message['region'], credentials, message['account'], ec2['SubnetId'])[0]
         az = subnet['AvailabilityZoneId'].split('-')[-1]
-        name = f"{os.environ['ResourcePrefix']}carve-beacon-{vpc}-{az}"
+        name = f"{os.environ['Prefix']}carve-beacon-{vpc}-{az}"
         aws_rename_instance(ec2['InstanceId'], name, message['region'], credentials)
 
     elif 'EC2 Instance Terminate Successful' == message['detail-type']:
@@ -327,7 +327,7 @@ def asg_event(message):
 
 def carve_role_arn(account):
     # return the carve IAM role ARN for any account number
-    role_name = f"{os.environ['ResourcePrefix']}carve-lambda-{os.environ['OrganizationsId']}"
+    role_name = f"{os.environ['Prefix']}carve-core"
     role = f"arn:aws:iam::{account}:role/{role_name}"
     return role
 

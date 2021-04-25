@@ -32,22 +32,30 @@ def start_carve_deployment(event, context, key=False):
     regions = deploy_regions(G)
     deploy_buckets = []
 
-    key = "managed_deployment/carve-deploy-bucket.cfn.yml"
+    key = "managed_deployment/carve-managed-bucket.cfn.yml"
     with open(key) as f:
         template = f.read()
 
     aws_put_direct(template, key)
 
     for r in regions:
-        stackname = f"{os.environ['ResourcePrefix']}carve-managed-bucket-{r}"
+        stackname = f"{os.environ['Prefix']}carve-managed-bucket-{r}"
         parameters = [
             {
-                "ParameterKey": "OrganizationsId",
-                "ParameterValue": os.environ['OrganizationsId']
+                "ParameterKey": "OrgId",
+                "ParameterValue": os.environ['OrgId']
             },
             {
-                "ParameterKey": "ResourcePrefix",
-                "ParameterValue": os.environ['ResourcePrefix']
+                "ParameterKey": "Prefix",
+                "ParameterValue": os.environ['Prefix']
+            },
+            {
+                "ParameterKey": "UniqueId",
+                "ParameterValue": os.environ['UniqueId']
+            },
+            {
+                "ParameterKey": "CarveCoreRegion",
+                "ParameterValue": current_region
             }
         ]
         deploy_buckets.append({
@@ -55,7 +63,7 @@ def start_carve_deployment(event, context, key=False):
             "Parameters": parameters,
             "Account": context.invoked_function_arn.split(":")[4],
             "Region": r,
-            "Template": 'managed_deployment/carve-deploy-bucket.cfn.yml'
+            "Template": key
         })
 
     if len(list(G.nodes)) > 0:
@@ -108,10 +116,14 @@ def sf_DeployPrep(event, context):
     # # update_bucket_policies(G)
 
     # push CFN snippets to each region
+    if os.environ['UniqueId'] == "":
+        unique = os.environ['OrgId']
+    else:
+        unique = os.environ['UniqueId']
+
     for r in regions:
-        bucket=f"{os.environ['ResourcePrefix']}carve-managed-bucket-{os.environ['OrganizationsId']}-{r}"
+        bucket=f"{os.environ['Prefix']}carve-managed-bucket-{unique}-{r}"
         aws_s3_upload('managed_deployment/carve-updater.yml', bucket=bucket)
-        aws_s3_upload('managed_deployment/carve-config.json', bucket=bucket)
 
     return []
 
@@ -121,12 +133,12 @@ def propagate_carve_ami(G):
     regions = deploy_regions(G)
 
     # all copies get the same time stamped name, use that to compare
-    source_image = aws_ssm_get_parameter(f"/{os.environ['ResourcePrefix']}carve-resources/carve-beacon-ami")
+    source_image = aws_ssm_get_parameter(f"/{os.environ['Prefix']}carve-resources/carve-beacon-ami")
     source_name = aws_describe_image(source_image)['Name']
-    # kms_key = aws_ssm_get_parameter(f"/{os.environ['ResourcePrefix']}carve-resources/carve-kms-key")
+    # kms_key = aws_ssm_get_parameter(f"/{os.environ['Prefix']}carve-resources/carve-kms-key")
     print(f'AMI source_name: {source_name}')
 
-    parameter = f"/{os.environ['ResourcePrefix']}carve-resources/carve-beacon-ami"
+    parameter = f"/{os.environ['Prefix']}carve-resources/carve-beacon-ami"
 
     # threaded copy of all AMIs
     results = []
@@ -221,7 +233,7 @@ def deployment_list(G, context):
         # create a list of subnets for CFN parameters
         for subnet in vpc_subnets:
             Function = deepcopy(vpc_template['Resources']['Function'])
-            Function['Properties']['FunctionName'] = f"{os.environ['ResourcePrefix']}carve-{subnet}"
+            Function['Properties']['FunctionName'] = f"{os.environ['Prefix']}carve-{subnet}"
             Function['Properties']['Environment']['Variables']['VpcSubnetIds'] = subnet
             Function['Properties']['VpcConfig']['SubnetIds'] = [subnet]
 
@@ -231,13 +243,17 @@ def deployment_list(G, context):
         # remove orig templated function
         del vpc_template['Resources']['Function']
 
+        # update beacon launch config
+        location = {"Location": f"s3://{os.environ['CarveS3Bucket']}/managed_deployment/carve-updater.yml"}
+        vpc_template['Resources']['LaunchConfig']['Metadata']['AWS::CloudFormation::Init']['config']['files']["Fn::Transform"]["Parameters"] = location
+
         # push template to s3
         key = f"managed_deployment/{vpc}.cfn.json"
         data = json.dumps(vpc_template, ensure_ascii=True, indent=2, sort_keys=True)
         aws_put_direct(data, key)
     
-        image_id = aws_ssm_get_parameter(f"/{os.environ['ResourcePrefix']}carve-resources/carve-beacon-ami", region=region)
-        scale = aws_ssm_get_parameter(f"/{os.environ['ResourcePrefix']}carve-resources/scale")
+        image_id = aws_ssm_get_parameter(f"/{os.environ['Prefix']}carve-resources/carve-beacon-ami", region=region)
+        scale = aws_ssm_get_parameter(f"/{os.environ['Prefix']}carve-resources/scale")
 
         if scale == 'none':
             desired = 0
@@ -247,7 +263,7 @@ def deployment_list(G, context):
             desired = 1
 
         stack = {}
-        stack['StackName'] = f"{os.environ['ResourcePrefix']}carve-managed-{vpc}"
+        stack['StackName'] = f"{os.environ['Prefix']}carve-managed-{vpc}"
         stack['Account'] = account
         stack['Region'] = region
         stack['Template'] = key
@@ -261,16 +277,16 @@ def deployment_list(G, context):
             "ParameterValue": ','.join(vpc_subnets)
           },      
           {
-            "ParameterKey": "ResourcePrefix",
-            "ParameterValue": os.environ['ResourcePrefix']
+            "ParameterKey": "Prefix",
+            "ParameterValue": os.environ['Prefix']
           },
           {
             "ParameterKey": "ImageId",
             "ParameterValue": image_id
           },
           {
-            "ParameterKey": "CarveSNSTopicArn",
-            "ParameterValue": os.environ['CarveSNSTopicArn']
+            "ParameterKey": "CoreRegion",
+            "ParameterValue": current_region
           },
           {
             "ParameterKey": "MaxSize",
@@ -330,8 +346,13 @@ def update_bucket_policies(G):
             regions[region] = [account]
 
     # update the policy of each regional bucket
+    if os.environ['UniqueId'] == "":
+        unique = os.environ['OrgId']
+    else:
+        unique = os.environ['UniqueId']
+
     for region, accounts in regions.items():
-        bucket = f"{os.environ['ResourcePrefix']}carve-managed-bucket-{os.environ['OrganizationsId']}-{region}"
+        bucket = f"{os.environ['Prefix']}carve-managed-bucket-{unique}-{region}"
         policy = aws_get_bucket_policy(bucket)
         # get all account arns that need to deploy thru this region
         arns = []
@@ -350,7 +371,7 @@ def update_bucket_policies(G):
                 "Sid": f"DeploymentAccess",
                 "Effect": "Allow",
                 "Action": ["s3:Get"],
-                "Resource":  f"arn:aws:s3:::{os.environ['ResourcePrefix']}carve-managed-bucket-{os.environ['OrganizationsId']}-{region}",
+                "Resource":  f"arn:aws:s3:::{os.environ['Prefix']}carve-managed-bucket-{unique}-{region}",
                 "Principal": {"AWS": arns}
             }
         )
@@ -388,7 +409,7 @@ def sf_CreateSubscriptions(context):
     # create SNS subscriptions to all accounts with deployments
     G = load_graph(get_deploy_key(), local=False)
     accounts = deploy_accounts(G)
-    prefix = os.environ['ResourcePrefix']
+    prefix = os.environ['Prefix']
 
     # create a CFN template with SNS subscriptions and lambda invoke permissions
     template = {
@@ -416,7 +437,7 @@ def sf_CreateSubscriptions(context):
         }
 
     # deploy the template
-    stackname = f"{os.environ['ResourcePrefix']}carve-managed-sns-subscriptions"
+    stackname = f"{os.environ['Prefix']}carve-managed-sns-subscriptions"
     key = f"managed_deployment/{stackname}.json"
     aws_put_direct(json.dumps(template, ensure_ascii=True, indent=2, sort_keys=True), key)
 

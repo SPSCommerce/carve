@@ -1,0 +1,100 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Account Resources For Carve
+
+Parameters:
+
+  OrgId:
+    Type: String
+    Description: AWS Organizations Id
+    Default: ""
+
+  CarveCoreAccount:
+    Type: String
+    Description: AWS Organizations Root AccountId
+    Default: ""
+
+  Prefix:
+    Type: String
+    Description: "Prefix all carve resources with this"
+    Default: ""
+
+Resources:
+
+  CarveCoreRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${Prefix}carve-core"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: Allow
+          Action:
+            - sts:AssumeRole
+          Principal:
+            AWS: !Sub "arn:aws:iam::${CarveCoreAccount}:role/${Prefix}carve-core"
+      Policies:
+        - PolicyName: CarvePolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "*"
+                Resource:
+                  - "*"
+                # Condition:
+                #   ForAnyValue:StringEquals:
+                #     aws:CalledVia:
+                #       - cloudformation.amazonaws.com               
+
+  SNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: !Sub "${Prefix}carve-account-events"
+      TopicName: !Sub "${Prefix}carve-account-events"
+
+  CarveTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics:
+        - !Ref SNSTopic
+      PolicyDocument:
+        Id: Carve SNS Policy
+        Version: "2012-10-17"
+        Statement:
+          - Sid: Allow events
+            Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: 'sns:Publish'
+            Resource: '*'
+          - Sid: Allow Carve Lambdas
+            Effect: "Allow"
+            Principal:
+              AWS: "*"
+            Action:
+              - "sns:Subscribe"
+              - "sns:Receive"
+              - "sns:Publish"
+            Resource: !Ref SNSTopic
+            Condition:
+              StringEquals:
+                aws:PrincipalOrgID: !Ref OrgId
+          - Sid: Allow Carve Core Management
+            Effect: "Allow"
+            Principal:
+              AWS: !Sub "arn:aws:sts::${CarveCoreAccount}:assumed-role/${Prefix}carve-core/carve-changeset-${AWS::Region}"
+              # AWS: !Sub "arn:aws:iam::${CarveCoreAccount}:root"
+              # AWS: !Sub "arn:aws:iam::${CarveCoreAccount}:role/${Prefix}carve-lambda-${OrgId}"
+            Action:
+              - "sns:Subscribe"
+              - "sns:Receive"
+              - "sns:Publish"
+            Resource: !Ref SNSTopic
+
+
+
+
+
+
+

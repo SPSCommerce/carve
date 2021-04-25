@@ -182,8 +182,12 @@ def sf_CreateStack(event, context):
 
         parameters = [
             {
-                "ParameterKey": "OrganizationsId",
-                "ParameterValue": os.environ['OrganizationsId']
+                "ParameterKey": "OrgId",
+                "ParameterValue": os.environ['OrgId']
+            },
+            {
+                "ParameterKey": "Prefix",
+                "ParameterValue": os.environ['Prefix']
             }
         ]
         stack = aws_create_stack(

@@ -16,7 +16,7 @@ boto_config = Config(retries=dict(max_attempts=10))
 def _get_credentials(arn=None, account=None):
     if arn is not None:
         account = arn.split(':')[4]        
-    role_name = f"{os.environ['ResourcePrefix']}carve-lambda-{os.environ['OrganizationsId']}"
+    role_name = f"{os.environ['Prefix']}carve-core"
     role = f"arn:aws:iam::{account}:role/{role_name}"
     session_name = "carve-network-test"
     credentials = aws_assume_role(role, session_name)
@@ -42,19 +42,6 @@ def aws_assume_role(role_arn, session_name, token_life=900):
     except ClientError as e:
         print(f'Failed to assume {role_arn}: {e}')
         sys.exit()
-
-
-def _aws_assume_role_process(account, role, child_conn):
-    '''bakground process to use the aws_assume_role function in parallel'''
-
-    credentials = aws_assume_role(
-        role_arn=role.replace(":*:", f":{account}:"), 
-        session_name=f"carve_session_{account}"
-        )
-
-    response = {"account": account, "credentials": credentials}
-    child_conn.send(response)
-    child_conn.close()
 
 
 def discover_org_accounts():
@@ -86,34 +73,6 @@ def discover_org_accounts():
                 accounts[account['Id']] = account['Name']
     return accounts
 
-
-def aws_parallel_role_creation(accounts, role):
-    '''assume roles in every account in parallel, return session creds as dict'''
-    print(f'assuming roles in {len(accounts)} accounts')
-    a_processes = []
-    a_parent_connections = []
-    credentials = {}
-
-    for account in accounts:
-        a_parent_conn, a_child_conn = Pipe()
-        a_parent_connections.append(a_parent_conn)
-        a_process = Process(
-            target=_aws_assume_role_process,
-            args=(account, role, a_child_conn)
-            )
-        a_processes.append(a_process)
-        a_process.start()
-
-    # wait for all processes to finish
-    for process in a_processes:
-        process.join()
-
-    # add all credentials to a dictionary       
-    for parent_connection in a_parent_connections:
-        account_creds = parent_connection.recv()
-        credentials[account_creds['account']] = account_creds['credentials']
-
-    return credentials
 
 
 def aws_all_regions():
@@ -428,7 +387,12 @@ def aws_create_changeset(stackname, changeset_name, region, template, parameters
             )
     else:
         # put larger templates into managed S3 bucket
-        rb = f"{os.environ['ResourcePrefix']}carve-managed-bucket-{os.environ['OrganizationsId']}-{region}"
+        if os.environ['UniqueId'] == "":
+            unique = os.environ['OrgId']
+        else:
+            unique = os.environ['UniqueId']
+
+        rb = f"{os.environ['Prefix']}carve-managed-bucket-{unique}-{region}"
         key = f'managed_deployment/{stackname}.json'
         aws_put_direct(template, key, bucket=rb)
         response = client.create_change_set(
@@ -707,7 +671,7 @@ def aws_share_image(image, accounts, region=current_region):
 def aws_ssm_put_parameter(parameter, value, region=current_region, param_type='String'):
     client = boto3.client('ssm', config=boto_config, region_name=region)
     # if "/" not in parameter:
-    #     param = f"{os.environ['ResourcePrefix']}carve-resources/"
+    #     param = f"{os.environ['Prefix']}carve-resources/"
     response = client.put_parameter(
         Name=parameter,
         Description='Carve managed config data',

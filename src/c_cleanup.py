@@ -33,9 +33,15 @@ def sf_DeleteStack(payload):
     credentials = aws_assume_role(carve_role_arn(account), f"carve-cleanup-{region}")
 
     # if this is a regional S3 stack, empty the bucket before deleting the stack
-    s3_stack = f"{os.environ['ResourcePrefix']}carve-managed-bucket-{region}"
+    s3_stack = f"{os.environ['Prefix']}carve-managed-bucket-{region}"
     if payload['StackName'] == s3_stack:
-        bucket = f"{os.environ['ResourcePrefix']}carve-managed-bucket-{os.environ['OrganizationsId']}-{region}"
+
+        if os.environ['UniqueId'] == "":
+            unique = os.environ['OrgId']
+        else:
+            unique = os.environ['UniqueId']
+
+        bucket = f"{os.environ['Prefix']}carve-managed-bucket-{unique}-{region}"
         aws_purge_s3_bucket(bucket)
 
     aws_delete_stack(
@@ -74,7 +80,7 @@ def sf_CleanupDeployments(context):
     deploy_region_list.add(current_region)
 
     for r in deploy_region_list:
-        s3_stack = f"{os.environ['ResourcePrefix']}carve-managed-bucket-{r}"
+        s3_stack = f"{os.environ['Prefix']}carve-managed-bucket-{r}"
         safe_stacks.append({
             'StackName': s3_stack,
             'Account': context.invoked_function_arn.split(":")[4],
@@ -132,7 +138,7 @@ def sf_DiscoverCarveStacks(payload):
     credentials = aws_assume_role(carve_role_arn(account), f"carve-cleanup-{region}")
 
     # find all carve managed stacks
-    startswith = f"{os.environ['ResourcePrefix']}carve-managed-"
+    startswith = f"{os.environ['Prefix']}carve-managed-"
     stacks = aws_find_stacks(startswith, region, credentials)
 
     if len(stacks) == 0:

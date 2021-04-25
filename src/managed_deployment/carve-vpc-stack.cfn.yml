@@ -10,15 +10,15 @@ Parameters:
     Type: String
     Description: one or more comma separated subnets in which to create endpoints
     Default: ""
-  ResourcePrefix:
+  Prefix:
     Type: String
-    Description: "Prefix all carve resources with this"
+    Description: "Prefix carve AWS resources and stacknames with this"
     Default: ""
   ImageId:
     Type: String
     Description: The ImageId from the Carve imagebuilder
     Default: ''
-  CarveSNSTopicArn:
+  CoreRegion:
     Type: String
     Description: Carve SNS Topic Arn
   MinSize:
@@ -33,6 +33,11 @@ Parameters:
     Description: Desored number of instances in the ASG
     Type: Number
     Default: '1'
+
+# Conditions:
+#   UseOrgId: !Equals 
+#     - !Ref "UniqueId"
+#     - !Ref ""
 
 Resources:
   Function:
@@ -104,7 +109,7 @@ Resources:
                 update_beacon(event['beacon'], event['beacons'])
 
 
-  LambdaRole:
+  CarveLambdaRole:
     Type: AWS::IAM::Role
     Properties:
       Path: /
@@ -133,7 +138,7 @@ Resources:
         Timeout: PT5M
         Count: !Ref MinSize
     Properties:
-      AutoScalingGroupName: !Sub ${ResourcePrefix}carve-beacon-asg-${VpcId}
+      AutoScalingGroupName: !Sub ${Prefix}carve-beacon-asg-${VpcId}
       LaunchConfigurationName: !Ref LaunchConfig
       VPCZoneIdentifier: !Split [ ",", !Ref VpcSubnetIds ]
       HealthCheckGracePeriod: '60'
@@ -144,7 +149,7 @@ Resources:
         - Granularity: 1Minute
       Tags:
         - Key: Name
-          Value: !Sub ${ResourcePrefix}carve-beacon-${VpcId}
+          Value: !Sub ${Prefix}carve-beacon-${VpcId}
           PropagateAtLaunch: true
 
   LaunchConfig:
@@ -153,16 +158,17 @@ Resources:
       AWS::CloudFormation::Init:
         config:
           files:
-            # get the carve config snippet from S3
+            # get the carve updater python code from S3 (the location below is replaced in code later)
             Fn::Transform:
               Name: AWS::Include
               Parameters:
-                Location: s3://a-carve-managed-bucket-o-dvdaw54vmt-us-east-1/managed_deployment/carve-config.json
-            # get the carve update python snippet from S3
-            Fn::Transform:
-              Name: AWS::Include
-              Parameters:
-                Location: s3://a-carve-managed-bucket-o-dvdaw54vmt-us-east-1/managed_deployment/carve-updater.yml
+                Location: s3://carve-managed-bucket/managed_deployment/carve-updater.yml
+            # create the carve config file
+            "/carve/carve.cfg":
+              content: "0.0.0.0"
+              mode: "000644"
+              owner: "root"
+              group: "root"                    
             # The cfn-hup.conf file stores the name of the stack and the AWS credentials that the cfn-hup daemon targets.
             "/etc/cfn/cfn-hup.conf":
               content: !Sub |
@@ -256,7 +262,7 @@ Resources:
   InstanceRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub "${ResourcePrefix}carve-beacon-${VpcId}"
+      RoleName: !Sub "${Prefix}carve-beacon-${VpcId}"
       Path: /
       ManagedPolicyArns:
         - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonSSMManagedInstanceCore
@@ -286,7 +292,7 @@ Resources:
       State: "ENABLED"
       Targets:
         - Id: "SendSNStoCarve"
-          Arn: !Sub 'arn:aws:sns:us-east-1:${AWS::AccountId}:a-carve-account-events'
+          Arn: !Sub 'arn:aws:sns:${CoreRegion}:${AWS::AccountId}:{$Prefix}carve-account-events'
   
 Outputs:
   AutoScalingGroup:
