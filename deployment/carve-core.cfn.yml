@@ -34,8 +34,7 @@ Parameters:
 Conditions:
   UseOrgId: !Equals 
     - !Ref "UniqueId"
-    - !Ref ""
-
+    - ""
 
 Resources:
 
@@ -119,7 +118,7 @@ Resources:
           Action:
             - sts:AssumeRole
           Principal:
-            AWS: !Sub "arn:aws:iam::${CarveCoreAccount}:role/${Prefix}carve-core"
+            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-core"
 
       Policies:
         - PolicyName: CarvePolicy
