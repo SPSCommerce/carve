@@ -368,7 +368,10 @@ def codepipline_job(event, context):
         if os.environ['PropogateUpdates'] == 'True':
             deploy_key = get_deploy_key(last=True)
             if deploy_key is not None:
-                start_carve_deployment(event, context, key=deploy_key)
+                # copy deploy key to start deployment
+                key_name = deploy_key.split('/')[-1]
+                aws_copy_s3_object(deploy_key, f'deploy_input/{key_name}')
+                # start_carve_deployment(event, context, key=deploy_key)
             else:
                 print('No previous deploy key to run updates with')
         else:

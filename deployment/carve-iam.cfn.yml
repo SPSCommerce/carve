@@ -8,6 +8,11 @@ Parameters:
     Description: AWS Organizations Id
     Default: ""
 
+  OrgRootAccount:
+    Type: String
+    Description: AWS Organizations Root AccountId
+    Default: ""
+
   ResourcePrefix:
     Type: String
     Description: "Prefix all carve resources with this"
@@ -133,7 +138,7 @@ Resources:
               Service: events.amazonaws.com
             Action: 'sns:Publish'
             Resource: '*'
-          - Sid: Allow Carve
+          - Sid: Allow Carve Lambdas
             Effect: "Allow"
             Principal:
               AWS: "*"
@@ -145,4 +150,14 @@ Resources:
             Condition:
               StringEquals:
                 aws:PrincipalOrgID: !Ref OrganizationsId
+          - Sid: Allow Carve Root
+            Effect: "Allow"
+            Principal:
+              AWS: !Sub "arn:aws:iam::${OrgRootAccount}:root"
+            Action:
+              - "sns:Subscribe"
+              - "sns:Receive"
+              - "sns:Publish"
+            Resource: !Ref SNSTopic
+
 

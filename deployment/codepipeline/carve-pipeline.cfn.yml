@@ -105,6 +105,27 @@ Resources:
                 Repo: carve
                 Branch: main
                 OAuthToken: !Sub '{{resolve:secretsmanager:${GitHubOAUTHTokenASMPath}:SecretString:token}}'
+
+        - Name: UpdatePipeline
+          Actions:
+            - Name: update-pipeline
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              Configuration:
+                ChangeSetName: pipeline-changeset
+                ActionMode: CREATE_UPDATE
+                Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
+                RoleArn: !GetAtt 'CarvePipelineRole.Arn'
+                StackName: carve-pipeline
+                TemplatePath: GithubRepo::deployment/codepipeline/carve-pipeline.cfn.yml
+                # ParameterOverrides: !Sub '{"OrganizationsId": "${OrganizationsId}","ResourcePrefix":"${ResourcePrefix}"}'
+              OutputArtifacts: []
+              InputArtifacts:
+                - Name: GithubRepo
+
         - Name: PackageLambda-DeployIAM
           Actions:
             - Name: carve-lambda-packaging
@@ -138,7 +159,8 @@ Resources:
                 StackSetName: !Sub '${ResourcePrefix}carve-core-iam-stackset'
                 TemplatePath: GithubRepo::deployment/carve-iam.cfn.yml
                 Parameters: !Sub 'ParameterKey=OrganizationsId,ParameterValue=${OrganizationsId}
-                  ParameterKey=ResourcePrefix,ParameterValue="${ResourcePrefix}"'
+                  ParameterKey=ResourcePrefix,ParameterValue="${ResourcePrefix}"
+                  ParameterKey=OrgRootAccount,ParameterValue="${AWS::AccountId}"'
               OutputArtifacts: []
               InputArtifacts:
                 - Name: GithubRepo
