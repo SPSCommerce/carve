@@ -45,12 +45,18 @@ def lambda_handler(event, context):
 
         if 'Sns' in event['Records'][0]:
             print(f"TRIGGERED by SNS: {event['Records'][0]['EventSubscriptionArn']}")
-            message = json.loads(event['Records'][0]['Sns']['Message'])
-            # print(message)
-            if 'source' in message:
-                if message['source'] == 'aws.autoscaling':
-                    from c_carve import asg_event
-                    asg_event(message)
+            message = event['Records'][0]['Sns']['Message']
+
+            if event['Records'][0]['Sns']['Subject'] == 'AWS CloudFormation Notification':
+                from c_carve import parse_cfn_sns
+                message = parse_cfn_sns(message)
+                print(f'CloudFormation SNS Message: {message}')
+            else:
+                message = json.loads(message)
+                if 'source' in message:
+                    if message['source'] == 'aws.autoscaling':
+                        from c_carve import asg_event
+                        asg_event(message)
 
         elif 's3' in event['Records'][0]:
             if event['Records'][0]['s3']['bucket']['name'] == os.environ['CarveS3Bucket']:

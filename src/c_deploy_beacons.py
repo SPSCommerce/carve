@@ -30,6 +30,8 @@ def start_carve_deployment(event, context, key=False):
 
     # create deploy buckets in all required regions for deployment files
     regions = deploy_regions(G)
+    regions.remove(current_region)
+
     deploy_buckets = []
 
     key = "managed_deployment/carve-managed-bucket.cfn.yml"
@@ -299,6 +301,23 @@ def deployment_list(G, context):
 
     return deploy_beacons
 
+
+def parse_cfn_sns(m):
+    # incoming SNS from CloudFormation have the message as a multi-line string
+    # each line is formatted gross. this cleans it up into a proper dict
+    if m.startswith("StackId="):
+        message = {}
+        lines = m.splitlines()
+        for l in lines:
+            k = l.split('=')[0]
+            v = l.split('=')[1].split("'")[1::2]
+            if k == "ResourceProperties":
+                try:
+                    v = json.loads(v[0])
+                except:
+                    pass
+            message[k] = v
+        return message
 
 
 # def az_rank(G):
