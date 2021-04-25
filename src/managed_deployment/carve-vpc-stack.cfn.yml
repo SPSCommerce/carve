@@ -46,7 +46,7 @@ Resources:
       FunctionName: CarveSubnetFunction
       Description: Continuous AWS Route Verification Engine
       Handler: index.lambda_handler
-      Role: !GetAtt LambdaRole.Arn
+      Role: !GetAtt CarveLambdaRole.Arn
       Runtime: python3.8
       Timeout: 20
       MemorySize: 128
