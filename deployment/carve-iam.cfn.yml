@@ -150,10 +150,10 @@ Resources:
             Condition:
               StringEquals:
                 aws:PrincipalOrgID: !Ref OrganizationsId
-          - Sid: Allow Carve Core Lambda
+          - Sid: Allow Carve Core Management
             Effect: "Allow"
             Principal:
-              AWS: [!Ref CarveCoreAccount]
+              AWS: !Sub "arn:aws:sts::${CarveCoreAccount}:assumed-role/${ResourcePrefix}carve-lambda-${OrganizationsId}/carve-changeset-us-east-1"
               # AWS: !Sub "arn:aws:iam::${CarveCoreAccount}:root"
               # AWS: !Sub "arn:aws:iam::${CarveCoreAccount}:role/${ResourcePrefix}carve-lambda-${OrganizationsId}"
             Action:
