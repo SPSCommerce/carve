@@ -123,7 +123,7 @@ Resources:
       DisplayName: !Sub "${ResourcePrefix}carve-account-events"
       TopicName: !Sub "${ResourcePrefix}carve-account-events"
 
-  TopicPolicy:
+  CarveTopicPolicy:
     Type: AWS::SNS::TopicPolicy
     Properties:
       Topics:
@@ -154,8 +154,6 @@ Resources:
             Effect: "Allow"
             Principal:
               AWS: !Sub "arn:aws:sts::${CarveCoreAccount}:assumed-role/${ResourcePrefix}carve-lambda-${OrganizationsId}/carve-changeset-us-east-1"
-              # AWS: !Sub "arn:aws:iam::${CarveCoreAccount}:root"
-              # AWS: !Sub "arn:aws:iam::${CarveCoreAccount}:role/${ResourcePrefix}carve-lambda-${OrganizationsId}"
             Action:
               - "sns:Subscribe"
               - "sns:Receive"
