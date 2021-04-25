@@ -679,7 +679,6 @@ def aws_describe_image(image, region=current_region):
     else:
         return None
 
-
 def aws_share_image(image, accounts, region=current_region):
     lp = {}
     lp['Add'] = []

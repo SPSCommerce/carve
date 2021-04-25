@@ -153,8 +153,9 @@ Resources:
           - Sid: Allow Carve Core Lambda
             Effect: "Allow"
             Principal:
+              AWS: [!Ref CarveCoreAccount]
               # AWS: !Sub "arn:aws:iam::${CarveCoreAccount}:root"
-              AWS: !Sub "arn:aws:iam::${CarveCoreAccount}:role/${ResourcePrefix}carve-lambda-${OrganizationsId}"
+              # AWS: !Sub "arn:aws:iam::${CarveCoreAccount}:role/${ResourcePrefix}carve-lambda-${OrganizationsId}"
             Action:
               - "sns:Subscribe"
               - "sns:Receive"

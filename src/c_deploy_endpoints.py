@@ -152,7 +152,6 @@ def propagate_carve_ami(G):
                     aws_copy_image,
                     name=source_name,
                     source_image=source_image,
-                    # source_kms=kms_key,
                     region=region))
 
         for future in concurrent.futures.as_completed(futures):
@@ -201,10 +200,7 @@ def deployment_list(G, context):
 
     # determine all VPCs and their account and region
     vpcs = {}
-    print('getting deployment list...')
-    print(G.nodes(data=True))
     for subnet in list(G.nodes):
-        print(subnet)
         a = G.nodes().data()[subnet]['Account']
         r = G.nodes().data()[subnet]['Region']
         vpcs[G.nodes().data()[subnet]['VpcId']] = (a, r)
