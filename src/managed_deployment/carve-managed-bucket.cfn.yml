@@ -24,7 +24,7 @@ Conditions:
     - !Ref "CarveCoreRegion"
   UseOrgId: !Equals 
     - !Ref "UniqueId"
-    - !Ref ""
+    - ""
 
 Resources:
   CarveS3Bucket:
