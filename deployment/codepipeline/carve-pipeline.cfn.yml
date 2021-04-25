@@ -236,7 +236,7 @@ Resources:
                 RoleArn: !GetAtt 'CarvePipelineRole.Arn'
                 StackName: !Sub '${Prefix}carve-imagebuilder'
                 TemplatePath: GithubRepo::deployment/image-builder.cfn.yml
-                ParameterOverrides: !Sub '{"ExistingSubnetId":"${ImageBuilderExistingSubnetId}","ExistingVpcId":"${ImageBuilderExistingVpcId}","VpcCIDR":"${ImageBuilderVpcCIDR}","PublicSubnetCIDR":"${ImageBuilderPublicSubnetCIDR}","OrgId":"${OrgId}","Prefix":"${Prefix}","DeployBucket":"${DeployBucket}"}'
+                ParameterOverrides: !Sub '{"ExistingSubnetId":"${ImageBuilderExistingSubnetId}","ExistingVpcId":"${ImageBuilderExistingVpcId}","VpcCIDR":"${ImageBuilderVpcCIDR}","PublicSubnetCIDR":"${ImageBuilderPublicSubnetCIDR}","OrgId":"${OrgId}","UniqueId":"${UniqueId}","Prefix":"${Prefix}","DeployBucket":"${DeployBucket}"}'
               OutputArtifacts: []
               InputArtifacts:
                 - Name: GithubRepo

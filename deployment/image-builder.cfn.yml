@@ -28,6 +28,10 @@ Parameters:
     Type: String
     Description: AWS Organizations Id
     Default: ""
+  UniqueId:
+    Type: String
+    Description: A unique id may be used instead of OrgId on buckets
+    Default: ""
   Prefix:
     Type: String
     Description: "Prefix all carve resources with this"
