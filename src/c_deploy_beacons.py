@@ -52,10 +52,6 @@ def start_carve_deployment(event, context, key=False):
             {
                 "ParameterKey": "UniqueId",
                 "ParameterValue": os.environ['UniqueId']
-            },
-            {
-                "ParameterKey": "CarveCoreRegion",
-                "ParameterValue": current_region
             }
         ]
         deploy_buckets.append({

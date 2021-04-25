@@ -190,24 +190,7 @@ Resources:
               OutputArtifacts: []
               InputArtifacts:
                 - Name: GithubRepo
-            - Name: carve-managed-bucket
-              RunOrder: 2
-              ActionTypeId:
-                Category: Deploy
-                Owner: AWS
-                Provider: CloudFormation
-                Version: 1
-              Configuration:
-                ChangeSetName: pipeline-changeset
-                ActionMode: CREATE_UPDATE
-                Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
-                RoleArn: !GetAtt 'CarvePipelineRole.Arn'
-                StackName: !Sub "${Prefix}carve-managed-bucket-${AWS::Region}"
-                TemplatePath: GithubRepo::src/managed_deployment/carve-managed-bucket.cfn.yml
-                ParameterOverrides: !Sub '{"Prefix":"${Prefix}","OrgId":"${OrgId}","UniqueId":"${UniqueId}","CarveCoreRegion":"${AWS::Region}"}'
-              OutputArtifacts: []
-              InputArtifacts:
-                - Name: GithubRepo
+                
         - Name: PrepManagedDeployments
           Actions:
             - Name: update-s3-notification

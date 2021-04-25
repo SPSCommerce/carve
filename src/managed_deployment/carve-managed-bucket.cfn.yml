@@ -14,17 +14,9 @@ Parameters:
     Type: String
     Description: "Prefix carve AWS resources and stacknames with this"
     Default: ""
-  CarveCoreRegion:
-    Type: String
-    Default: us-east-1
 
 Conditions:
-  CoreRegion: !Equals 
-    - !Ref "AWS::Region"
-    - !Ref "CarveCoreRegion"
-  UseOrgId: !Equals 
-    - !Ref "UniqueId"
-    - ""
+  UseOrgId: !Equals [ !Ref "UniqueId", "" ]
 
 Resources:
   CarveS3Bucket:
@@ -67,11 +59,4 @@ Resources:
               StringEquals:
                 aws:PrincipalOrgID: !Ref OrgId
 
-  S3InvokeCarvePermission:
-    Type: AWS::Lambda::Permission
-    Condition: CoreRegion
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${Prefix}carve-core"
-      Principal: s3.amazonaws.com
-      SourceArn: !GetAtt CarveS3Bucket.Arn
+

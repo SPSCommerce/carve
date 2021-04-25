@@ -424,6 +424,55 @@ Resources:
    #       - Arn: !GetAtt CraveFunction.Arn
    #         Id: !Ref CraveFunction
 
+  CarveS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !If
+        - UseOrgId
+        - !Sub "${Prefix}carve-managed-bucket-${OrgId}-${AWS::Region}"
+        - !Sub "${Prefix}carve-managed-bucket-${UniqueId}-${AWS::Region}"
+      AccessControl: Private
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: 'AES256'
+
+  CarveS3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    DependsOn: CarveCoreRole
+    Properties:
+      Bucket: !Ref CarveS3Bucket
+      PolicyDocument:
+        Statement:
+          - Sid: CarveCoreLambda
+            Effect: Allow 
+            Action:
+              - "s3:*"
+            Resource: !GetAtt CarveS3Bucket.Arn
+            Principal:
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-core"
+          - Sid: DeploymentAccess
+            Effect: Allow 
+            Action:
+              - "s3:Get*"
+              - "s3:PutObject"
+            Resource: 
+              - !Sub "arn:aws:s3:::${CarveS3Bucket}"
+              - !Sub "arn:aws:s3:::${CarveS3Bucket}/*"
+            Principal:
+              AWS: "*"
+            Condition:
+              StringEquals:
+                aws:PrincipalOrgID: !Ref OrgId
+
+  S3InvokeCarvePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt CarveFunction.Arn
+      Principal: s3.amazonaws.com
+      SourceArn: !GetAtt CarveS3Bucket.Arn
+
 
 Outputs:
   CarveTopicArn:
