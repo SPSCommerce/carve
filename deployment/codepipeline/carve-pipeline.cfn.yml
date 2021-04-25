@@ -124,9 +124,9 @@ Resources:
                 ActionMode: CREATE_UPDATE
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt 'CarvePipelineRole.Arn'
-                StackName: carve-pipeline
+                StackName: !Ref "AWS::StackName"
                 TemplatePath: GithubRepo::deployment/codepipeline/carve-pipeline.cfn.yml
-                ParameterOverrides: !Sub '{"DeployBucket": "${DeployBucket}", "OrgId": "${OrgId}", "RootOU": "${RootOU}", "Prefix": "${Prefix}", "GitHubOAUTHTokenASMPath": "${GitHubOAUTHTokenASMPath}", "ImageBuilderExistingSubnetId": "${ImageBuilderExistingSubnetId}", "ImageBuilderExistingVpcId": "${ImageBuilderExistingVpcId}", "ImageBuilderVpcCIDR": "${ImageBuilderVpcCIDR}", "ImageBuilderPublicSubnetCIDR": "${ImageBuilderPublicSubnetCIDR}"}'
+                ParameterOverrides: !Sub '{"DeployBucket": "${DeployBucket}", "OrgId": "${OrgId}", "UniqueId": "${UniqueId}", "RootOU": "${RootOU}", "Prefix": "${Prefix}", "GitHubOAUTHTokenASMPath": "${GitHubOAUTHTokenASMPath}", "ImageBuilderExistingSubnetId": "${ImageBuilderExistingSubnetId}", "ImageBuilderExistingVpcId": "${ImageBuilderExistingVpcId}", "ImageBuilderVpcCIDR": "${ImageBuilderVpcCIDR}", "ImageBuilderPublicSubnetCIDR": "${ImageBuilderPublicSubnetCIDR}"}'
               OutputArtifacts: []
               InputArtifacts:
                 - Name: GithubRepo
@@ -235,7 +235,7 @@ Resources:
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt 'CarvePipelineRole.Arn'
                 StackName: !Sub '${Prefix}carve-imagebuilder'
-                TemplatePath: GithubRepo::deployment/image-builder.cfn.yml
+                TemplatePath: GithubRepo::deployment/carve-image-builder.cfn.yml
                 ParameterOverrides: !Sub '{"ExistingSubnetId":"${ImageBuilderExistingSubnetId}","ExistingVpcId":"${ImageBuilderExistingVpcId}","VpcCIDR":"${ImageBuilderVpcCIDR}","PublicSubnetCIDR":"${ImageBuilderPublicSubnetCIDR}","OrgId":"${OrgId}","UniqueId":"${UniqueId}","Prefix":"${Prefix}","DeployBucket":"${DeployBucket}"}'
               OutputArtifacts: []
               InputArtifacts:
