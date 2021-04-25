@@ -121,7 +121,7 @@ Resources:
                 RoleArn: !GetAtt 'CarvePipelineRole.Arn'
                 StackName: carve-pipeline
                 TemplatePath: GithubRepo::deployment/codepipeline/carve-pipeline.cfn.yml
-                # ParameterOverrides: !Sub '{"OrganizationsId": "${OrganizationsId}","ResourcePrefix":"${ResourcePrefix}"}'
+                ParameterOverrides: !Sub '{"DeployBucket": "${DeployBucket}", "OrganizationsId": "${OrganizationsId}", "RootOU": "${RootOU}", "ResourcePrefix": "${ResourcePrefix}", "GitHubOAUTHTokenASMPath": "${GitHubOAUTHTokenASMPath}", "ImageBuilderExistingSubnetId": "${ImageBuilderExistingSubnetId}", "ImageBuilderExistingVpcId": "${ImageBuilderExistingVpcId}", "ImageBuilderVpcCIDR": "${ImageBuilderVpcCIDR}", "ImageBuilderPublicSubnetCIDR": "${ImageBuilderPublicSubnetCIDR}"}'
               OutputArtifacts: []
               InputArtifacts:
                 - Name: GithubRepo
