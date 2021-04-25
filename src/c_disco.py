@@ -152,9 +152,7 @@ def discover_vpcs(region, account_id, account_name, credentials):
             AccountName=account_name,
             Region=region,
             CidrBlock=vpc['CidrBlock'],
-            Subnets=vpc_subnets,
-            PrivateEndpoint=None,
-            ApiGatewayUrl=None
+            Subnets=vpc_subnets
             )
 
     return G

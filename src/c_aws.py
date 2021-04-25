@@ -527,7 +527,7 @@ def aws_newest_s3(path, bucket=os.environ['CarveS3Bucket']):
     if objs['KeyCount'] > 0:
         contents = objs['Contents']
         get_last_modified = lambda obj: int(obj['LastModified'].strftime('%s'))
-        newest = [obj['Key'] for obj in sorted(contents, key=get_last_modified)][0]
+        newest = [obj['Key'] for obj in sorted(contents, key=get_last_modified)][-1]
         return newest
     else:
         return None
