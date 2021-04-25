@@ -32,9 +32,8 @@ Parameters:
     Description: Automatically propogate version updates to managed resources 
 
 Conditions:
-  UseOrgId: !Equals 
-    - !Ref "UniqueId"
-    - ""
+  UseOrgId: !Equals [ !Ref "UniqueId", "" ]
+
 
 Resources:
 

@@ -24,11 +24,11 @@ Parameters:
   BuildInstanceType:
     Type: CommaDelimitedList
     Default: "t4g.nano,t4g.micro"
-  OrganizationsId:
+  OrgId:
     Type: String
     Description: AWS Organizations Id
     Default: ""
-  ResourcePrefix:
+  Prefix:
     Type: String
     Description: "Prefix all carve resources with this"
     Default: ""
@@ -40,15 +40,15 @@ Parameters:
     Description: "MUST be incremented with changes to image builder in this template"
     Default: "0.0.7"
 
-
 Conditions:
   CreateVpc: !Equals [ !Ref ExistingVpcId, "" ]
+  UseOrgId: !Equals [ !Ref "UniqueId", "" ]
 
 Resources:
   BuildInstanceRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub "${ResourcePrefix}carve-build-instance"
+      RoleName: !Sub "${Prefix}carve-build-instance"
       ManagedPolicyArns:
         - !Sub "arn:${AWS::Partition}:iam::aws:policy/AmazonSSMManagedInstanceCore"
         - !Sub "arn:${AWS::Partition}:iam::aws:policy/EC2InstanceProfileForImageBuilder"
@@ -71,7 +71,7 @@ Resources:
                   - s3:GetObject
                 Effect: Allow
                 Resource: 
-                  - !Sub "arn:aws:s3:::${ResourcePrefix}carve-managed-bucket-${OrganizationsId}-${AWS::Region}/*"
+                  - !Sub "arn:aws:s3:::${Prefix}carve-managed-bucket-*-${AWS::Region}/*"
                   - !Sub "arn:aws:s3:::${DeployBucket}/*"
 
 
@@ -91,7 +91,10 @@ Resources:
         Ref: BuildInstanceType
       Logging:
         S3Logs:
-          S3BucketName: !Sub "${ResourcePrefix}carve-managed-bucket-${OrganizationsId}-${AWS::Region}"
+          S3BucketName: !If
+            - UseOrgId
+            - !Sub "${Prefix}carve-managed-bucket-${OrgId}-${AWS::Region}"
+            - !Sub "${Prefix}carve-managed-bucket-${UniqueId}-${AWS::Region}"
           S3KeyPrefix: imagebuilder
       # TerminateInstanceOnFailure: false
       SubnetId: !If [ CreateVpc,  !Ref PublicSubnet, !Ref ExistingSubnetId ]
@@ -172,7 +175,7 @@ Resources:
     Type: AWS::SSM::Parameter
     Properties:
       Description: Image Id for Carve
-      Name: !Sub /${ResourcePrefix}carve-resources/carve-beacon-ami
+      Name: !Sub /${Prefix}carve-resources/carve-beacon-ami
       Type: String
       Value: !GetAtt CarveAMI.ImageId
 
@@ -198,7 +201,7 @@ Resources:
       EnableDnsHostnames: true
       Tags:
         - Key: Name
-          Value: !Sub ${ResourcePrefix}-carve-imagebuilder-vpc
+          Value: !Sub ${Prefix}-carve-imagebuilder-vpc
 
   InternetGateway:
     Type: AWS::EC2::InternetGateway
@@ -206,7 +209,7 @@ Resources:
     Properties:
       Tags:
         - Key: Name
-          Value: !Sub ${ResourcePrefix}carve-imagebuilder-vpc
+          Value: !Sub ${Prefix}carve-imagebuilder-vpc
 
   InternetGatewayAttachment:
     Type: AWS::EC2::VPCGatewayAttachment
@@ -225,7 +228,7 @@ Resources:
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: !Sub ${ResourcePrefix}carve-imagebuilder-public-subnet
+          Value: !Sub ${Prefix}carve-imagebuilder-public-subnet
 
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
@@ -234,7 +237,7 @@ Resources:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: !Sub ${ResourcePrefix}carve-imagebuilder-public-route
+          Value: !Sub ${Prefix}carve-imagebuilder-public-route
 
   DefaultPublicRoute:
     Type: AWS::EC2::Route
