@@ -71,7 +71,7 @@ Resources:
       Runtime: python3.8
       MemorySize: 1024
       Timeout: 900
-      Role: !Ref CarveCoreRole
+      Role: !GetAtt CarveCoreRole.Arn
       ReservedConcurrentExecutions: 200
       Layers:
         # Carve requirements in their own layer for small lambda pkg
