@@ -71,7 +71,7 @@ Resources:
       Runtime: python3.8
       MemorySize: 1024
       Timeout: 900
-      Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-core-role"
+      Role: !Ref CarveCoreRole
       ReservedConcurrentExecutions: 200
       Layers:
         # Carve requirements in their own layer for small lambda pkg
@@ -125,7 +125,7 @@ Resources:
                   - lambda:ListTags
                   - lambda:GetFunction
                 Resource:
-                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${Prefix}carve-*"
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${Prefix}carve-subnet-*"
               - Effect: Allow
                 Action:
                   - iam:PassRole
@@ -139,7 +139,7 @@ Resources:
                 Action:
                   - sts:AssumeRole
                 Resource:
-                  - !Sub "arn:aws:iam::*:role/${Prefix}carve-lambda-${OrgId}"
+                  - !Sub "arn:aws:iam::*:role/${Prefix}carve-role"
               - Effect: Allow
                 Action:
                   - states:StartExecution
