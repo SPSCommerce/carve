@@ -54,11 +54,11 @@ Resources:
             - !Sub "${Prefix}carve-managed-bucket-${UniqueId}-${AWS::Region}"
           CarveSNSTopicArn: !Ref SNSTopic
           CarveVersion: !Ref CarveVersion
-          CleanupStateMachine: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-cleanup-statemachine"
-          DeployBeaconsStateMachine: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-deploy-beacons-statemachine"
-          DeployStacksStateMachine: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-deploy-stacks-statemachine"
-          DiscoveryStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-discovery-statemachine"
-          TokenStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-token-statemachine"
+          CleanupStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-cleanup-statemachine
+          DeployBeaconsStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-deploy-beacons-statemachine
+          DeployStacksStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-deploy-stacks-statemachine
+          DiscoveryStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-discovery-statemachine
+          TokenStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-token-statemachine
           GITSHA: !Ref GITSHA
           MPLCONFIGDIR: /tmp/matplotlib
           OrgId: !Ref OrgId

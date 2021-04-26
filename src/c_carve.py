@@ -62,7 +62,7 @@ def ssm_event(event, context):
     ssm_param = event['detail']['name']
     ssm_value = aws_ssm_get_parameter(ssm_param)
 
-    if name.split['/'][-1] == 'scale':
+    if ssm_param.split('/')[-1] == 'scale':
         G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
         asgs = set()
         for subnet in list(G.nodes):

@@ -38,7 +38,7 @@ def lambda_handler(event, context):
             from c_carve import ssm_event
 
             ssm_arn = event['resources'][0]
-            print(f'TRIGGERED by SSM: {cw_arn}')
+            print(f'TRIGGERED by SSM: {ssm_arn}')
             ssm_event(event, context)
 
     elif 'Records' in event:
