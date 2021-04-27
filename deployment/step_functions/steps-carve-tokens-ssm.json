@@ -6,7 +6,7 @@
       "Type": "Map",
       "Next": "ProcessReturns",
       "MaxConcurrency": 100,
-      "ItemsPath": "$.Payload",
+      "ItemsPath": "$",
       "Iterator": {
         "StartAt": "SaveTokens",
         "States": {

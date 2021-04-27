@@ -82,12 +82,12 @@ Resources:
                   r = http.request('GET', f'http://{beacon}/results')
                   ts = http.request('GET', f'http://{beacon}/ts')
                   if r.status == 200:
-                      result = {'results': r.data, 'ts': ts.data}
+                      results = {'results': r.data, 'ts': ts.data}
                   else:
-                      result = {'error': r.status, 'health': hc(beacon)}
+                      results = {'error': r.status, 'health': hc(beacon)}
               except Exception as e:
-                  result = {'error': r.status, 'health': hc(beacon)}
-              return result
+                  results = {'error': r.status, 'health': hc(beacon)}
+              return {'status': str(r.status), results': results}
 
           def update_beacon(beacon, beacons):
             config = json.dumps({'beacons': beacons}).encode()
@@ -191,7 +191,7 @@ Resources:
               owner: "root"
               group: "root"
     Properties:
-      AssociatePublicIpAddress: 'true'
+      AssociatePublicIpAddress: 'false'
       SecurityGroups:
         - !Ref 'InstanceSecurityGroup'
       IamInstanceProfile: !Ref 'InstanceProfile'

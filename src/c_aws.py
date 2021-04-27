@@ -117,6 +117,19 @@ def aws_start_stepfunction(sf_arn, sf_input, name):
     return response
 
 
+def aws_send_task_success(task_token, output):
+    ''' start a step function workflow with the given input '''
+
+    client = boto3.client('stepfunctions', region_name=current_region)
+
+    response = client.send_task_success(
+        taskToken=sf_arn,
+        output=json.dumps(output)
+        )
+
+    return response
+
+
 def aws_describe_stack(stackname, region, credentials):
     ''' return a stack description if it exists ''' 
     client = boto3.client(
@@ -206,7 +219,7 @@ def aws_describe_instances(instances, region, credentials):
     return results
 
 
-def aws_rename_instance(instance, name, region, credentials):
+def aws_create_ec2_tag(instance, tags, region, credentials):
     client = boto3.client(
         'ec2',
         config=boto_config,
@@ -217,7 +230,7 @@ def aws_rename_instance(instance, name, region, credentials):
     )
     response = client.create_tags(
         Resources=[instance],
-        Tags=[{'Key': 'Name', 'Value': name}]
+        Tags=tags # [{'Key': 'Name', 'Value': name}]
     )
 
 

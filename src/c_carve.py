@@ -58,22 +58,6 @@ def process_test_results(results):
             G.remove_edge(edge[0], edge[1])
 
 
-def ssm_event(event, context):
-    ssm_param = event['detail']['name']
-    ssm_value = aws_ssm_get_parameter(ssm_param)
-
-    if ssm_param.split('/')[-1] == 'scale':
-        G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
-        asgs = set()
-        for subnet in list(G.nodes):
-            asgs.add(f"{os.environ['Prefix']}carve-beacon-asg-{G.nodes().data()[subnet]['VpcId']}")
-
-        payload = []
-        for asg in asgs:
-            payload.append({'Parameter': f"/{os.environ['Prefix']}carve-resources/tokens/{asg}"})
-
-        name = f"scale-{ssm_value}-{int(time.time())}"
-        aws_start_stepfunction(os.environ['TokenStateMachine'], payload, name)
 
 
 # def get_asgs(G=None):
@@ -122,7 +106,7 @@ def scale_beacons(scale):
             'subnets': vpc_subnets
             })
 
-    # using threading, set all ASGs to 0 hosts to terminal all beacons
+    # using threading, set all ASGs to correct scale for all beacons
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = []
         for asg in asgs:
@@ -287,42 +271,117 @@ def get_beacons_thread(asg, account, region):
     return beacons
 
 
-def asg_event(message):
+def ssm_event(event, context):
+    ssm_param = event['detail']['name']
+    ssm_value = aws_ssm_get_parameter(ssm_param)
+
+    if ssm_param.split('/')[-1] == 'scale':
+        G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
+        subnets = []
+        for subnet in list(G.nodes):
+            subnets.add({
+                # "asg": f"{os.environ['Prefix']}carve-beacon-asg-{G.nodes().data()[subnet]['VpcId']}",
+                "subnet": G.nodes().data()[subnet]
+                })
+
+        payload = []
+        for subnet in subnets:
+            payload.append({
+                'parameter': f"/{os.environ['Prefix']}carve-resources/tokens/{subnet['subnet']}",
+                # 'asg': subnet['asg'],
+                'task': 'scale',
+                'scale' ssm_value
+                })
+
+        name = f"scale-{ssm_value}-{int(time.time())}"
+        aws_start_stepfunction(os.environ['TokenStateMachine'], payload, name)
+        scale_beacons(ssm_value)
+
+
+def asg_event(event):
 
     print(f"TRIGGERED by ASG: {message['detail']['AutoScalingGroupName']}")
 
-    # get insances from event data
-    instance_id = ""
-    for resource in message['resources']:
-        if resource.startswith("arn:aws:ec2"):
-            instance_id = resource.split('/')[1]
+    # should only be one item, but treat as a list
+    for record in event['Records']:
+        message = json.loads(record['Sns']['Message'])
 
-    vpc = message['detail']['AutoScalingGroupName'].split(f"{os.environ['Prefix']}carve-beacon-asg-")[-1]
-    credentials = aws_assume_role(carve_role_arn(message['account']), f"event-{message['detail']['AutoScalingGroupName']}")
+        # get insances from event data
+        instance_id = ""
+        for resource in message['resources']:
+            if resource.startswith("arn:aws:ec2"):
+                instance_id = resource.split('/')[1]
 
-    # get instance metadata from account and update SSM
-    ec2 = aws_describe_instances([instance_id], message['region'], credentials)[0]
+        vpc = message['detail']['AutoScalingGroupName'].split(f"{os.environ['Prefix']}carve-beacon-asg-")[-1]
+        credentials = aws_assume_role(carve_role_arn(message['account']), f"event-{message['detail']['AutoScalingGroupName']}")
 
-    parameter = f"/{os.environ['Prefix']}carve-resources/vpc-beacons/{vpc}/{ec2['InstanceId']}"
+        # get instance metadata from account and update SSM
+        ec2 = aws_describe_instances([instance_id], message['region'], credentials)[0]
 
-    if 'EC2 Instance Launch Successful' == message['detail-type']:
+        # parameter = f"/{os.environ['Prefix']}carve-resources/vpc-beacons/{vpc}/{ec2['InstanceId']}"
 
-        # add to SSM
-        print(f"adding beacon to ssm: {instance_id} - {ec2['PrivateIpAddress']} - {ec2['SubnetId']}")
-        beacon = {ec2['PrivateIpAddress']: ec2['SubnetId']}
-        aws_ssm_put_parameter(parameter, json.dumps(beacon))
+        if 'EC2 Instance Launch Successful' == message['detail-type']:
 
-        # add azid code to end of instance name
-        subnet = aws_describe_subnets(message['region'], credentials, message['account'], ec2['SubnetId'])[0]
-        az = subnet['AvailabilityZoneId'].split('-')[-1]
-        name = f"{os.environ['Prefix']}carve-beacon-{vpc}-{az}"
-        aws_rename_instance(ec2['InstanceId'], name, message['region'], credentials)
+            # # add to SSM
+            # print(f"adding beacon to ssm: {instance_id} - {ec2['PrivateIpAddress']} - {ec2['SubnetId']}")
+            # beacon = {ec2['PrivateIpAddress']: ec2['SubnetId']}
+            # aws_ssm_put_parameter(parameter, json.dumps(beacon))
 
-    elif 'EC2 Instance Terminate Successful' == message['detail-type']:
 
-        # remove from SSM
-        print(f"removing beacon from ssm: {parameter}")
-        aws_ssm_delete_parameter(parameter)
+            ### need to update this code to grab subnet ssm param instead of ASG
+
+            # append azid code to end of instance name
+            subnet = aws_describe_subnets(message['region'], credentials, message['account'], ec2['SubnetId'])[0]
+            az = subnet['AvailabilityZoneId'].split('-')[-1]
+            name = f"{os.environ['Prefix']}carve-beacon-{vpc}-{az}"
+            tags = [{'Key': 'Name', 'Value': name}]
+            aws_create_ec2_tag(ec2['InstanceId'], tags, message['region'], credentials)
+
+            function = f"arn:aws:lambda:{message['region']}:{message['account']}:function:{os.environ['Prefix']}carve-{ec2['SubnetId']}"
+            beacon = ec2['PrivateIpAddress']
+
+            ## will need to udate SSM logic for tokens to be 1 token per subnet that will come back up?
+            ## or do we check the whole ASG for health?
+
+            i = 0
+            while True:
+                results = beacon_results(function, beacon)
+                if results['status'] == 200:
+                    # ssm_param = f"/{os.environ['Prefix']}carve-resources/tokens/{asg}",
+                    ssm_param = f"/{os.environ['Prefix']}carve-resources/tokens/{ec2['SubnetId']}",
+                    token = aws_ssm_get_parameter(ssm_param)
+                    aws_send_task_success(token, {"status": "200"})
+                    aws_ssm_delete_parameter(ssm_param)
+                else:
+                    print(f'waiting for beacon {beacon} - {i}')
+                    time.sleep(1)
+
+        elif 'EC2 Instance Terminate Successful' == message['detail-type']:
+                    # ssm_param = f"/{os.environ['Prefix']}carve-resources/tokens/{asg}",
+            subnet = message['detail']['Details']['Subnet ID']
+            ssm_param = f"/{os.environ['Prefix']}carve-resources/tokens/{subnet}",
+            token = aws_ssm_get_parameter(ssm_param)
+            aws_send_task_success(token, {"status": "200"})
+            aws_ssm_delete_parameter(ssm_param)
+            print(f"beacon terminated {message}")
+
+
+def beacon_results(function, beacon):
+    region = function.split(':')[3]
+    subnet = function.split(':')[-1]
+    print(f"getting beacon results from {subnet}")
+    payload = {
+            'action': 'results',
+            'beacon': beacon
+            }
+    result = aws_invoke_lambda(
+        arn=function,
+        payload=payload,
+        region=subnet['region'],
+        credentials=None
+        )
+    return result
+
 
 
 def carve_role_arn(account):

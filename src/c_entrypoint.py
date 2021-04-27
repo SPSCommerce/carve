@@ -56,7 +56,7 @@ def lambda_handler(event, context):
                 if 'source' in message:
                     if message['source'] == 'aws.autoscaling':
                         from c_carve import asg_event
-                        asg_event(message)
+                        asg_event(event)
 
         elif 's3' in event['Records'][0]:
             if event['Records'][0]['s3']['bucket']['name'] == os.environ['CarveS3Bucket']:
