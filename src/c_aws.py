@@ -492,7 +492,7 @@ def aws_update_asg_size(asg, minsize, maxsize, desired, region, credentials):
         AutoScalingGroupName=asg,
         MinSize=minsize,
         MaxSize=maxsize,
-        DesiredCapacity=desired_capacity
+        DesiredCapacity=desired
         )
     return response
 

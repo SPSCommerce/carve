@@ -7,17 +7,17 @@ import os
 from c_aws import *
 # import urllib3
 # import concurrent.futures
-from carve import scale_beacons
+from c_carve import scale_beacons
 
 
 
 def sf_SaveToken(event, context):
     # payload must include the following plus Parameters
     token = event['TaskToken']
-    parameter = event['Input']['Parameter']
+    parameter = event['Input']['parameter']
     aws_ssm_put_parameter(parameter=parameter, value=token, param_type='SecureString')
     if event['Input']['Task'] == 'scale':
-        scale_beacons(event['Input']['Scale'])
+        scale_beacons(event['Input']['scale'])
 
         #####
         ## NEXT:  follow scale_beacons to see if the code is ready

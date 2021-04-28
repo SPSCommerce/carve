@@ -122,14 +122,14 @@ def scale_beacons(scale):
                 aws_update_asg_size,
                 asg=asg['asg'],
                 minsize=0, 
-                maxsize=len(asg['subnets'],
+                maxsize=len(asg['subnets']),
                 desired=desired,
                 region=asg['region'],
                 credentials=aws_assume_role(
                     carve_role_arn(asg['account']), f"lookup-{asg['asg']}")
                     )
                 )
-            )
+            
 
         for future in concurrent.futures.as_completed(futures):
             result = future.result()
@@ -279,7 +279,7 @@ def ssm_event(event, context):
         G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
         subnets = []
         for subnet in list(G.nodes):
-            subnets.add({
+            subnets.append({
                 # "asg": f"{os.environ['Prefix']}carve-beacon-asg-{G.nodes().data()[subnet]['VpcId']}",
                 "subnet": G.nodes().data()[subnet]
                 })
@@ -287,16 +287,24 @@ def ssm_event(event, context):
         payload = []
         for subnet in subnets:
             payload.append({
-                'parameter': f"/{os.environ['Prefix']}carve-resources/tokens/{subnet['subnet']}",
+                'parameter': f"/{os.environ['Prefix']}carve-resources/tokens/{subnet}",
                 # 'asg': subnet['asg'],
                 'task': 'scale',
-                'scale' ssm_value
+                'scale': ssm_value
                 })
+
+
 
         name = f"scale-{ssm_value}-{int(time.time())}"
         aws_start_stepfunction(os.environ['TokenStateMachine'], payload, name)
         scale_beacons(ssm_value)
 
+
+def cleanup_ssm():
+    # make function to clean up SSM tokens
+    # move function to cleanup workflow
+    # just fixed a bunch of bugs, next is to test is to scale ssm parm
+    pass
 
 def asg_event(event):
 
