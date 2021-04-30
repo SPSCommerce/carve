@@ -410,7 +410,7 @@ Resources:
           - Sid: Allow Carve Core Management
             Effect: "Allow"
             Principal:
-              AWS: !Sub "arn:aws:sts::${CarveCoreAccount}:assumed-role/${Prefix}carve-core/carve-changeset-${AWS::Region}"
+              AWS: !GetAtt CarveCoreRole.Arn
               # AWS: !Sub "arn:aws:iam::${CarveCoreAccount}:root"
               # AWS: !Sub "arn:aws:iam::${CarveCoreAccount}:role/${Prefix}carve-lambda-${OrgId}"
             Action:
