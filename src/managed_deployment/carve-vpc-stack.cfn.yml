@@ -67,46 +67,55 @@ Resources:
           def hc(beacon):
               http = urllib3.PoolManager()
               try:
-                response = http.request('GET', f'http://{beacon}/up')
-                if r.status == 200:
-                    result = 'up'
-                else:
-                    result = 'down'
+                  r = http.request('GET', f'http://{beacon}/up', timeout=0.1)
+                  if r.status == 200:
+                      result = 'up'
+                  else:
+                      result = 'down'
               except:
-                result = 'down'
+                  result = 'down'
               return result
 
           def get_results(beacon):
+              print(f'getting results for beacon: {beacon}')
               http = urllib3.PoolManager()
+              result = None
               try:
-                  r = http.request('GET', f'http://{beacon}/results')
-                  ts = http.request('GET', f'http://{beacon}/ts')
+                  r = http.request('GET', f'http://{beacon}/results', timeout=0.1)
+                  ts = http.request('GET', f'http://{beacon}/ts', timeout=0.1)
                   if r.status == 200:
-                      results = {'results': r.data, 'ts': ts.data}
+                      result = {'status': r.status, 'result': r.data, 'health': hc(beacon), 'ts': ts.data}
                   else:
-                      results = {'error': r.status, 'health': hc(beacon)}
-              except Exception as e:
-                  results = {'error': r.status, 'health': hc(beacon)}
-              return {'status': str(r.status), results': results}
+                      result = {'status': r.status, 'result': 'error', 'health': hc(beacon)}
+              except urllib3.exceptions.ConnectTimeoutError:
+                  result = {'status': 'ConnectTimeoutError', 'result': 'timeout', 'health': hc(beacon)}
+              except urllib3.exceptions.MaxRetryError:
+                  result = {'status': 'MaxRetryError', 'result': 'timeout', 'health': hc(beacon)}
+              except urllib3.exceptions.HTTPError as e:
+                  result = {'status': 'HTTPError', 'result': 'timeout', 'health': hc(beacon)}
+              print(result)
+              return result
 
           def update_beacon(beacon, beacons):
-            config = json.dumps({'beacons': beacons}).encode()
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.connect((beacon, 8008))
-                s.sendall(config)
-                data = s.recv(1024)
-            if data == config:
-                print('beacon update successful')
-            else:
-                print(f'ERROR: beacon update confirmation failed for {beacon}')
-                print(f'submitted: {config}')
-                print(f'returned: {data}')
+              config = json.dumps({'beacons': beacons}).encode()
+              with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                  s.connect((beacon, 8008))
+                  s.sendall(config)
+                  data = s.recv(1024)
+              if data == config:
+                  print('beacon update successful')
+              else:
+                  print(f'ERROR: beacon update confirmation failed for {beacon}')
+                  print(f'submitted: {config}')
+                  print(f'returned: {data}')
 
           def lambda_handler(event, context):
+              print(event)
               if event['action'] == 'results':
-                get_results(event['beacon'])
+                  result = get_results(event['beacon'])
               elif event['action'] == 'update':
-                update_beacon(event['beacon'], event['beacons'])
+                  result = update_beacon(event['beacon'], event['beacons'])
+              return result
 
 
   CarveLambdaRole:
@@ -292,7 +301,7 @@ Resources:
       State: "ENABLED"
       Targets:
         - Id: "SendSNStoCarve"
-          Arn: !Sub 'arn:aws:sns:${CoreRegion}:${AWS::AccountId}:{$Prefix}carve-account-events'
+          Arn: !Sub 'arn:aws:sns:${CoreRegion}:${AWS::AccountId}:${Prefix}carve-account-events'
   
 Outputs:
   AutoScalingGroup:

@@ -421,9 +421,11 @@ def codepipline_job(event, context):
 
 
 def sf_CreateSubscriptions(context):
-    # create SNS subscriptions to all accounts with deployments
+    # create SNS subscriptions to all org accounts with deployments
     G = load_graph(get_deploy_key(), local=False)
     accounts = deploy_accounts(G)
+    accounts.remove(context.invoked_function_arn.split(':')[4])
+
     prefix = os.environ['Prefix']
 
     # create a CFN template with SNS subscriptions and lambda invoke permissions
@@ -433,6 +435,7 @@ def sf_CreateSubscriptions(context):
         "Resources": {}
     }
     for account in accounts:
+
         template['Resources'][f'Sub{account}'] = {
             "Type": "AWS::SNS::Subscription",
             "Properties": {

@@ -20,7 +20,7 @@ def _get_credentials(arn=None, account=None):
     role = f"arn:aws:iam::{account}:role/{role_name}"
     session_name = "carve-network-test"
     credentials = aws_assume_role(role, session_name)
-    credentails['Account'] = account
+    credentials['Account'] = account
     return credentials
 
 
@@ -120,10 +120,10 @@ def aws_start_stepfunction(sf_arn, sf_input, name):
 def aws_send_task_success(task_token, output):
     ''' start a step function workflow with the given input '''
 
-    client = boto3.client('stepfunctions', region_name=current_region)
+    client = boto3.client('stepfunctions', config=boto_config, region_name=current_region)
 
     response = client.send_task_success(
-        taskToken=sf_arn,
+        taskToken=task_token,
         output=json.dumps(output)
         )
 
@@ -698,7 +698,7 @@ def aws_ssm_put_parameter(parameter, value, region=current_region, param_type='S
 def aws_ssm_get_parameter(parameter, region=current_region):
     client = boto3.client('ssm', config=boto_config, region_name=region)
     try:
-        response = client.get_parameter(Name=parameter)
+        response = client.get_parameter(Name=parameter, WithDecryption=True)
         value = response['Parameter']['Value']
     except ClientError as e:
         value = None
@@ -710,7 +710,7 @@ def aws_ssm_get_parameters(path):
     params = {}
     try:
         paginator = client.get_paginator('get_parameters_by_path')
-        for page in paginator.paginate(Path=path, Recursive=True):
+        for page in paginator.paginate(Path=path, Recursive=True, WithDecryption=True):
             for param in page['Parameters']:
                 name = param['Name'].split('/')[-1]
                 params[name] = param['Value']
@@ -742,7 +742,7 @@ def aws_invoke_lambda(arn, payload, region=current_region, credentials=None):
         FunctionName=arn,
         Payload=json.dumps(payload)
         )
-    data = response['Payload'].read()
+    data = json.loads(response['Payload'].read().decode('utf-8'))
     return data
 
 # def aws_invoke_self(arn, payload):

@@ -16,7 +16,7 @@ def sf_SaveToken(event, context):
     token = event['TaskToken']
     parameter = event['Input']['parameter']
     aws_ssm_put_parameter(parameter=parameter, value=token, param_type='SecureString')
-    if event['Input']['Task'] == 'scale':
+    if event['Input']['task'] == 'scale':
         scale_beacons(event['Input']['scale'])
 
         #####

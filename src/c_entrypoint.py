@@ -48,7 +48,7 @@ def lambda_handler(event, context):
             message = event['Records'][0]['Sns']['Message']
 
             if event['Records'][0]['Sns']['Subject'] == 'AWS CloudFormation Notification':
-                from c_carve import parse_cfn_sns
+                from c_deploy_beacons import parse_cfn_sns
                 message = parse_cfn_sns(message)
                 print(f'CloudFormation SNS Message: {message}')
             else:
