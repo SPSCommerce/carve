@@ -42,7 +42,7 @@ Parameters:
   Version:
     Type: String
     Description: "MUST be incremented with changes to image builder in this template"
-    Default: "0.0.7"
+    Default: "0.0.8"
 
 Conditions:
   CreateVpc: !Equals [ !Ref ExistingVpcId, "" ]
@@ -189,6 +189,17 @@ Resources:
       VpcId: !If [ CreateVpc,  !Ref VPC, !Ref ExistingVpcId ]
       GroupDescription: carve-ami-builder
 
+  CarveImagePipeline:
+    Type: 'AWS::ImageBuilder::ImagePipeline'
+    Properties:
+      Name: !Sub CarveImagePipeline
+      Description: 'Pipeline to build Carve Golden AMI'
+      ImageRecipeArn: !Ref CarveImageRecipe
+      InfrastructureConfigurationArn: !Ref CarveConfiguration
+      ImageTestsConfiguration:
+        ImageTestsEnabled: false
+        TimeoutMinutes: 90
+      Status: 'ENABLED'
 
 
 ###################################
