@@ -16,7 +16,7 @@ boto_config = Config(retries=dict(max_attempts=10))
 def _get_credentials(arn=None, account=None):
     if arn is not None:
         account = arn.split(':')[4]        
-    role_name = f"{os.environ['Prefix']}carve-role"
+    role_name = f"{os.environ['Prefix']}carve-core"
     role = f"arn:aws:iam::{account}:role/{role_name}"
     session_name = "carve-network-test"
     credentials = aws_assume_role(role, session_name)

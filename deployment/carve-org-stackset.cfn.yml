@@ -23,7 +23,7 @@ Resources:
   CarveCoreRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub "${Prefix}carve-role"
+      RoleName: !Sub "${Prefix}carve-core"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
