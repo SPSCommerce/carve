@@ -58,9 +58,6 @@
     "Failure": {
       "Type": "Fail"
     },
-    "Succeed": {
-      "Type": "Succeed"
-    },
     "DeployPrepCheckChoice": {
       "Type": "Choice",
       "InputPath": "$.Payload",
