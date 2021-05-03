@@ -43,7 +43,7 @@ Resources:
   BridgeFunction:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Sub '${Prefix}carve-bridge'
+      FunctionName: !Sub '${Prefix}carve-bridge-${VpcId}'
       Description: Bridge ASG Events Across Accounts and Regions with SNS
       Handler: index.lambda_handler
       Role: !GetAtt CarveLambdaRole.Arn
@@ -169,7 +169,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId: !Ref VpcId
-      GroupDescription: Carve Lambda egress
+      GroupDescription: Carve Lambda Egress
 
   AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup

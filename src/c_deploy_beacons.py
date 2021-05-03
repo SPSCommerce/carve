@@ -30,7 +30,10 @@ def start_carve_deployment(event, context, key=False):
 
     # create deploy buckets in all required regions for deployment files
     regions = deploy_regions(G)
-    regions.remove(current_region)
+    try:
+        regions.remove(current_region)
+    except:
+        pass
 
     deploy_buckets = []
 
@@ -241,7 +244,7 @@ def deployment_list(G, context):
             Function['Properties']['Environment']['Variables']['VpcSubnetIds'] = subnet
             Function['Properties']['VpcConfig']['SubnetIds'] = [subnet]
 
-            name = f"Subnet{subnet.split('-')[-1]}"
+            name = f"Function{subnet.split('-')[-1]}"
             vpc_template['Resources'][name] = deepcopy(Function)
 
         # remove orig templated function
