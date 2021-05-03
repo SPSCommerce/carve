@@ -359,65 +359,55 @@ Resources:
           #       AWS:SourceArn: !Sub "arn:aws:lambda:*:*:function:${Prefix}carve-vpc-*"
 
 
-  AccountSNSTopic:
-    Type: AWS::SNS::Topic
-    Properties:
-      DisplayName: !Sub "${Prefix}carve-account-events"
-      TopicName: !Sub "${Prefix}carve-account-events"
+  # AccountSNSTopic:
+  #   Type: AWS::SNS::Topic
+  #   Properties:
+  #     DisplayName: !Sub "${Prefix}carve-account-events"
+  #     TopicName: !Sub "${Prefix}carve-account-events"
 
-  AccountSNSSubscription:
-    Type: AWS::SNS::Subscription
-    Properties:
-      Endpoint: !GetAtt CarveFunction.Arn
-      Protocol: Lambda
-      TopicArn: !Ref AccountSNSTopic
+  # AccountSNSSubscription:
+  #   Type: AWS::SNS::Subscription
+  #   Properties:
+  #     Endpoint: !GetAtt CarveFunction.Arn
+  #     Protocol: Lambda
+  #     TopicArn: !Ref AccountSNSTopic
 
-  AccountSNSInvoke:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      Principal: sns.amazonaws.com
-      SourceArn: !Ref AccountSNSTopic
-      FunctionName: !GetAtt CarveFunction.Arn
+  # AccountSNSInvoke:
+  #   Type: AWS::Lambda::Permission
+  #   Properties:
+  #     Action: lambda:InvokeFunction
+  #     Principal: sns.amazonaws.com
+  #     SourceArn: !Ref AccountSNSTopic
+  #     FunctionName: !GetAtt CarveFunction.Arn
 
-  AccountSNSTopicPolicy:
-    Type: AWS::SNS::TopicPolicy
-    Properties:
-      Topics:
-        - !Ref AccountSNSTopic
-      PolicyDocument:
-        Id: Carve SNS Policy
-        Version: "2012-10-17"
-        Statement:
-          - Sid: Allow events
-            Effect: Allow
-            Principal:
-              Service: events.amazonaws.com
-            Action: 'sns:Publish'
-            Resource: '*'
-          - Sid: Allow Carve Lambdas
-            Effect: "Allow"
-            Principal:
-              AWS: "*"
-            Action:
-              - "sns:Subscribe"
-              - "sns:Receive"
-              - "sns:Publish"
-            Resource: !Ref AccountSNSTopic
-            Condition:
-              StringEquals:
-                aws:PrincipalOrgID: !Ref OrgId
-          # - Sid: Allow Carve Core Management
-          #   Effect: "Allow"
-          #   Principal:
-          #     AWS: !GetAtt CarveCoreRole.Arn
-          #     # AWS: !Sub "arn:aws:iam::${CarveCoreAccount}:root"
-          #     # AWS: !Sub "arn:aws:iam::${CarveCoreAccount}:role/${Prefix}carve-lambda-${OrgId}"
-          #   Action:
-          #     - "sns:Subscribe"
-          #     - "sns:Receive"
-          #     - "sns:Publish"
-          #   Resource: !Ref AccountSNSTopic
+  # AccountSNSTopicPolicy:
+  #   Type: AWS::SNS::TopicPolicy
+  #   Properties:
+  #     Topics:
+  #       - !Ref AccountSNSTopic
+  #     PolicyDocument:
+  #       Id: Carve SNS Policy
+  #       Version: "2012-10-17"
+  #       Statement:
+  #         - Sid: Allow events
+  #           Effect: Allow
+  #           Principal:
+  #             Service: events.amazonaws.com
+  #           Action: 'sns:Publish'
+  #           Resource: '*'
+  #         - Sid: Allow Carve Lambdas
+  #           Effect: "Allow"
+  #           Principal:
+  #             AWS: "*"
+  #           Action:
+  #             - "sns:Subscribe"
+  #             - "sns:Receive"
+  #             - "sns:Publish"
+  #           Resource: !Ref AccountSNSTopic
+  #           Condition:
+  #             StringEquals:
+  #               aws:PrincipalOrgID: !Ref OrgId
+
 
 
   SSMParameter:

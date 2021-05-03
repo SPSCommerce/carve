@@ -236,16 +236,16 @@ def deployment_list(G, context):
         # update the VPC CFN template with 1 lambda function per subnet
         # create a list of subnets for CFN parameters
         for subnet in vpc_subnets:
-            Function = deepcopy(vpc_template['Resources']['Function'])
+            Function = deepcopy(vpc_template['Resources']['SubnetFunction'])
             Function['Properties']['FunctionName'] = f"{os.environ['Prefix']}carve-{subnet}"
             Function['Properties']['Environment']['Variables']['VpcSubnetIds'] = subnet
             Function['Properties']['VpcConfig']['SubnetIds'] = [subnet]
 
-            name = f"Function{subnet.split('-')[-1]}"
+            name = f"Subnet{subnet.split('-')[-1]}"
             vpc_template['Resources'][name] = deepcopy(Function)
 
         # remove orig templated function
-        del vpc_template['Resources']['Function']
+        del vpc_template['Resources']['SubnetFunction']
 
         # update beacon launch config
         location = {"Location": f"s3://{os.environ['CarveS3Bucket']}/managed_deployment/carve-updater.yml"}
@@ -289,8 +289,8 @@ def deployment_list(G, context):
             "ParameterValue": image_id
           },
           {
-            "ParameterKey": "CoreRegion",
-            "ParameterValue": current_region
+            "ParameterKey": "CarveSNSTopicArn",
+            "ParameterValue": os.environ['CarveSNSTopicArn']
           },
           {
             "ParameterKey": "MaxSize",

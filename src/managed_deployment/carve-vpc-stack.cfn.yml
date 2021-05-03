@@ -18,9 +18,9 @@ Parameters:
     Type: String
     Description: The ImageId from the Carve imagebuilder
     Default: ''
-  CoreRegion:
+  CarveSNSTopicArn:
     Type: String
-    Description: Carve SNS Topic Arn
+    Description: Carve SNS Topic
   MinSize:
     Description: Minimum number of instances in the ASG
     Type: Number
@@ -40,7 +40,29 @@ Parameters:
 #     - !Ref ""
 
 Resources:
-  Function:
+  BridgeFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${Prefix}carve-bridge'
+      Description: Bridge ASG Events Across Accounts and Regions with SNS
+      Handler: index.lambda_handler
+      Role: !GetAtt CarveLambdaRole.Arn
+      Runtime: python3.8
+      Timeout: 20
+      MemorySize: 128
+      Code: 
+        ZipFile: !Sub |
+          import boto3, os, json
+          def lambda_handler(event, context):
+              print(event)
+              if 'source' in event:
+                  if event['source'] == 'aws.autoscaling':
+                      client = boto3.client('sns')
+                      response = client.publish(
+                          TopicArn="${CarveSNSTopicArn}",
+                          Message=json.dumps(event))
+
+  SubnetFunction:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: CarveSubnetFunction
@@ -133,12 +155,21 @@ Resources:
               - "lambda.amazonaws.com"
           Action:
             - "sts:AssumeRole"
+      Policies:
+        - PolicyName: CarveSNS
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "sns:Publish"
+                Resource: !Ref CarveSNSTopicArn
 
   LambdaSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId: !Ref VpcId
-      GroupDescription: Carve Lambda Egress
+      GroupDescription: Carve Lambda egress
 
   AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
@@ -300,8 +331,9 @@ Resources:
             - !Ref 'AutoScalingGroup'
       State: "ENABLED"
       Targets:
-        - Id: "SendSNStoCarve"
-          Arn: !Sub 'arn:aws:sns:${CoreRegion}:${AWS::AccountId}:${Prefix}carve-account-events'
+        - Id: "InvokeBridge"
+          Arn: !GetAtt BridgeFunction.Arn
+
   
 Outputs:
   AutoScalingGroup:
