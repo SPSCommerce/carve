@@ -103,10 +103,6 @@ def deploy_accounts(G):
 
 
 def sf_DeployPrep():
-    # token = event['TaskToken']
-    # parameter = f"/{os.environ['Prefix']}carve-resources/tokens/deploy-prep"
-    # aws_ssm_put_parameter(parameter=parameter, value=token, param_type='SecureString')
-
     ''' if the carve ami in the current region is newer, update the regional copies '''
     G = load_graph(get_deploy_key(), local=False)
 
@@ -157,10 +153,6 @@ def sf_DeployPrepCheck():
     regions = deploy_regions(G)
     accounts = deploy_accounts(G)
 
-    # # if launched by CW rule, delete rule
-    # event['source'] == 'aws.events'
-    #     aws_delete_rule('deploy-prep')
-
     parameter = f"/{os.environ['Prefix']}carve-resources/carve-beacon-ami"
 
     # check if all AMIs are ready in each region
@@ -178,20 +170,7 @@ def sf_DeployPrepCheck():
     if complete:
         complete_deploy_prep(G)
         payload = {'ImageStatus': 'complete'}
-        # # get task token to complete step fuction task   
-        # token_param = f"/{os.environ['Prefix']}carve-resources/tokens/deploy-prep"
-        # token = aws_ssm_get_parameter(token_param)
-        # aws_ssm_delete_parameter(token_param)
-        # if token is not None:
-        #     aws_send_task_success(token, {"status": "200"})
-        # else:
-        #     print('taskToken was None for deploy_prep_check')
     else:
-        # # schedule event to check in 1m
-        # aws_delete_rule('deploy-prep')
-        # aws_schedule_invoke('deploy-prep', 1, {'task': 'deploy_prep_check'}, context)
-    
-        # create payload for next step in state machine
         payload = {'ImageStatus': 'pending'}
 
     return payload        

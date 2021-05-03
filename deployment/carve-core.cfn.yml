@@ -52,7 +52,7 @@ Resources:
             - UseOrgId
             - !Sub "${Prefix}carve-managed-bucket-${OrgId}-${AWS::Region}"
             - !Sub "${Prefix}carve-managed-bucket-${UniqueId}-${AWS::Region}"
-          CarveSNSTopicArn: !Ref SNSTopic
+          CarveSNSTopicArn: !Ref OrgSNSTopic
           CarveVersion: !Ref CarveVersion
           CleanupStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-cleanup-statemachine
           DeployBeaconsStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-deploy-beacons-statemachine
@@ -293,32 +293,32 @@ Resources:
                 Resource:
                   - !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-*-statemachine"
 
-  SNSTopic:
+  OrgSNSTopic:
     Type: AWS::SNS::Topic
     Properties:
       DisplayName: !Sub "${Prefix}carve-org-events"
       TopicName: !Sub "${Prefix}carve-org-events"
 
-  CarveSNSSubscription:
+  OrgSNSSubscription:
     Type: AWS::SNS::Subscription
     Properties:
       Endpoint: !GetAtt CarveFunction.Arn
       Protocol: Lambda
-      TopicArn: !Ref SNSTopic
+      TopicArn: !Ref OrgSNSTopic
 
-  CarveLambdaSNSInvoke:
+  OrgSNSInvoke:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
       Principal: sns.amazonaws.com
-      SourceArn: !Ref SNSTopic
+      SourceArn: !Ref OrgSNSTopic
       FunctionName: !GetAtt CarveFunction.Arn
 
-  TopicPolicy:
+  OrgSNSTopicPolicy:
     Type: AWS::SNS::TopicPolicy
     Properties:
       Topics:
-        - !Ref SNSTopic
+        - !Ref OrgSNSTopic
       PolicyDocument:
         Id: Carve SNS Policy
         Version: "2012-10-17"
@@ -337,7 +337,7 @@ Resources:
               - "sns:Subscribe"
               - "sns:Receive"
               - "sns:Publish"
-            Resource: !Ref SNSTopic
+            Resource: !Ref OrgSNSTopic
             Condition:
               StringEquals:
                 aws:PrincipalOrgID: !Ref OrgId
@@ -351,7 +351,7 @@ Resources:
           #     - "sns:Subscribe"
           #     - "sns:Receive"
           #     - "sns:Publish"
-          #   Resource: !Ref SNSTopic
+          #   Resource: !Ref OrgSNSTopic
           #   Condition:
           #     StringEquals:
           #       aws:PrincipalOrgID: !Ref OrgId
@@ -370,17 +370,17 @@ Resources:
     Properties:
       Endpoint: !GetAtt CarveFunction.Arn
       Protocol: Lambda
-      TopicArn: !Ref SNSTopic
+      TopicArn: !Ref AccountSNSTopic
 
   AccountSNSInvoke:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
       Principal: sns.amazonaws.com
-      SourceArn: !Ref SNSTopic
+      SourceArn: !Ref AccountSNSTopic
       FunctionName: !GetAtt CarveFunction.Arn
 
-  AccountTopicPolicy:
+  AccountSNSTopicPolicy:
     Type: AWS::SNS::TopicPolicy
     Properties:
       Topics:
@@ -407,17 +407,17 @@ Resources:
             Condition:
               StringEquals:
                 aws:PrincipalOrgID: !Ref OrgId
-          - Sid: Allow Carve Core Management
-            Effect: "Allow"
-            Principal:
-              AWS: !GetAtt CarveCoreRole.Arn
-              # AWS: !Sub "arn:aws:iam::${CarveCoreAccount}:root"
-              # AWS: !Sub "arn:aws:iam::${CarveCoreAccount}:role/${Prefix}carve-lambda-${OrgId}"
-            Action:
-              - "sns:Subscribe"
-              - "sns:Receive"
-              - "sns:Publish"
-            Resource: !Ref AccountSNSTopic
+          # - Sid: Allow Carve Core Management
+          #   Effect: "Allow"
+          #   Principal:
+          #     AWS: !GetAtt CarveCoreRole.Arn
+          #     # AWS: !Sub "arn:aws:iam::${CarveCoreAccount}:root"
+          #     # AWS: !Sub "arn:aws:iam::${CarveCoreAccount}:role/${Prefix}carve-lambda-${OrgId}"
+          #   Action:
+          #     - "sns:Subscribe"
+          #     - "sns:Receive"
+          #     - "sns:Publish"
+          #   Resource: !Ref AccountSNSTopic
 
 
   SSMParameter:
@@ -541,6 +541,6 @@ Resources:
 Outputs:
   CarveTopicArn:
     Description: Carve Events Topic ARN
-    Value: !Ref SNSTopic
+    Value: !Ref OrgSNSTopic
     Export:
       Name: !Sub "${AWS::StackName}:TopicArn"
