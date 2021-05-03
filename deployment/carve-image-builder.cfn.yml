@@ -192,7 +192,7 @@ Resources:
   CarveImagePipeline:
     Type: 'AWS::ImageBuilder::ImagePipeline'
     Properties:
-      Name: !Sub CarveImagePipeline
+      Name: CarveImagePipeline
       Description: 'Pipeline to build Carve Golden AMI'
       ImageRecipeArn: !Ref CarveImageRecipe
       InfrastructureConfigurationArn: !Ref CarveConfiguration

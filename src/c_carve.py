@@ -352,8 +352,11 @@ def asg_event(event):
                     # ssm_param = f"/{os.environ['Prefix']}carve-resources/tokens/{asg}",
                     ssm_param = f"/{os.environ['Prefix']}carve-resources/tokens/{ec2['SubnetId']}"
                     token = aws_ssm_get_parameter(ssm_param)
-                    aws_send_task_success(token, json.dumps({"status": "200"}))
                     aws_ssm_delete_parameter(ssm_param)
+                    if token is not None:
+                        aws_send_task_success(token, {"status": "200"})
+                    else:
+                        print('taskToken was None')
                     break
                 else:
                     print(f'waiting for beacon {beacon} - {i}')
@@ -365,8 +368,8 @@ def asg_event(event):
             subnet = message['detail']['Details']['Subnet ID']
             ssm_param = f"/{os.environ['Prefix']}carve-resources/tokens/{subnet}"
             token = aws_ssm_get_parameter(ssm_param)
-            aws_send_task_success(token, json.dumps({"status": "200"}))
             aws_ssm_delete_parameter(ssm_param)
+            aws_send_task_success(token, {"status": "200"})
             print(f"beacon terminated {message}")
 
 
@@ -385,7 +388,6 @@ def beacon_results(function, beacon):
         credentials=None
         )
     return result
-
 
 
 def carve_role_arn(account):

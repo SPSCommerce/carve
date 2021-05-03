@@ -15,9 +15,6 @@
             "Type": "Task",
             "Resource": "arn:aws:states:::lambda:invoke.waitForTaskToken",
             "HeartbeatSeconds": 600,
-            "ResultSelector": {
-              "Payload.$": "States.StringToJson($.Payload)"
-            },
             "Parameters": {
               "FunctionName": "${CarveFunction}",
               "Payload": {

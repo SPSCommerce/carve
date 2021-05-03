@@ -745,6 +745,41 @@ def aws_invoke_lambda(arn, payload, region=current_region, credentials=None):
     data = json.loads(response['Payload'].read().decode('utf-8'))
     return data
 
+
+def schedule_cron(minutes):
+    # return cron fields for a schedule for a self-invocation in 'minutes'
+    now = datetime.datetime.now()
+    m = now + datetime.timedelta(minutes = minutes)
+    cron = f"({m.minute} {m.hour} {m.day} {m.month} ? {m.year})"
+    return cron
+
+
+def aws_schedule_invoke(name, minutes, payload, context):
+    client = boto3.client('events', config=boto_config)
+    response = client.put_rule(
+        Name=name,
+        ScheduleExpression=schedule_cron(minutes),
+        Description='scheduled event for carve',
+        RoleArn=f"{os.environ['Prefix']}carve-core",
+    )
+    # rule_arn = response['RuleArn']
+    response = client.put_targets(
+        Rule=name,
+        Description='scheduled event for carve',
+        RoleArn=f"{os.environ['Prefix']}carve-core",
+        Targets=[{
+            'Id': 'carve-lambda',
+            'Arn': context.invoked_function_arn,
+            'Input': json.dumps(payload)            
+        }]
+    )
+
+
+def aws_delete_rule(name):
+    client = boto3.client('events', config=boto_config)
+    response = client.delete_rule(Name=name)
+
+
 # def aws_invoke_self(arn, payload):
 #     client = boto3.client('lambda', config=boto_config)
 #     response = client.invoke(

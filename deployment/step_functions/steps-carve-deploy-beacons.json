@@ -31,21 +31,56 @@
           "Input.$": "$"
         }
       },
-      "Next": "DeployCarveLayers",
+      "Next": "DeployPrepCheck",
       "TimeoutSeconds": 900
     },
-    "DeployCarveLayers": {
-      "Comment": "Create one Carve layer per region",
+    "DeployPrepCheck": {
       "Type": "Task",
-      "Next": "GetDeploymentList",
-      "Resource": "arn:aws:states:::states:startExecution.sync",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "ResultSelector": {
+        "Payload.$": "States.StringToJson($.Payload)"
+      },
       "Parameters": {
-        "StateMachineArn": "${CarveDeployStacksStepFunction}",
-        "Input": {
-          "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id",
-          "Input.$": "$.Payload"
+        "FunctionName": "${CarveFunction}",
+        "Payload": {
+          "DeployAction": "DeployPrepCheck",
+          "Input.$": "$"
         }
-      }
+      },
+      "Next": "DeployPrepCheckChoice",
+      "TimeoutSeconds": 30
+    },
+    "ImageStatusWait": {
+      "Type": "Wait",
+      "Seconds": 30,
+      "Next": "DeployPrepCheck"
+    },
+    "Failure": {
+      "Type": "Fail"
+    },
+    "Succeed": {
+      "Type": "Succeed"
+    },
+    "DeployPrepCheckChoice": {
+      "Type": "Choice",
+      "InputPath": "$.Payload",
+      "Choices": [
+        {
+          "Variable": "$.ImageStatus",
+          "StringEquals": "complete",
+          "Next": "GetDeploymentList"
+        },
+        {
+          "Variable": "$.ImageStatus",
+          "StringEquals": "pending",
+          "Next": "ImageStatusWait"
+        },
+        {
+          "Variable": "$.ImageStatus",
+          "StringEquals": "failure",
+          "Next": "Failure"
+        }
+      ]
     },
     "GetDeploymentList": {
       "Type": "Task",

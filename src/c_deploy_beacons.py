@@ -102,38 +102,19 @@ def deploy_accounts(G):
     return accounts
 
 
-def sf_DeployPrep(event, context):
-    # input will be the completion of all the deploy buckets
-    # need to use above logic to load G and determine 
+def sf_DeployPrep():
+    # token = event['TaskToken']
+    # parameter = f"/{os.environ['Prefix']}carve-resources/tokens/deploy-prep"
+    # aws_ssm_put_parameter(parameter=parameter, value=token, param_type='SecureString')
 
+    ''' if the carve ami in the current region is newer, update the regional copies '''
     G = load_graph(get_deploy_key(), local=False)
 
-    propagate_carve_ami(G)
-    regions = deploy_regions(G)
-
-    # # update_bucket_policies(G)
-
-    # push CFN snippets to each region
-    if os.environ['UniqueId'] == "":
-        unique = os.environ['OrgId']
-    else:
-        unique = os.environ['UniqueId']
-
-    for r in regions:
-        bucket=f"{os.environ['Prefix']}carve-managed-bucket-{unique}-{r}"
-        aws_s3_upload('managed_deployment/carve-updater.yml', bucket=bucket)
-
-    return []
-
-
-def propagate_carve_ami(G):
-    ''' if the carve ami in the current region is newer, update the regional copies '''
     regions = deploy_regions(G)
 
     # all copies get the same time stamped name, use that to compare
     source_image = aws_ssm_get_parameter(f"/{os.environ['Prefix']}carve-resources/carve-beacon-ami")
     source_name = aws_describe_image(source_image)['Name']
-    # kms_key = aws_ssm_get_parameter(f"/{os.environ['Prefix']}carve-resources/carve-kms-key")
     print(f'AMI source_name: {source_name}')
 
     parameter = f"/{os.environ['Prefix']}carve-resources/carve-beacon-ami"
@@ -169,19 +150,65 @@ def propagate_carve_ami(G):
             if 'ImageId' in r:
                 aws_ssm_put_parameter(parameter, r['ImageId'], r['region'])
 
-    # update AMI sharing for deployment accounts
+
+
+def sf_DeployPrepCheck():
+    G = load_graph(get_deploy_key(), local=False)
+    regions = deploy_regions(G)
     accounts = deploy_accounts(G)
+
+    # # if launched by CW rule, delete rule
+    # event['source'] == 'aws.events'
+    #     aws_delete_rule('deploy-prep')
+
+    parameter = f"/{os.environ['Prefix']}carve-resources/carve-beacon-ami"
+
+    # check if all AMIs are ready in each region
+    complete = True
     for region in regions:
         ami = aws_ssm_get_parameter(parameter, region=region)
-        while True:
-            if ami_ready(ami, region):
-                print(f'sharing {ami} in {region} to: {accounts}')
-                aws_share_image(ami, accounts, region)
-                break
-            else:
-                # waiting here is not the best... ami sharing should be migrated into deploy steps
-                print(f'ami is not ready to share... waiting 30s to check again')
-                time.sleep(30)
+        if ami_ready(ami, region):
+            # update AMI sharing for deployment accounts
+            print(f'sharing {ami} in {region} to: {accounts}')
+            aws_share_image(ami, accounts, region)
+        else:
+            print(f'ami in {region} is not ready.')
+            complete = False
+
+    if complete:
+        complete_deploy_prep(G)
+        payload = {'ImageStatus': 'complete'}
+        # # get task token to complete step fuction task   
+        # token_param = f"/{os.environ['Prefix']}carve-resources/tokens/deploy-prep"
+        # token = aws_ssm_get_parameter(token_param)
+        # aws_ssm_delete_parameter(token_param)
+        # if token is not None:
+        #     aws_send_task_success(token, {"status": "200"})
+        # else:
+        #     print('taskToken was None for deploy_prep_check')
+    else:
+        # # schedule event to check in 1m
+        # aws_delete_rule('deploy-prep')
+        # aws_schedule_invoke('deploy-prep', 1, {'task': 'deploy_prep_check'}, context)
+    
+        # create payload for next step in state machine
+        payload = {'ImageStatus': 'pending'}
+
+    return payload        
+
+
+def complete_deploy_prep(G):
+    regions = deploy_regions(G)
+
+    # push CFN snippets to each region
+    if os.environ['UniqueId'] == "":
+        unique = os.environ['OrgId']
+    else:
+        unique = os.environ['UniqueId']
+
+    for r in regions:
+        bucket=f"{os.environ['Prefix']}carve-managed-bucket-{unique}-{r}"
+        aws_s3_upload('managed_deployment/carve-updater.yml', bucket=bucket)
 
 
 def ami_ready(ami, region):
@@ -490,8 +517,11 @@ def deploy_steps_entrypoint(event, context):
     ''' step function tasks for deployment all flow thru here after the lambda_hanlder '''
     response = {}
 
+    if event['DeployAction'] == 'DeployPrepCheck':
+        response = sf_DeployPrepCheck()
+
     if event['DeployAction'] == 'BeaconDeployPrep':
-        response = sf_DeployPrep(event, context)
+        response = sf_DeployPrep()
 
     if event['DeployAction'] == 'GetDeploymentList':
         response = sf_GetDeploymentList(context)

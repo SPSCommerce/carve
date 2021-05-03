@@ -19,7 +19,8 @@ def lambda_handler(event, context):
 
     '''
     if 'CodePipeline.job' not in event:
-        print(event)
+        if 'Tokens' not in event:
+            print(event)
 
     if 'update-beacons' in event:
         from c_carve import update_carve_beacons
@@ -28,11 +29,14 @@ def lambda_handler(event, context):
     if 'detail-type' in event:
 
         if event['source'] == 'aws.events':
-            from c_carve import carve_results
-
-            cw_arn = event['resources'][0]
-            print(f'TRIGGERED by CW: {cw_arn}')
-            carve_results(event, context)
+            cw_rule = event['resources'][0].split('rule/')[-1]
+            print(f'TRIGGERED by CW rule: {cw_arn}')
+            if cw_rule == 'carve-results':
+                from c_carve import carve_results
+                carve_results(event, context)
+            elif cw_rule == 'deploy-prep':
+                from c_deploy_beacons import deploy_prep_check
+                deploy_prep_check(event, context)
 
         if event['source'] == 'aws.ssm':
             from c_carve import ssm_event

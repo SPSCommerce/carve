@@ -453,28 +453,29 @@ Resources:
        Principal: "events.amazonaws.com"
        SourceArn: !GetAtt SSMParameterChange.Arn
 
-   # CloudWatchRole:
-   #   Type: AWS::IAM::Role
-   #   Properties:
-   #     AssumeRolePolicyDocument:
-   #       Version: "2012-10-17"
-   #       Statement:
-   #       - Effect: "Allow"
-   #         Principal:
-   #           Service:
-   #             - "events.amazonaws.com"
-   #         Action:
-   #           - "sts:AssumeRole"
-   #     Policies:
-   #       - PolicyName: LambdaInvocation
-   #         PolicyDocument:
-   #           Version: "2012-10-17"
-   #           Statement:
-   #             - Effect: Allow
-   #               Action:
-   #                 - lambda:Invoke*
-   #               Resource:
-   #                 - !GetAtt CraveFunction.arn
+  CloudWatchRole:
+     Type: AWS::IAM::Role
+     Properties:
+       RoleName: !Sub "${Prefix}carve-cloudwatch"
+       AssumeRolePolicyDocument:
+         Version: "2012-10-17"
+         Statement:
+         - Effect: "Allow"
+           Principal:
+             Service:
+               - "events.amazonaws.com"
+           Action:
+             - "sts:AssumeRole"
+       Policies:
+         - PolicyName: LambdaInvocation
+           PolicyDocument:
+             Version: "2012-10-17"
+             Statement:
+               - Effect: Allow
+                 Action:
+                   - lambda:Invoke*
+                 Resource:
+                   - !GetAtt CarveFunction.Arn
 
    # ScheduleRule:
    #   Type: AWS::Events::Rule
