@@ -356,7 +356,6 @@ def aws_create_stack(stackname, region, template, parameters, credentials, tags)
         TemplateBody=template,
         Parameters=parameters,
         Capabilities=['CAPABILITY_NAMED_IAM'],
-        NotificationARNs=[os.environ['CarveSNSTopicArn']],
         Tags=tags
         )
 
@@ -462,7 +461,7 @@ def aws_find_stacks(startswith, region, credentials):
     return stacks
 
 
-def aws_asg_instances(asg, region, credentials):
+def aws_describe_asg(asg, region, credentials):
     client = boto3.client(
         'autoscaling',
         config=boto_config,
@@ -472,13 +471,7 @@ def aws_asg_instances(asg, region, credentials):
         aws_session_token = credentials['SessionToken']
         )
     response = client.describe_auto_scaling_groups(AutoScalingGroupNames=[asg])
-    instances = []
-    print(response)
-    for instance in response['AutoScalingGroups'][0]['Instances']:
-        if instance['LifecycleState'] == "InService":
-            instances.append(instance['InstanceId'])
-    return instances
-
+    return response['AutoScalingGroups'][0]
 
 
 def aws_update_asg_size(asg, minsize, maxsize, desired, region, credentials):
@@ -785,7 +778,7 @@ def aws_delete_rule(name):
 
 def aws_describe_all_carve_images(region):
     # return all images created by carve in a region
-    client = boto3.resource('ec2', config=boto_config, region_name=region)
+    client = boto3.client('ec2', config=boto_config, region_name=region)
     response = client.describe_images(
         Filters=[
             {

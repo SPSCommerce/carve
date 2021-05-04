@@ -107,43 +107,15 @@
         }
       }
     },
-    "CleanupCarveBeacons": {
-      "Comment": "Create one Carve stack per VPC",
+    "CleanupResources": {
+      "Comment": "Cleanup Carve resources",
       "Type": "Task",
-      "Next": "CreateSubscriptions",
+      "Next": "DeploymentComplete",
       "Resource": "arn:aws:states:::states:startExecution.sync",
       "Parameters": {
         "StateMachineArn": "${CarveCleanupStepFunction}",
         "Input": {
           "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id"
-        }
-      }
-    },
-    "CreateSubscriptions": {
-      "Type": "Task",
-      "Resource":"arn:aws:states:::lambda:invoke",
-      "ResultSelector": {
-        "Payload.$": "States.StringToJson($.Payload)"
-      },
-      "Parameters": {
-        "FunctionName": "${CarveFunction}",
-        "Payload": {
-          "DeployAction": "CreateSubscriptions"
-        }
-      },
-      "Next": "DeploySubscriptions",
-      "TimeoutSeconds": 900
-    },
-    "DeploySubscriptions": {
-      "Comment": "Deploy stack with SNS subscriptions",
-      "Type": "Task",
-      "Next": "DeploymentComplete",
-      "Resource": "arn:aws:states:::states:startExecution.sync",
-      "Parameters": {
-        "StateMachineArn": "${CarveDeployStacksStepFunction}",
-        "Input": {
-          "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id",
-          "Input.$": "$.Payload"
         }
       }
     },

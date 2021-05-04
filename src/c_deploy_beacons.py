@@ -5,7 +5,7 @@ import json
 import os
 import sys
 from copy import deepcopy
-from c_carve import load_graph, save_graph, carve_role_arn
+from c_carve import load_graph, save_graph, carve_role_arn, ssm_event
 from c_disco import discover_org_accounts
 from c_aws import *
 from multiprocessing import Process, Pipe
@@ -160,29 +160,6 @@ def sf_DeployPrep():
                 aws_ssm_put_parameter(parameter, r['ImageId'], r['region'])
 
 
-
-def cleanup_images():
-    # get current AMI
-    parameter = f"/{os.environ['Prefix']}carve-resources/carve-beacon-ami"
-    print('cleaning up images')
-
-    for region in aws_all_regions():
-        active_image = aws_ssm_get_parameter(parameter, region=region)
-        carve_images = aws_describe_all_carve_images(region)
-
-        for image in carve_images['Images']:
-            if image['ImageId'] != active_image:
-                print(f"cleaing up {image['ImageId']} in {region}")
-                aws_deregister_image(
-                    image['ImageId'],
-                    region
-                )
-                aws_delete_snapshot(
-                    image['BlockDeviceMappings'][0]['Ebs']['SnapshotId'],
-                    region
-                )
-
-
 def sf_DeployPrepCheck():
     G = load_graph(get_deploy_key(), local=False)
     regions = deploy_regions(G)
@@ -203,8 +180,6 @@ def sf_DeployPrepCheck():
             complete = False
 
     if complete:
-        # clean up carve image
-        cleanup_images()
         payload = {'ImageStatus': 'complete'}
     else:
         payload = {'ImageStatus': 'pending'}
@@ -330,22 +305,22 @@ def deployment_list(G, context):
     return deploy_beacons
 
 
-def parse_cfn_sns(m):
-    # incoming SNS from CloudFormation have the message as a multi-line string
-    # each line is formatted gross. this cleans it up into a proper dict
-    if m.startswith("StackId="):
-        message = {}
-        lines = m.splitlines()
-        for l in lines:
-            k = l.split('=')[0]
-            v = l.split('=')[1].split("'")[1::2]
-            if k == "ResourceProperties":
-                try:
-                    v = json.loads(v[0])
-                except:
-                    pass
-            message[k] = v
-        return message
+# def parse_cfn_sns(m):
+#     # incoming SNS from CloudFormation have the message as a multi-line string
+#     # each line is formatted gross. this cleans it up into a proper dict
+#     if m.startswith("StackId="):
+#         message = {}
+#         lines = m.splitlines()
+#         for l in lines:
+#             k = l.split('=')[0]
+#             v = l.split('=')[1].split("'")[1::2]
+#             if k == "ResourceProperties":
+#                 try:
+#                     v = json.loads(v[0])
+#                 except:
+#                     pass
+#             message[k] = v
+#         return message
 
 
 # def az_rank(G):
@@ -448,59 +423,57 @@ def codepipline_job(event, context):
     aws_codepipeline_success(event['CodePipeline.job']['id'])
 
 
-def sf_CreateSubscriptions(context):
-    # create SNS subscriptions to all org accounts with deployments
-    G = load_graph(get_deploy_key(), local=False)
-    accounts = deploy_accounts(G)
-    accounts.remove(context.invoked_function_arn.split(':')[4])
+# def sf_CreateSubscriptions(context):
+#     # create SNS subscriptions to all org accounts with deployments
+#     G = load_graph(get_deploy_key(), local=False)
+#     accounts = deploy_accounts(G)
+#     accounts.remove(context.invoked_function_arn.split(':')[4])
 
-    prefix = os.environ['Prefix']
+#     prefix = os.environ['Prefix']
 
-    # create a CFN template with SNS subscriptions and lambda invoke permissions
-    template = {
-        "AWSTemplateFormatVersion": "2010-09-09",
-        "Description": "SNS Topic Subscriptions for Carve",
-        "Resources": {}
-    }
-    for account in accounts:
+#     # create a CFN template with SNS subscriptions and lambda invoke permissions
+#     template = {
+#         "AWSTemplateFormatVersion": "2010-09-09",
+#         "Description": "SNS Topic Subscriptions for Carve",
+#         "Resources": {}
+#     }
+#     for account in accounts:
 
-        template['Resources'][f'Sub{account}'] = {
-            "Type": "AWS::SNS::Subscription",
-            "Properties": {
-                "Endpoint": context.invoked_function_arn,
-                "Protocol": "Lambda",
-                "TopicArn": f"arn:aws:sns:{current_region}:{account}:{prefix}carve-account-events"
-            }
-        }
-        template['Resources'][f'Invoke{account}'] = {
-            "Type": "AWS::Lambda::Permission",
-            "Properties": {
-                "Action": "lambda:InvokeFunction",
-                "Principal": "sns.amazonaws.com",
-                "SourceArn": f"arn:aws:sns:{current_region}:{account}:{prefix}carve-account-events",
-                "FunctionName": context.invoked_function_arn
-            }
-        }
+#         template['Resources'][f'Sub{account}'] = {
+#             "Type": "AWS::SNS::Subscription",
+#             "Properties": {
+#                 "Endpoint": context.invoked_function_arn,
+#                 "Protocol": "Lambda",
+#                 "TopicArn": f"arn:aws:sns:{current_region}:{account}:{prefix}carve-account-events"
+#             }
+#         }
+#         template['Resources'][f'Invoke{account}'] = {
+#             "Type": "AWS::Lambda::Permission",
+#             "Properties": {
+#                 "Action": "lambda:InvokeFunction",
+#                 "Principal": "sns.amazonaws.com",
+#                 "SourceArn": f"arn:aws:sns:{current_region}:{account}:{prefix}carve-account-events",
+#                 "FunctionName": context.invoked_function_arn
+#             }
+#         }
 
-    # deploy the template
-    stackname = f"{os.environ['Prefix']}carve-managed-sns-subscriptions"
-    key = f"managed_deployment/{stackname}.json"
-    aws_put_direct(json.dumps(template, ensure_ascii=True, indent=2, sort_keys=True), key)
+#     # deploy the template
+#     stackname = f"{os.environ['Prefix']}carve-managed-sns-subscriptions"
+#     key = f"managed_deployment/{stackname}.json"
+#     aws_put_direct(json.dumps(template, ensure_ascii=True, indent=2, sort_keys=True), key)
 
-    deploy_sns = [{
-            "StackName": stackname,
-            "Parameters": [],
-            "Account": context.invoked_function_arn.split(":")[4],
-            "Region": current_region,
-            "Template": key
-        }]
+#     deploy_sns = [{
+#             "StackName": stackname,
+#             "Parameters": [],
+#             "Account": context.invoked_function_arn.split(":")[4],
+#             "Region": current_region,
+#             "Template": key
+#         }]
 
-    return deploy_sns
+#     return deploy_sns
 
-    # name = f"deploy-sns-{int(time.time())}"
-    # aws_start_stepfunction(os.environ['DeployBeaconsStateMachine'], deploy_sns, name)
 
- 
+
 def sf_GetDeploymentList(context):
     G = load_graph(get_deploy_key(), local=False)
     return deployment_list(G, context)
@@ -512,6 +485,10 @@ def sf_DeploymentComplete(context):
     key_name = deploy_key.split('/')[-1]
     aws_copy_s3_object(deploy_key, f'deployed_graph/{key_name}')
     aws_delete_s3_object(deploy_key, current_region)
+
+    # scale beacons to ssm parameter value
+    event = {'detail': {'name': f"/{os.environ['Prefix']}carve-resources/scale"}}
+    ssm_event(event, context)
 
 
 def deploy_steps_entrypoint(event, context):

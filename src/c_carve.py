@@ -119,21 +119,47 @@ def scale_beacons(scale):
                 desired = 1
 
             futures.append(executor.submit(
-                aws_update_asg_size,
+                update_asg_size,
+                account=asg['account'],
                 asg=asg['asg'],
                 minsize=0, 
                 maxsize=len(asg['subnets']),
                 desired=desired,
-                region=asg['region'],
-                credentials=aws_assume_role(
-                    carve_role_arn(asg['account']), f"lookup-{asg['asg']}")
-                    )
-                )
+                region=asg['region']
+                ))
             
 
         for future in concurrent.futures.as_completed(futures):
             result = future.result()
 
+
+def update_asg_size(account, asg, minsize, maxsize,  desired, region):
+    credentials=aws_assume_role(carve_role_arn(account), f"lookup-{asg}")
+    asg_info = aws_describe_asg(asg, region, credentials)
+
+    # only update ASG if min/max/desired is different
+    update = False
+    if int(asg_info['MinSize']) != int(minsize):
+        update = True
+    elif int(asg_info['MaxSize']) != int(maxsize):
+        update = True
+    elif int(asg_info['DesiredCapacity']) != int(desired):
+        update = True
+    
+    if update:
+        aws_update_asg_size(asg, minsize, maxsize, desired, region, credentials)
+
+    else:
+        # if no udpates, return success for the task tokens
+        subnets = asg_info['VPCZoneIdentifier'].split(',')
+        for subnet in subnets:
+            ssm_param = f"/{os.environ['Prefix']}carve-resources/tokens/{subnet}"
+            token = aws_ssm_get_parameter(ssm_param)
+            aws_ssm_delete_parameter(ssm_param)
+            if token is not None:
+                aws_send_task_success(token, {"status": "200"})
+            else:
+                print(f'taskToken was None for {subnet}')
 
 
 def get_subnet_beacons():
@@ -261,7 +287,12 @@ def update_carve_beacons():
 def get_beacons_thread(asg, account, region):
     # threaded lookup of all beacon IP addresses in an ASG
     credentials = aws_assume_role(carve_role_arn(account), f"lookup-{asg}")
-    instance_ids = aws_asg_instances(asg, region, credentials)
+    instance_ids = []
+    asg_info = aws_describe_asg(asg, region, credentials)
+    for instance in asg_info['Instances']:
+        if instance['LifecycleState'] == "InService":
+            instance_ids.append(instance['InstanceId'])
+
     instances = aws_describe_instances(instance_ids, region, credentials)
 
     beacons = {}

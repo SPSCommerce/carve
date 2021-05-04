@@ -4,7 +4,7 @@ import json
 import os
 import sys
 from copy import deepcopy
-from c_carve import load_graph, save_graph, carve_role_arn, 
+from c_carve import load_graph, save_graph, carve_role_arn
 from c_disco import discover_org_accounts
 from c_aws import *
 from c_deploy_beacons import deployment_list, deploy_regions, get_deploy_key
@@ -115,6 +115,28 @@ def sf_CleanupDeployments(context):
 
     # returns to a step function iterator
     return discover_stacks
+
+
+def cleanup_images():
+    # get current AMI
+    parameter = f"/{os.environ['Prefix']}carve-resources/carve-beacon-ami"
+    print('cleaning up images')
+
+    for region in aws_all_regions():
+        active_image = aws_ssm_get_parameter(parameter, region=region)
+        carve_images = aws_describe_all_carve_images(region)
+
+        for image in carve_images['Images']:
+            if image['ImageId'] != active_image:
+                print(f"cleaing up {image['ImageId']} in {region}")
+                aws_deregister_image(
+                    image['ImageId'],
+                    region
+                )
+                aws_delete_snapshot(
+                    image['BlockDeviceMappings'][0]['Ebs']['SnapshotId'],
+                    region
+                )
 
 
 def sf_DeploymentComplete(payload):
