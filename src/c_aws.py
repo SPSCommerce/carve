@@ -121,10 +121,14 @@ def aws_send_task_success(task_token, output):
 
     client = boto3.client('stepfunctions', config=boto_config, region_name=current_region)
 
-    response = client.send_task_success(
-        taskToken=task_token,
-        output=json.dumps(output)
-        )
+    try:
+        response = client.send_task_success(
+            taskToken=task_token,
+            output=json.dumps(output)
+            )
+    except ClientError as e:
+        print(e)
+        response = None
 
     return response
 

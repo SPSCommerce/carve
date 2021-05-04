@@ -316,10 +316,18 @@ Resources:
           Action:
             - "sts:AssumeRole"
 
-  EventRule:
+  EventInvokeLambda:
+     Type: AWS::Lambda::Permission
+     Properties:
+       FunctionName: !Ref BridgeFunction
+       Action: "lambda:InvokeFunction"
+       Principal: "events.amazonaws.com"
+       SourceArn: !GetAtt AsgEventRule.Arn
+
+  AsgEventRule:
     Type: AWS::Events::Rule
     Properties:
-      Description: "ASG notifications to SNS"
+      Description: "ASG notifications to BridgeFunction"
       EventPattern: 
         source:
           - "aws.autoscaling"
@@ -334,7 +342,6 @@ Resources:
         - Id: "InvokeBridge"
           Arn: !GetAtt BridgeFunction.Arn
 
-  
 Outputs:
   AutoScalingGroup:
     Description: The name of the AutoScaling Group

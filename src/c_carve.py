@@ -89,13 +89,26 @@ def scale_beacons(scale):
 
     G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
 
-    # determine VPCs and regions
     vpcs = {}
+    payload = []
     for subnet in list(G.nodes):
+        # determine VPCs and regions
         a = G.nodes().data()[subnet]['Account']
         r = G.nodes().data()[subnet]['Region']
         vpcs[G.nodes().data()[subnet]['VpcId']] = (a, r)
+        # add an ssm path to store tokens for each subnet
+        payload.append({
+            'parameter': f"/{os.environ['Prefix']}carve-resources/tokens/{subnet}",
+            'task': 'scale',
+            'scale': scale
+            })
 
+    # start a step function to generate tokens to track scaling each subnet
+    name = f"scale-{scale}-{int(time.time())}"
+    print('starting token step function')
+    aws_start_stepfunction(os.environ['TokenStateMachine'], payload, name)
+
+    # generate a list of autoscaling groups to scale
     asgs = []
     for vpc, ar in vpcs.items():
         vpc_subnets = [x for x,y in G.nodes(data=True) if y['VpcId'] == vpc]
@@ -105,6 +118,8 @@ def scale_beacons(scale):
             'region': ar[1],
             'subnets': vpc_subnets
             })
+
+    print(f'scaling asgs: {asgs}')
 
     # using threading, set all ASGs to correct scale for all beacons
     with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -128,7 +143,6 @@ def scale_beacons(scale):
                 region=asg['region']
                 ))
             
-
         for future in concurrent.futures.as_completed(futures):
             result = future.result()
 
@@ -136,22 +150,29 @@ def scale_beacons(scale):
 def update_asg_size(account, asg, minsize, maxsize,  desired, region):
     credentials=aws_assume_role(carve_role_arn(account), f"lookup-{asg}")
     asg_info = aws_describe_asg(asg, region, credentials)
+    print(f'scaling asg: {asg}')
 
     # only update ASG if min/max/desired is different
     update = False
     if int(asg_info['MinSize']) != int(minsize):
+        print('scale due to MinSize')
         update = True
     elif int(asg_info['MaxSize']) != int(maxsize):
+        print('scale due to MaxSize')
         update = True
     elif int(asg_info['DesiredCapacity']) != int(desired):
+        print('scale due to DesiredCapacity')
         update = True
+    else:
+        print('no scaling update to ASG')
     
+
     if update:
         aws_update_asg_size(asg, minsize, maxsize, desired, region, credentials)
-
     else:
         # if no udpates, return success for the task tokens
         subnets = asg_info['VPCZoneIdentifier'].split(',')
+        print(f'clearing tokens for subnets: {subnets}')
         for subnet in subnets:
             ssm_param = f"/{os.environ['Prefix']}carve-resources/tokens/{subnet}"
             token = aws_ssm_get_parameter(ssm_param)
@@ -307,19 +328,6 @@ def ssm_event(event, context):
     ssm_value = aws_ssm_get_parameter(ssm_param)
 
     if ssm_param.split('/')[-1] == 'scale':
-        G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
-
-        payload = []
-        for subnet in list(G.nodes):
-            payload.append({
-                'parameter': f"/{os.environ['Prefix']}carve-resources/tokens/{subnet}",
-                # 'asg': subnet['asg'],
-                'task': 'scale',
-                'scale': ssm_value
-                })
-
-        name = f"scale-{ssm_value}-{int(time.time())}"
-        aws_start_stepfunction(os.environ['TokenStateMachine'], payload, name)
         scale_beacons(ssm_value)
 
 
