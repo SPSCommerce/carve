@@ -71,7 +71,7 @@ Resources:
       MemorySize: 1024
       Timeout: 900
       Role: !GetAtt CarveCoreRole.Arn
-      ReservedConcurrentExecutions: 200
+      ReservedConcurrentExecutions: 20
       Layers:
         # Carve requirements in their own layer for small lambda pkg
         - !Ref CarveRequirementsLayer
@@ -188,8 +188,6 @@ Resources:
                 Resource:
                   - !Sub "arn:aws:s3:::${Prefix}carve-managed-bucket-${OrgId}-${AWS::Region}"
                   - !Sub "arn:aws:s3:::${Prefix}carve-managed-bucket-${OrgId}-${AWS::Region}/*"
-
-
 
   CarveDeployStacksStepFunction:
     Type: AWS::StepFunctions::StateMachine

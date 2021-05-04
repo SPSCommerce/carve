@@ -21,6 +21,9 @@ Parameters:
   CarveSNSTopicArn:
     Type: String
     Description: Carve SNS Topic
+  CarveCoreRegion:
+    Type: String
+    Description: Region where Carve Core is running
   MinSize:
     Description: Minimum number of instances in the ASG
     Type: Number
@@ -57,7 +60,7 @@ Resources:
               print(event)
               if 'source' in event:
                   if event['source'] == 'aws.autoscaling':
-                      client = boto3.client('sns')
+                      client = boto3.client('sns', region_name="${CarveCoreRegion}")
                       response = client.publish(
                           TopicArn="${CarveSNSTopicArn}",
                           Message=json.dumps(event))
@@ -164,6 +167,7 @@ Resources:
                 Action:
                   - "sns:Publish"
                 Resource: !Ref CarveSNSTopicArn
+
 
   LambdaSecurityGroup:
     Type: AWS::EC2::SecurityGroup

@@ -290,6 +290,10 @@ def deployment_list(G, context):
             "ParameterValue": os.environ['CarveSNSTopicArn']
           },
           {
+            "ParameterKey": "CarveCoreRegion",
+            "ParameterValue": current_region
+          },
+          {
             "ParameterKey": "MaxSize",
             "ParameterValue": str(len(vpc_subnets))
           },

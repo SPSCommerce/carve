@@ -7,7 +7,7 @@ import os
 from c_aws import *
 import urllib3
 import concurrent.futures
-
+import time
 
 
 def carve_results(event, context):
@@ -119,8 +119,17 @@ def scale_beacons(scale):
             'subnets': vpc_subnets
             })
 
-    print(f'scaling asgs: {asgs}')
+    # wait for tokens to appear before sclaing
+    while True:
+        tokens = aws_ssm_get_parameters(f"/{os.environ['Prefix']}carve-resources/tokens/")
+        if len(payload) == len(tokens):
+            print('tokens are ready')
+            break
+        else:
+            print('waiting 1s for tokens...')
+            time.sleep(1)
 
+    print(f'scaling asgs: {asgs}')
     # using threading, set all ASGs to correct scale for all beacons
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = []

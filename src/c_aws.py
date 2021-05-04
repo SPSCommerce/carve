@@ -705,6 +705,7 @@ def aws_ssm_get_parameter(parameter, region=current_region):
 
 
 def aws_ssm_get_parameters(path):
+    # return parameters from a path as a dict 
     client = boto3.client('ssm', config=boto_config)
     params = {}
     try:
