@@ -97,7 +97,7 @@
     "DeployCarveBeacons": {
       "Comment": "Create one Carve stack per VPC",
       "Type": "Task",
-      "Next": "CleanupCarveBeacons",
+      "Next": "CleanupResources",
       "Resource": "arn:aws:states:::states:startExecution.sync",
       "Parameters": {
         "StateMachineArn": "${CarveDeployStacksStepFunction}",
