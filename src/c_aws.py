@@ -1,13 +1,12 @@
 import boto3
+from boto3.session import Session
 from botocore.config import Config
 from botocore.exceptions import ClientError
 import json
-import sys
 import os
-from multiprocessing import Process, Pipe
-import time
 import shelve
-from boto3.session import Session
+import sys
+import time
 
 current_region = os.environ['AWS_REGION']
 boto_config = Config(retries=dict(max_attempts=10))
@@ -336,6 +335,9 @@ def aws_describe_transit_gateway_route_tables(region, credentials):
 #     for t in page['TransitGatewayAttachmentIds']:
 #         ta.append(t)
 # return ta
+
+
+
 
 
 def aws_create_stack(stackname, region, template, parameters, credentials, tags):
@@ -778,6 +780,30 @@ def aws_schedule_invoke(name, minutes, payload, context):
 def aws_delete_rule(name):
     client = boto3.client('events', config=boto_config)
     response = client.delete_rule(Name=name)
+    return response
+
+
+def aws_describe_all_carve_images(region):
+    # return all images created by carve in a region
+    client = boto3.resource('ec2', config=boto_config, region_name=region)
+    response = client.describe_images(
+        Filters=[
+            {
+                'Name': 'tag-key',
+                'Values': ['carve-image-version']
+            }
+        ])
+    return response
+
+
+def aws_deregister_image(image, region):
+    client = boto3.resource('ec2', config=boto_config, region_name=region)
+    response = client.deregister_image(ImageId=image)
+
+
+def aws_delete_snapshot(snapshot, region):
+    client = boto3.resource('ec2', config=boto_config, region_name=region)
+    response = client.delete_snapshot(SnapshotId=snapshot)
 
 
 # def aws_invoke_self(arn, payload):

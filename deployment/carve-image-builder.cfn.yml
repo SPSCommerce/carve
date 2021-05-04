@@ -153,7 +153,7 @@ Resources:
   CarveImageRecipe:
     Type: AWS::ImageBuilder::ImageRecipe
     Properties:
-      Name: CarveAMI
+      Name: !Sub ${Prefix}carve-beacon-image
       Version: !Ref Version
       ParentImage: !Ref ImageId
       Components:
@@ -166,6 +166,8 @@ Resources:
             Encrypted: false
             VolumeSize: 8
             VolumeType: gp2
+      Tags:
+        carve-image-version: !Ref Version
 
   CarveAMI:
     Type: AWS::ImageBuilder::Image
@@ -192,7 +194,7 @@ Resources:
   CarveImagePipeline:
     Type: 'AWS::ImageBuilder::ImagePipeline'
     Properties:
-      Name: CarveImagePipeline
+      Name: !Sub "${Prefix}carve-image-pipeline"
       Description: 'Pipeline to build Carve Golden AMI'
       ImageRecipeArn: !Ref CarveImageRecipe
       InfrastructureConfigurationArn: !Ref CarveConfiguration
@@ -216,7 +218,7 @@ Resources:
       EnableDnsHostnames: true
       Tags:
         - Key: Name
-          Value: !Sub ${Prefix}-carve-imagebuilder-vpc
+          Value: !Sub ${Prefix}carve-imagebuilder-vpc
 
   InternetGateway:
     Type: AWS::EC2::InternetGateway

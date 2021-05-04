@@ -111,7 +111,17 @@ def sf_DeployPrep():
 
     regions = deploy_regions(G)
 
-    # all copies get the same time stamped name, use that to compare
+    # upload the beacon python code snippets for CFN to each deploy region
+    if os.environ['UniqueId'] == "":
+        unique = os.environ['OrgId']
+    else:
+        unique = os.environ['UniqueId']
+
+    for r in regions:
+        bucket=f"{os.environ['Prefix']}carve-managed-bucket-{unique}-{r}"
+        aws_s3_upload('managed_deployment/carve-updater.yml', bucket=bucket)
+
+    # all image copies get the same time stamped name, use that to compare
     source_image = aws_ssm_get_parameter(f"/{os.environ['Prefix']}carve-resources/carve-beacon-ami")
     source_name = aws_describe_image(source_image)['Name']
     print(f'AMI source_name: {source_name}')
@@ -151,6 +161,28 @@ def sf_DeployPrep():
 
 
 
+def cleanup_images():
+    # get current AMI
+    parameter = f"/{os.environ['Prefix']}carve-resources/carve-beacon-ami"
+    print('cleaning up images')
+
+    for region in aws_all_regions():
+        active_image = aws_ssm_get_parameter(parameter, region=region)
+        carve_images = aws_describe_all_carve_images(region)
+
+        for image in carve_images['Images']:
+            if image['ImageId'] != active_image:
+                print(f"cleaing up {image['ImageId']} in {region}")
+                aws_deregister_image(
+                    image['ImageId'],
+                    region
+                )
+                aws_delete_snapshot(
+                    image['BlockDeviceMappings'][0]['Ebs']['SnapshotId'],
+                    region
+                )
+
+
 def sf_DeployPrepCheck():
     G = load_graph(get_deploy_key(), local=False)
     regions = deploy_regions(G)
@@ -171,26 +203,13 @@ def sf_DeployPrepCheck():
             complete = False
 
     if complete:
-        complete_deploy_prep(G)
+        # clean up carve image
+        cleanup_images()
         payload = {'ImageStatus': 'complete'}
     else:
         payload = {'ImageStatus': 'pending'}
 
-    return payload        
-
-
-def complete_deploy_prep(G):
-    regions = deploy_regions(G)
-
-    # push CFN snippets to each region
-    if os.environ['UniqueId'] == "":
-        unique = os.environ['OrgId']
-    else:
-        unique = os.environ['UniqueId']
-
-    for r in regions:
-        bucket=f"{os.environ['Prefix']}carve-managed-bucket-{unique}-{r}"
-        aws_s3_upload('managed_deployment/carve-updater.yml', bucket=bucket)
+    return payload
 
 
 def ami_ready(ami, region):

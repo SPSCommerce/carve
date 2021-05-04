@@ -4,7 +4,7 @@ import json
 import os
 import sys
 from copy import deepcopy
-from c_carve import load_graph, save_graph, carve_role_arn
+from c_carve import load_graph, save_graph, carve_role_arn, 
 from c_disco import discover_org_accounts
 from c_aws import *
 from c_deploy_beacons import deployment_list, deploy_regions, get_deploy_key
@@ -62,6 +62,9 @@ def sf_OrganizeDeletions(payload):
 
 def sf_CleanupDeployments(context):
     '''discover all deployments of carve named stacks and determine if they should exist'''
+
+    # check for inactive carve ec2 images and snapshots and clean them up
+    cleanup_images()
 
     deploy_key = get_deploy_key()
     G = load_graph(deploy_key, local=False)

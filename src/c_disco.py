@@ -89,10 +89,9 @@ def discover_subnets(region, account_id, account_name, credentials):
                     name = tag['Value']
                     break
 
-        # vpc_subnets.append({
-        #     "AvailabilityZoneId": subnet['AvailabilityZoneId'],
-        #     "SubnetId": subnet['SubnetId']
-        #     })
+        if name == f"{os.environ['Prefix']}carve-imagebuilder-public-subnet":
+            # do not discover carve image builder subnet
+            continue
 
         # create graph nodes
         G.add_node(

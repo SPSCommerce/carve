@@ -295,7 +295,6 @@ def ssm_event(event, context):
 def cleanup_ssm():
     # make function to clean up SSM tokens
     # move function to cleanup workflow
-    # just fixed a bunch of bugs, next is to test is to scale ssm parm
     pass
 
 def asg_event(event):
@@ -364,7 +363,7 @@ def asg_event(event):
                     time.sleep(1)
 
         elif 'EC2 Instance Terminate Successful' == message['detail-type']:
-                    # ssm_param = f"/{os.environ['Prefix']}carve-resources/tokens/{asg}",
+            # ssm_param = f"/{os.environ['Prefix']}carve-resources/tokens/{asg}",
             subnet = message['detail']['Details']['Subnet ID']
             ssm_param = f"/{os.environ['Prefix']}carve-resources/tokens/{subnet}"
             token = aws_ssm_get_parameter(ssm_param)
