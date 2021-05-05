@@ -26,6 +26,10 @@ aws s3 rm s3://$DEPLOYMENT_BUCKET/step_functions/ --recursive --exclude "${LATES
 echo "uploading state machine definitions to S3"
 aws s3 sync "$BUILDPATH/deployment/step_functions" s3://$DEPLOYMENT_BUCKET/step_functions/$GITSHA/
 
+# upload beacon image code to S3
+echo "uploading beacon image code to S3"
+aws s3 sync "$BUILDPATH/deployment/beacon-image" s3://$DEPLOYMENT_BUCKET/beacon-image/
+
 # convert the VPC template to JSON for python import (CFN yaml is not valid yaml)
 echo "converting carve-vpc-stack.cfn.yml to json"
 cfn-flip "$BUILDPATH/src/managed_deployment/carve-vpc-stack.cfn.yml" \

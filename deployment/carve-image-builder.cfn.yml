@@ -19,7 +19,7 @@ Parameters:
     Default: 10.0.0.0/28
   ImageId:
     Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
-    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-arm64-gp2'
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-minimal-hvm-arm64-ebs'
     Description: The source ImageId of Amazon AMI to use
   BuildInstanceType:
     Type: CommaDelimitedList
@@ -108,47 +108,36 @@ Resources:
   CarveSetupComponent:
     Type: AWS::ImageBuilder::Component
     Properties:
-      Name: CarveSetup
+      Name: CarveBeaconSetup
       Version: !Ref Version
-      Description: Install and setup Carve dependencies
+      Description: Configure AMI for Carve Beacons
       Platform: Linux
       Data: !Sub |
         name: install
-        description: Carve setup
+        description: Carve Beacon Config
         schemaVersion: 1.0
         phases:
           - name: build
             steps:
-              - name: SetupCarveDependencies
+              - name: CarveBeaconConfig
                 action: ExecuteBash
                 inputs:
                   commands:
-                    - amazon-linux-extras install -y nginx1
                     - amazon-linux-extras install -y epel
                     - yum update -y
                     - yum install -y fping
                     - yum install -y docker
-                    - mkdir /www
-                    - chown nginx:nginx /www
-                    - echo "server {" > /etc/nginx/conf.d/default.conf
-                    - echo "listen      *:80;" >> /etc/nginx/conf.d/default.conf
-                    - echo "server_name carve;" >> /etc/nginx/conf.d/default.conf
-                    - echo "root        /www;" >> /etc/nginx/conf.d/default.conf
-                    - echo "access_log  /var/log/nginx/carve_access.log;" >> /etc/nginx/conf.d/default.conf
-                    - echo "error_log   /var/log/nginx/carve_error.log;" >> /etc/nginx/conf.d/default.conf
-                    - echo "location /up {" >> /etc/nginx/conf.d/default.conf
-                    - echo "     add_header Content-Type text/plain;" >> /etc/nginx/conf.d/default.conf
-                    - echo "     return 200 'OK';" >> /etc/nginx/conf.d/default.conf
-                    - echo "  }" >> /etc/nginx/conf.d/default.conf
-                    - echo "}" >> /etc/nginx/conf.d/default.conf
                     - systemctl enable nginx
                     - systemctl start nginx
                     - systemctl enable docker
                     - systemctl start docker
-                    - docker pull python:slim
                     - mkdir /carve
-
-  # aws s3 cp s3://${DeployBucket}/carve_image/socket_server.py /carve/
+                    - mkdir /www
+                    - aws s3 sync s3://${DeployBucket}/deployment/beacon-image /carve/
+                    - cd /carve; docker build -t anotherhobby/carve -f .
+                    - docker run -d --restart always --name carve -v "/www:/www" -v "/carve/carve.conf:/carve/carve.conf" anotherhobby/carve
+                    - docker run -d --restart always --name nginx -p 80:80 -v "/www:/www" -v "/carve/nginx.conf:/etc/nginx/nginx.conf" nginx:latest
+                    - docker run -d --restart always --name beacon -p 8008:8008 -v "/carve:/carve" -w /carve python:slim python carve-beacon-updater.py
 
   CarveImageRecipe:
     Type: AWS::ImageBuilder::ImageRecipe

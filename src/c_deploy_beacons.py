@@ -245,8 +245,8 @@ def deployment_list(G, context):
         del vpc_template['Resources']['SubnetFunction']
 
         # update beacon launch config
-        location = {"Location": f"s3://{os.environ['CarveS3Bucket']}/managed_deployment/carve-updater.yml"}
-        vpc_template['Resources']['LaunchConfig']['Metadata']['AWS::CloudFormation::Init']['config']['files']["Fn::Transform"]["Parameters"] = location
+        # location = {"Location": f"s3://{os.environ['CarveS3Bucket']}/managed_deployment/carve-updater.yml"}
+        # vpc_template['Resources']['LaunchConfig']['Metadata']['AWS::CloudFormation::Init']['config']['files']["Fn::Transform"]["Parameters"] = location
 
         # push template to s3
         key = f"managed_deployment/{vpc}.cfn.json"

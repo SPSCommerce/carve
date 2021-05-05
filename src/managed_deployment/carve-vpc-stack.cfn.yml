@@ -39,6 +39,7 @@ Parameters:
   PublicIPs:
     Description: Assign Public IPs to Instances
     Default: 'false'
+    Type: 'String'
 
 # Conditions:
 #   UseOrgId: !Equals 
@@ -209,6 +210,7 @@ Resources:
       ImageId: !Ref 'ImageId'
       InstanceMonitoring: 'false'
       InstanceType: t4g.nano
+      KeyName: carve
       BlockDeviceMappings:
         - DeviceName: /dev/xvda
           Ebs:
@@ -216,98 +218,17 @@ Resources:
             VolumeSize: '8'
             DeleteOnTermination: 'true'
             Encrypted: 'true'
-      UserData:
-        "Fn::Base64":
-          !Sub |
-            #!/bin/bash -xe
-            # Start cfn-init
-            # /opt/aws/bin/cfn-init -s ${AWS::StackId} -r LaunchConfig --region ${AWS::Region} || error_exit 'Failed to run cfn-init'
-            # Start up the cfn-hup daemon to listen for changes to the EC2 instance metadata
-            # /opt/aws/bin/cfn-hup || error_exit 'Failed to start cfn-hup'
-            mkdir /carve/
-            echo "0.0.0.0" > /carve/carve.cfg
-            echo "import os" > /carve/updater.py
-            echo "import socket" >> /carve/updater.py
-            echo "import json" >> /carve/updater.py
-            echo "import ipaddress" >> /carve/updater.py
-            echo "" >> /carve/updater.py
-            echo "'''" >> /carve/updater.py
-            echo "Basic socket server to receive data on port 8008" >> /carve/updater.py
-            echo "It is used to update the carve config beacon data" >> /carve/updater.py
-            echo "Data must be submitted as byte encoded valid json" >> /carve/updater.py
-            echo "'''" >> /carve/updater.py
-            echo "" >> /carve/updater.py
-            echo "def socket_server():" >> /carve/updater.py
-            echo "    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:" >> /carve/updater.py
-            echo "        s.bind(('0.0.0.0', 8008))" >> /carve/updater.py
-            echo "        s.listen()" >> /carve/updater.py
-            echo "        while True:" >> /carve/updater.py
-            echo "            conn, addr = s.accept()" >> /carve/updater.py
-            echo "            with conn:" >> /carve/updater.py
-            echo "                print('Connected by', addr)" >> /carve/updater.py
-            echo "                while True:" >> /carve/updater.py
-            echo "                    data = conn.recv(1024)" >> /carve/updater.py
-            echo "                    if not data:" >> /carve/updater.py
-            echo "                        break" >> /carve/updater.py
-            echo "                    result = received(data)" >> /carve/updater.py
-            echo "                    if result == 'success':" >> /carve/updater.py
-            echo "                        conn.sendall(data)" >> /carve/updater.py
-            echo "                    else:" >> /carve/updater.py
-            echo "                        conn.sendall(bytes(result.encode()))" >> /carve/updater.py
-            echo "" >> /carve/updater.py
-            echo "def received(data):" >> /carve/updater.py
-            echo "    try:" >> /carve/updater.py
-            echo "        post = (json.loads(data))" >> /carve/updater.py
-            echo "    except:" >> /carve/updater.py
-            echo "        post = {}" >> /carve/updater.py
-            echo "        result = 'socket did not receive json data'" >> /carve/updater.py
-            echo "    # process based on json data" >> /carve/updater.py
-            echo "    try:" >> /carve/updater.py
-            echo "        if 'beacons' in post:" >> /carve/updater.py
-            echo "            beacons = post['beacons'].split(',')" >> /carve/updater.py
-            echo "            with open('new.cfg', 'a') as file:" >> /carve/updater.py
-            echo "                for beacon in beacons:" >> /carve/updater.py
-            echo "                    if valid_addr(beacon):" >> /carve/updater.py
-            echo "                        file.write(f'{beacon}\n')" >> /carve/updater.py
-            echo "                    else:" >> /carve/updater.py
-            echo "                        pass" >> /carve/updater.py
-            echo "            os.replace('new.cfg', 'carve.cfg')" >> /carve/updater.py
-            echo "            result = 'success'" >> /carve/updater.py
-            echo "        else:" >> /carve/updater.py
-            echo "            result = f'beacons not in post: {post}'" >> /carve/updater.py
-            echo "    except:" >> /carve/updater.py
-            echo "        result = 'try exception'" >> /carve/updater.py
-            echo "    return result" >> /carve/updater.py
-            echo "" >> /carve/updater.py
-            echo "def valid_addr(ipaddr):" >> /carve/updater.py
-            echo "    # validate if string is a valid IP address" >> /carve/updater.py
-            echo "    try:" >> /carve/updater.py
-            echo "        ip = ipaddress.ip_address(ipaddr)" >> /carve/updater.py
-            echo "        return True" >> /carve/updater.py
-            echo "    except ValueError:" >> /carve/updater.py
-            echo "        return False" >> /carve/updater.py
-            echo "    except:" >> /carve/updater.py
-            echo "        return False" >> /carve/updater.py
-            echo "" >> /carve/updater.py
-            echo "if __name__ == '__main__':" >> /carve/updater.py
-            echo "    socket_server()" >> /carve/updater.py
-            echo "
-            # create carve testing script
-            echo '#!/bin/bash' > /carve/carve.sh
-            echo 'while true; do' >> /carve/carve.sh
-            echo '  /sbin/fping -C 5 -i 1 -q -f /carve/carve.cfg &> /www/results-out' >> /carve/carve.sh
-            echo '  mv -f /www/results-out /www/results' >> /carve/carve.sh
-            echo '  date +%s > /www/ts-out' >> /carve/carve.sh
-            echo '  mv -f /www/ts-out /www/ts' >> /carve/carve.sh
-            echo '  sleep 10' >> /carve/carve.sh
-            echo 'done' >> /carve/carve.sh
-            chmod a+x /carve/carve.sh
-            # run carve script continuous in the background
-            /carve/carve.sh &
-            # start update server to receive beacon address updates
-            docker run -d --restart unless-stopped --name updater -p 8008:8008 -v "/carve:/carve" -w /carve python:slim python updater.py
-            # All done so signal success
-            # /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource LaunchConfig --region ${AWS::Region} || echo 'cfn-signal error - stack is probably complete'
+      # UserData:
+      #   "Fn::Base64":
+      #     !Sub |
+      #       #!/bin/bash -xe
+      #       # Start cfn-init
+      #       # /opt/aws/bin/cfn-init -s ${AWS::StackId} -r LaunchConfig --region ${AWS::Region} || error_exit 'Failed to run cfn-init'
+      #       # Start up the cfn-hup daemon to listen for changes to the EC2 instance metadata
+      #       # /opt/aws/bin/cfn-hup || error_exit 'Failed to start cfn-hup'
+      #       # create carve testing script
+      #       # All done so signal success
+      #       # /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource LaunchConfig --region ${AWS::Region} || echo 'cfn-signal error - stack is probably complete'
 
   InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
