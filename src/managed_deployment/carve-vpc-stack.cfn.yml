@@ -235,7 +235,7 @@ Resources:
               owner: "root"
               group: "root"
     Properties:
-      AssociatePublicIpAddress: 'false'
+      AssociatePublicIpAddress: 'true'
       SecurityGroups:
         - !Ref 'InstanceSecurityGroup'
       IamInstanceProfile: !Ref 'InstanceProfile'

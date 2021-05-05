@@ -1,7 +1,7 @@
 import json
 import os
-from c_aws import aws_ssm_put_parameter
-
+from c_aws import aws_ssm_put_parameter, aws_ssm_get_parameter
+from c_carve import update_carve_beacons
 
 def sf_SaveToken(event, context):
     # payload must include the following plus Parameters
@@ -12,8 +12,15 @@ def sf_SaveToken(event, context):
 
 def sf_ProcessReturns(event, context):
     # next_action = event['Input']['NextAction']
-    print(f'put code here to process returns: {event}')
-    # aws_invoke_lambda(arn, payload, region, credentials)
+    print(f'processing returns: {event}')
+    action = event['Input'][0]['action']
+
+    if action == 'scale':
+        if event['Input'][0]['result'] == "success":
+            scale = aws_ssm_get_parameter(f"/{os.environ['Prefix']}carve-resources/scale")
+            if scale.lower() != 'none':
+                update_carve_beacons()
+
     return True
 
 

@@ -187,7 +187,7 @@ def update_asg_size(account, asg, minsize, maxsize,  desired, region):
             token = aws_ssm_get_parameter(ssm_param)
             aws_ssm_delete_parameter(ssm_param)
             if token is not None:
-                aws_send_task_success(token, {"status": "200"})
+                aws_send_task_success(token, {"action": "scale", "result": "none"})
             else:
                 print(f'taskToken was None for {subnet}')
 
@@ -201,19 +201,20 @@ def get_subnet_beacons():
     subnet_beacons = json.loads(aws_read_s3_direct('managed_deployment/subnet-beacons.json', current_region))
 
     subnets = []
-    for vpc in list(G.nodes):
-        for subnet in G.nodes().data()[vpc]['Subnets']:
-            # only get results if there is an active beacon in the subnet
-            if subnet['SubnetId'] in subnet_beacons:
-                subnets.append({
-                    'subnet': subnet['SubnetId'],
-                    'beacon': subnet_beacons[subnet['SubnetId']],
-                    'account': G.nodes().data()[vpc]['Account'],
-                    'region': G.nodes().data()[vpc]['Region']
-                    })
-            else:
-                # this conditon needs to be handled if there is no beacon
-                pass
+    # for vpc in list(G.nodes):
+    for subnet, data in G.nodes().data():
+        # only get results if there is an active beacon in the subnet
+        if subnet in subnet_beacons:
+            subnets.append({
+                'subnet': subnet,
+                'beacon': subnet_beacons[subnet],
+                'account': data['Account'],
+                'region': data['Region']
+                })
+        else:
+            # this conditon needs to be handled if there is no beacon
+            pass
+
     return subnets
 
 
@@ -224,6 +225,7 @@ def update_carve_beacons():
         push the snipped to regional s3 buckets to be used as a cloudformation include
     '''
 
+    print('updating carve beacons')
     G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
 
     # determine all deployed ASGs
@@ -241,9 +243,9 @@ def update_carve_beacons():
     all_beacons = []
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = []
-        for asg, v in asgs:
+        for asg, value in asgs.items():
             futures.append(executor.submit(
-                get_beacons_thread, asg=asg, account=v['account'], region=v['region']))
+                get_beacons_thread, asg=asg, account=value['account'], region=value['region']))
 
         for future in concurrent.futures.as_completed(futures):
             result = future.result()
@@ -339,6 +341,10 @@ def ssm_event(event, context):
     if ssm_param.split('/')[-1] == 'scale':
         scale_beacons(ssm_value)
 
+    elif ssm_param.split('/')[-1] == 'status':
+        # should enable/disable continuous verification
+        pass
+
 
 def cleanup_ssm():
     # make function to clean up SSM tokens
@@ -364,7 +370,7 @@ def asg_event(event):
 
         # get instance metadata from account and update SSM
         ec2 = aws_describe_instances([instance_id], message['region'], credentials)[0]
-        print(ec2)
+        # print(ec2)
 
         # parameter = f"/{os.environ['Prefix']}carve-resources/vpc-beacons/{vpc}/{ec2['InstanceId']}"
 
@@ -401,7 +407,7 @@ def asg_event(event):
                     token = aws_ssm_get_parameter(ssm_param)
                     aws_ssm_delete_parameter(ssm_param)
                     if token is not None:
-                        aws_send_task_success(token, {"status": "200"})
+                        aws_send_task_success(token, {"action": "scale", "result": "success"})
                     else:
                         print('taskToken was None')
                     break
@@ -416,7 +422,7 @@ def asg_event(event):
             ssm_param = f"/{os.environ['Prefix']}carve-resources/tokens/{subnet}"
             token = aws_ssm_get_parameter(ssm_param)
             aws_ssm_delete_parameter(ssm_param)
-            aws_send_task_success(token, {"status": "200"})
+            aws_send_task_success(token, {"action": "scale", "result": "success"})
             print(f"beacon terminated {message}")
 
 
