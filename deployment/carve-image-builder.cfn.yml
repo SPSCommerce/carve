@@ -42,7 +42,7 @@ Parameters:
   Version:
     Type: String
     Description: "MUST be incremented with changes to image builder in this template"
-    Default: "0.0.11"
+    Default: "0.0.12"
 
 Conditions:
   CreateVpc: !Equals [ !Ref ExistingVpcId, "" ]
@@ -140,7 +140,7 @@ Resources:
                     - mkdir /www
                     - aws s3 sync s3://${DeployBucket}/beacon-image /carve/
                     - cd /carve; docker build -t anotherhobby/carve .
-                    - docker run -d --restart always --name carve -v "/www:/www" -v "/carve/carve.conf:/carve/carve.conf" anotherhobby/carve
+                    - docker run -d --restart always --name carve -v "/www:/www" -v "/carve:/carve" anotherhobby/carve
                     - docker run -d --restart always --name nginx -p 80:80 -v "/www:/www" -v "/carve/nginx.conf:/etc/nginx/nginx.conf" nginx:latest
                     - docker run -d --restart always --name beacon -p 8008:8008 -v "/carve:/carve" -w /carve python:slim python carve-beacon-updater.py
 

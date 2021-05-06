@@ -206,23 +206,23 @@ Resources:
               OutputArtifacts: []
               InputArtifacts: []
               Region: !Ref 'AWS::Region'
-            - Name: carve-imagebuilder
-              ActionTypeId:
-                Category: Deploy
-                Owner: AWS
-                Provider: CloudFormation
-                Version: 1
-              Configuration:
-                ChangeSetName: pipeline-changeset
-                ActionMode: CREATE_UPDATE
-                Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
-                RoleArn: !GetAtt 'CarvePipelineRole.Arn'
-                StackName: !Sub '${Prefix}carve-imagebuilder'
-                TemplatePath: GithubRepo::deployment/carve-image-builder.cfn.yml
-                ParameterOverrides: !Sub '{"ExistingSubnetId":"${ImageBuilderExistingSubnetId}","ExistingVpcId":"${ImageBuilderExistingVpcId}","VpcCIDR":"${ImageBuilderVpcCIDR}","PublicSubnetCIDR":"${ImageBuilderPublicSubnetCIDR}","OrgId":"${OrgId}","UniqueId":"${UniqueId}","Prefix":"${Prefix}","DeployBucket":"${DeployBucket}"}'
-              OutputArtifacts: []
-              InputArtifacts:
-                - Name: GithubRepo
+            # - Name: carve-imagebuilder
+            #   ActionTypeId:
+            #     Category: Deploy
+            #     Owner: AWS
+            #     Provider: CloudFormation
+            #     Version: 1
+            #   Configuration:
+            #     ChangeSetName: pipeline-changeset
+            #     ActionMode: CREATE_UPDATE
+            #     Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
+            #     RoleArn: !GetAtt 'CarvePipelineRole.Arn'
+            #     StackName: !Sub '${Prefix}carve-imagebuilder'
+            #     TemplatePath: GithubRepo::deployment/carve-image-builder.cfn.yml
+            #     ParameterOverrides: !Sub '{"ExistingSubnetId":"${ImageBuilderExistingSubnetId}","ExistingVpcId":"${ImageBuilderExistingVpcId}","VpcCIDR":"${ImageBuilderVpcCIDR}","PublicSubnetCIDR":"${ImageBuilderPublicSubnetCIDR}","OrgId":"${OrgId}","UniqueId":"${UniqueId}","Prefix":"${Prefix}","DeployBucket":"${DeployBucket}"}'
+            #   OutputArtifacts: []
+            #   InputArtifacts:
+            #     - Name: GithubRepo
             - Name: update-carve-managed-resources
               ActionTypeId:
                 Category: Invoke
