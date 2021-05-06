@@ -117,11 +117,10 @@ def sf_DeployPrep():
     else:
         unique = os.environ['UniqueId']
 
-    for r in regions:
-        bucket=f"{os.environ['Prefix']}carve-managed-bucket-{unique}-{r}"
-        aws_s3_upload('managed_deployment/carve-updater.yml', bucket=bucket)
+    # for r in regions:
+    #     bucket=f"{os.environ['Prefix']}carve-managed-bucket-{unique}-{r}"
+    #     aws_s3_upload('managed_deployment/carve-updater.yml', bucket=bucket)
 
-    # all image copies get the same time stamped name, use that to compare
     source_image = aws_ssm_get_parameter(f"/{os.environ['Prefix']}carve-resources/carve-beacon-ami")
     source_name = aws_describe_image(source_image)['Name']
     print(f'AMI source_name: {source_name}')
@@ -300,6 +299,10 @@ def deployment_list(G, context):
           {
             "ParameterKey": "DesiredSize",
             "ParameterValue": str(desired)
+          },
+          {
+            "ParameterKey": "PublicIPs",
+            "ParameterValue": "true"
           }
         ]
 

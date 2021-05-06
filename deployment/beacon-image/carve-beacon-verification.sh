@@ -1,6 +1,6 @@
 #!/bin/bash
 while true; do
-  /usr/bin/fping -C 5 -i 1 -q -f /carve.conf &> /www/results-out
+  /usr/bin/fping -C 5 -i 1 -q -f /carve/carve.conf &> /www/results-out
   mv -f /www/results-out /www/results
   date +%s > /www/ts-out
   mv -f /www/ts-out /www/ts
