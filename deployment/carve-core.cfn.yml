@@ -75,10 +75,10 @@ Resources:
       Layers:
         # Carve requirements in their own layer for small lambda pkg
         - !Ref CarveRequirementsLayer
-        # AWS provided lambda layer for scipy and numpy
-        - !Sub "arn:aws:lambda:${AWS::Region}:668099181075:layer:AWSLambda-Python38-SciPy1x:29"
-        # public lambda layer for matplotlib from Klayers
-        - !Sub "arn:aws:lambda:${AWS::Region}:770693421928:layer:Klayers-python38-matplotlib:21"
+        # # AWS provided lambda layer for scipy and numpy
+        # - !Sub "arn:aws:lambda:${AWS::Region}:668099181075:layer:AWSLambda-Python38-SciPy1x:29"
+        # # public lambda layer for matplotlib from Klayers
+        # - !Sub "arn:aws:lambda:${AWS::Region}:770693421928:layer:Klayers-python38-matplotlib:21"
 
   CarveRequirementsLayer:
     Type: AWS::Lambda::LayerVersion
