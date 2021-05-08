@@ -119,15 +119,20 @@ def scale_beacons(scale):
             'subnets': vpc_subnets
             })
 
-    # wait for tokens to appear before sclaing
+    # wait for tokens to appear before scaling
+    i = 0
     while True:
         tokens = aws_ssm_get_parameters(f"/{os.environ['Prefix']}carve-resources/tokens/")
         if len(payload) == len(tokens):
             print('tokens are ready')
             break
         else:
-            print('waiting 1s for tokens...')
-            time.sleep(1)
+            if i > 30:
+                print('timed out waiting for tokens')
+            else:
+                i = i + 1
+                print('waiting 1s for tokens...')
+                time.sleep(1)
 
     print(f'scaling asgs: {asgs}')
     # using threading, set all ASGs to correct scale for all beacons
@@ -409,12 +414,16 @@ def asg_event(event):
                     if token is not None:
                         aws_send_task_success(token, {"action": "scale", "result": "success"})
                     else:
-                        print('taskToken was None')
+                        print(f"taskToken was None for {ec2['SubnetId']}")
                     break
                 else:
-                    print(f'waiting for beacon {beacon} - {i}')
-                    i = i + 1
-                    time.sleep(1)
+                    if i > 30:
+                        break
+                        print(f'timed out waiting for beacon {beacon}')
+                    else:
+                        print(f'waiting for beacon {beacon} - {i}')
+                        i = i + 1
+                        time.sleep(1)
 
         elif 'EC2 Instance Terminate Successful' == message['detail-type']:
             # ssm_param = f"/{os.environ['Prefix']}carve-resources/tokens/{asg}",
@@ -422,7 +431,10 @@ def asg_event(event):
             ssm_param = f"/{os.environ['Prefix']}carve-resources/tokens/{subnet}"
             token = aws_ssm_get_parameter(ssm_param)
             aws_ssm_delete_parameter(ssm_param)
-            aws_send_task_success(token, {"action": "scale", "result": "success"})
+            if token is not None:
+                aws_send_task_success(token, {"action": "scale", "result": "success"})
+            else:
+                print(f'taskToken was None for {subnet}')
             print(f"beacon terminated {message}")
 
 

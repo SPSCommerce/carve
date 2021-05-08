@@ -210,6 +210,9 @@ def deployment_list(G, context):
     with open("managed_deployment/carve-vpc-stack.cfn.json") as f:
         template = json.load(f)
 
+    with open("managed_deployment/subnet_lambda.py") as f:
+        lambda_code = f.read()
+
     # determine all VPCs and their account and region
     vpcs = {}
     for subnet in list(G.nodes):
@@ -236,7 +239,7 @@ def deployment_list(G, context):
             Function['Properties']['FunctionName'] = f"{os.environ['Prefix']}carve-{subnet}"
             Function['Properties']['Environment']['Variables']['VpcSubnetIds'] = subnet
             Function['Properties']['VpcConfig']['SubnetIds'] = [subnet]
-
+            Function['Properties']['Code']['ZipFile'] = lambda_code
             name = f"Function{subnet.split('-')[-1]}"
             vpc_template['Resources'][name] = deepcopy(Function)
 

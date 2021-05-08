@@ -2,6 +2,12 @@ import urllib3
 import socket
 import json
 
+'''
+this subnet lambda code file is kept separate from the VPC stack CFN template for easier 
+editing/testing and is injected into the CFN template at deploy time by carve-core lambda
+'''
+
+
 def hc(beacon):
     http = urllib3.PoolManager()
     try:
@@ -22,7 +28,7 @@ def get_results(beacon):
         r = http.request('GET', f'http://{beacon}/results', timeout=0.1)
         ts = http.request('GET', f'http://{beacon}/ts', timeout=0.1)
         if r.status == 200:
-            result = {'status': r.status, 'result': r.data, 'health': hc(beacon), 'ts': ts.data}
+            result = {'status': r.status, 'fping': format_fping(r.data), 'health': hc(beacon), 'ts': ts.data}
         else:
             result = {'status': r.status, 'result': 'error', 'health': hc(beacon)}
     except urllib3.exceptions.ConnectTimeoutError:
@@ -34,12 +40,25 @@ def get_results(beacon):
     print(result)
     return result
 
+def format_fping(data):
+    result = {}
+    for d in data.decode().split('\n'):
+        if ':' in d:
+            beacon = d.split(' :')[0].strip()
+            pings = d.split(': ')[1].split(' ')
+            p = [0 if x=='-' else float(x) for x in pings]
+            result[beacon] = round((sum(p) / len(p)), 3)
+    return result
+
 def update_beacon(beacon, beacons):
     config = json.dumps({'beacons': beacons}).encode()
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.connect((beacon, 8008))
-        s.sendall(config)
-        data = s.recv(1024)
+        try:
+            s.connect((beacon, 8008))
+            s.sendall(config)
+            data = s.recv(1024)
+        except socket.error as e:
+            data = e
     if data == config:
         print('beacon update successful')
     else:

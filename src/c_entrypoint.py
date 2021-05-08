@@ -24,13 +24,14 @@ def lambda_handler(event, context):
 
     if 'update-beacons' in event:
         from c_carve import update_carve_beacons
-        update_carve_beacons()
+        response = update_carve_beacons()
+        return response
 
     if 'detail-type' in event:
 
         if event['source'] == 'aws.events':
             cw_rule = event['resources'][0].split('rule/')[-1]
-            print(f'TRIGGERED by CW rule: {cw_arn}')
+            print(f'TRIGGERED by CW rule: {cw_rule}')
             if cw_rule == 'carve-results':
                 from c_carve import carve_results
                 carve_results(event, context)
