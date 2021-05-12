@@ -31,7 +31,8 @@ Resources:
           Action:
             - sts:AssumeRole
           Principal:
-            AWS: [!Sub "arn:aws:iam::${CarveCoreAccount}:role/${Prefix}carve-core"]
+            # AWS: [!Sub "arn:aws:iam::${CarveCoreAccount}:role/${Prefix}carve-core"]
+            AWS: [!Sub "arn:aws:iam::${CarveCoreAccount}:assumed-role/${Prefix}carve-core/carve-core"]
       Policies:
         - PolicyName: CarvePolicy
           PolicyDocument:
