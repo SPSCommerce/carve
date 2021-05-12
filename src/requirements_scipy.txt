@@ -1,0 +1,3 @@
+networkx
+crhelper
+scipy==1.4.1
