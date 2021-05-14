@@ -5,7 +5,6 @@ import os
 import sys
 from copy import deepcopy
 from c_carve import load_graph, save_graph, carve_role_arn
-from c_disco import discover_org_accounts
 from c_aws import *
 from c_deploy_beacons import deployment_list, deploy_regions, get_deploy_key
 from multiprocessing import Process, Pipe
@@ -72,7 +71,7 @@ def sf_CleanupDeployments(context):
     print(f'cleaning up after graph deploy: {deploy_key}')
 
     # need all accounts & regions
-    accounts = discover_org_accounts()
+    accounts = aws_discover_org_accounts()
     regions = aws_all_regions()
 
     # create a list for carve stacks to not delete

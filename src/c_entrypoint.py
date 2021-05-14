@@ -24,7 +24,7 @@ def lambda_handler(event, context):
 
     if 'update-beacons' in event:
         from c_carve import update_carve_beacons
-        response = f()
+        response = update_carve_beacons()
         return response
 
     if 'detail-type' in event:
@@ -87,6 +87,10 @@ def lambda_handler(event, context):
         from c_disco import disco_entrypoint
         print('TRIGGERED by Discovery Step Function')
         return disco_entrypoint(event, context)
+
+    elif 'DiscoverRouting' in event:
+        from c_disco import discover_routing
+        return discover_routing()
 
     elif 'Tokens' in event:
         from c_tokens import token_entrypoint

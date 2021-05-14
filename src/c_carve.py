@@ -217,8 +217,8 @@ def get_subnet_beacons():
     for subnet, data in G.nodes().data():
         # only get results if there is an active beacon in the subnet
         if subnet in subnet_beacons:
-            subnets[subnet] = {
-                'beacon': subnet_beacons[subnet],
+            subnets[subnet_beacons[subnet]] = {
+                'subnet': subnet,
                 'account': data['Account'],
                 'region': data['Region']
                 }
@@ -398,7 +398,7 @@ def asg_event(event):
             # append azid code to end of instance name
             subnet = aws_describe_subnets(message['region'], credentials, message['account'], ec2['SubnetId'])[0]
             az = subnet['AvailabilityZoneId'].split('-')[-1]
-            name = f"{os.environ['Prefix']}carve-beacon-{subnet}-{az}"
+            name = f"{os.environ['Prefix']}carve-beacon-{ec2['SubnetId']}-{az}"
             tags = [{'Key': 'Name', 'Value': name}]
             aws_create_ec2_tag(ec2['InstanceId'], tags, message['region'], credentials)
 

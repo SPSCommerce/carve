@@ -43,7 +43,7 @@ def aws_assume_role(role_arn, session_name, token_life=900):
         sys.exit()
 
 
-def discover_org_accounts():
+def aws_discover_org_accounts():
     ''' discover all accounts in the AWS Org'''
     orgs = boto3.client('organizations')
     root = orgs.describe_organization()['Organization']['MasterAccountArn'].split(':')[4]
@@ -665,7 +665,7 @@ def aws_share_image(image, accounts, region=current_region):
         lp['Add'].append({'UserId': a})
 
     # remove permission for any account in org not requested
-    for a in discover_org_accounts():
+    for a in aws_discover_org_accounts():
         if a not in accounts:
             lp['Remove'].append({'UserId': a})
 

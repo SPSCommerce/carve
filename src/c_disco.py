@@ -8,7 +8,7 @@ import os
 import sys
 import time
 from c_aws import *
-from c_carve import carve_role_arn, save_graph, load_graph, carve_results
+from c_carve import carve_role_arn, save_graph, load_graph, carve_results, get_subnet_beacons
 
 
 # def build_org_graph(vpcs, pcxs):
@@ -27,7 +27,7 @@ from c_carve import carve_role_arn, save_graph, load_graph, carve_results
 #         R = parent_connection.recv()        
 #         P.add_nodes_from(R.nodes.data())
 
-#     accounts = discover_org_accounts()
+#     accounts = aws_discover_org_accounts()
 
 #     # add edges by looking at all peering connections
 #     for pcx in P.nodes.data():
@@ -195,7 +195,7 @@ def discover_routing():
     for beacon, data in subnet_beacons.items():
         result = results[data['subnet']]
         if result['status'] == 200:
-            for target, ms in result['fping'].items()
+            for target, ms in result['fping'].items():
                 if ms > 0:
                     G.add_edge(subnet_beacons[target]['subnet'], data['subnet'])
 
@@ -208,44 +208,7 @@ def discover_routing():
     file = aws_upload_file_s3(f'discovered/{name}.json', f"/tmp/{name}.json")
 
     return {'discovery': f"s3://{os.environ['CarveS3Bucket']}/discovered/{name}.json"}
-
-
-# def discover_pcxs(region, account_id, account_name, credentials):
-#     ''' get peering conns in account/region, returns nx.Graph object of peering connection nodes'''
-
-#     G = nx.Graph()
-#     for pcx in aws_describe_peers(region, credentials):
-#         # get PCX name from tag
-#         name = "No Name"
-#         if 'Tags' in pcx:
-#             for tag in pcx['Tags']:
-#                 if tag['Key'] == 'Name':
-#                     name = tag['Value']
-#                     break            
-
-#         G.add_node(
-#             pcx['VpcPeeringConnectionId'],
-#             Name=name,
-#             VpcPeeringConnectionId=pcx['VpcPeeringConnectionId'],
-#             Account=account_id,
-#             Region=region,
-#             AccepterVpcId=pcx['AccepterVpcInfo']['VpcId'],
-#             AccepterAccount=pcx['AccepterVpcInfo']['OwnerId'],
-#             RequesterVpcId=pcx['RequesterVpcInfo']['VpcId'],
-#             RequesterAccount=pcx['RequesterVpcInfo']['OwnerId']
-#             )
-
-#     return G
-
-
-# def discover_tgws(region, credentials):
-#     # describe tgws
-#     # describe tgw attachments using tgw
-#     # describe tgw peering using attachment
-#     tgws = aws_describe_transit_gateways(region, credentials)
-#     attachments = aws_describe_transit_gateway_attachments(region, credentials)
-#     route_tables = aws_describe_transit_gateway_route_tables(region, credentials)
-
+ 
 
 def discover_resources(resource, region, account_id, account_name, credentials):
     # if resource == 'vpcs':
@@ -286,7 +249,7 @@ def sf_DiscoverAccount(event):
 
 def sf_StartDiscovery(context):
     # discover AWS Organizations accounts/regions to pass to next step
-    accounts = discover_org_accounts(context)
+    accounts = aws_discover_org_accounts()
     regions = aws_all_regions()
     discovery_targets = []
     for account_id, account_name in accounts.items():
@@ -338,7 +301,7 @@ def sf_OrganizeDiscovery(event):
     #     P.add_nodes_from(X.nodes.data())
 
     # # add edges to G by looking at all peering connections
-    # accounts = discover_org_accounts()
+    # accounts = aws_discover_org_accounts()
     # for pcx in P.nodes.data():
     #     G.add_edge(
     #         pcx[1]['AccepterVpcId'],
