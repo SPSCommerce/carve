@@ -8,7 +8,7 @@ import os
 import sys
 import time
 from c_aws import *
-from c_carve import carve_role_arn, save_graph, load_graph
+from c_carve import carve_role_arn, save_graph, load_graph, carve_results
 
 
 # def build_org_graph(vpcs, pcxs):
@@ -157,41 +157,94 @@ def discover_vpcs(region, account_id, account_name, credentials):
     return G
 
 
-def discover_pcxs(region, account_id, account_name, credentials):
-    ''' get peering conns in account/region, returns nx.Graph object of peering connection nodes'''
+def discover_routing():
+    #  {'subnet-0d310df8338186b7f': {
+    #      'beacon': '10.0.22.112'
+    #      'fping': {
+    #          '10.0.22.112': 0.046,
+    #          '10.0.43.87': 0.634,
+    #          '10.1.9.32': 0.142,
+    #          '10.2.10.235': 0.0,
+    #          '10.3.5.235': 0.0,
+    #          '10.4.3.255': 0.0
+    #          },
+    #     'health': 'up',
+    #     'status': 200,
+    #     'ts': '1620791060'
+    #     }, ...]
+    results = carve_results()
 
-    G = nx.Graph()
-    for pcx in aws_describe_peers(region, credentials):
-        # get PCX name from tag
-        name = "No Name"
-        if 'Tags' in pcx:
-            for tag in pcx['Tags']:
-                if tag['Key'] == 'Name':
-                    name = tag['Value']
-                    break            
+    # {'0.0.0.0' {
+    #     'subnet': 'subnet-0d310df8338186b7f',
+    #     'account': data['Account'],
+    #     'region': data['Region']
+    # }}
+    subnet_beacons = get_subnet_beacons()
 
-        G.add_node(
-            pcx['VpcPeeringConnectionId'],
-            Name=name,
-            VpcPeeringConnectionId=pcx['VpcPeeringConnectionId'],
-            Account=account_id,
-            Region=region,
-            AccepterVpcId=pcx['AccepterVpcInfo']['VpcId'],
-            AccepterAccount=pcx['AccepterVpcInfo']['OwnerId'],
-            RequesterVpcId=pcx['RequesterVpcInfo']['VpcId'],
-            RequesterAccount=pcx['RequesterVpcInfo']['OwnerId']
-            )
+    # G.add_node(
+    #     subnet['SubnetId'],
+    #     Name=name,
+    #     Account=account_id,
+    #     AccountName=account_name,
+    #     Region=region,
+    #     CidrBlock=vpc['CidrBlock'],
+    #     VpcId=subnet['VpcId']
+    #     )
+    G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
 
-    return G
+    for beacon, data in subnet_beacons.items():
+        result = results[data['subnet']]
+        if result['status'] == 200:
+            for target, ms in result['fping'].items()
+                if ms > 0:
+                    G.add_edge(subnet_beacons[target]['subnet'], data['subnet'])
+
+    name = f"routes_verified-{int(time.time())}"
+
+    G.graph['Name'] = name
+
+    save_graph(G, f"/tmp/{name}.json")
+
+    file = aws_upload_file_s3(f'discovered/{name}.json', f"/tmp/{name}.json")
+
+    return {'discovery': f"s3://{os.environ['CarveS3Bucket']}/discovered/{name}.json"}
 
 
-def discover_tgws(region, credentials):
-    # describe tgws
-    # describe tgw attachments using tgw
-    # describe tgw peering using attachment
-    tgws = aws_describe_transit_gateways(region, credentials)
-    attachments = aws_describe_transit_gateway_attachments(region, credentials)
-    route_tables = aws_describe_transit_gateway_route_tables(region, credentials)
+# def discover_pcxs(region, account_id, account_name, credentials):
+#     ''' get peering conns in account/region, returns nx.Graph object of peering connection nodes'''
+
+#     G = nx.Graph()
+#     for pcx in aws_describe_peers(region, credentials):
+#         # get PCX name from tag
+#         name = "No Name"
+#         if 'Tags' in pcx:
+#             for tag in pcx['Tags']:
+#                 if tag['Key'] == 'Name':
+#                     name = tag['Value']
+#                     break            
+
+#         G.add_node(
+#             pcx['VpcPeeringConnectionId'],
+#             Name=name,
+#             VpcPeeringConnectionId=pcx['VpcPeeringConnectionId'],
+#             Account=account_id,
+#             Region=region,
+#             AccepterVpcId=pcx['AccepterVpcInfo']['VpcId'],
+#             AccepterAccount=pcx['AccepterVpcInfo']['OwnerId'],
+#             RequesterVpcId=pcx['RequesterVpcInfo']['VpcId'],
+#             RequesterAccount=pcx['RequesterVpcInfo']['OwnerId']
+#             )
+
+#     return G
+
+
+# def discover_tgws(region, credentials):
+#     # describe tgws
+#     # describe tgw attachments using tgw
+#     # describe tgw peering using attachment
+#     tgws = aws_describe_transit_gateways(region, credentials)
+#     attachments = aws_describe_transit_gateway_attachments(region, credentials)
+#     route_tables = aws_describe_transit_gateway_route_tables(region, credentials)
 
 
 def discover_resources(resource, region, account_id, account_name, credentials):

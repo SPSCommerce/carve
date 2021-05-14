@@ -51,7 +51,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Sub '${Prefix}carve-bridge-${VpcId}'
-      Description: Bridge ASG Events Across Accounts and Regions with SNS
+      Description: Bridge ASG events to go across accounts and regions with SNS
       Handler: index.lambda_handler
       Role: !GetAtt CarveLambdaRole.Arn
       Runtime: python3.8

@@ -42,7 +42,7 @@ Parameters:
   Version:
     Type: String
     Description: "MUST be incremented with changes to image builder in this template"
-    Default: "0.0.13"
+    Default: "0.0.14"
 
 Conditions:
   CreateVpc: !Equals [ !Ref ExistingVpcId, "" ]

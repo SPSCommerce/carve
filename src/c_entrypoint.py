@@ -24,7 +24,7 @@ def lambda_handler(event, context):
 
     if 'update-beacons' in event:
         from c_carve import update_carve_beacons
-        response = update_carve_beacons()
+        response = f()
         return response
 
     if 'detail-type' in event:
@@ -34,7 +34,7 @@ def lambda_handler(event, context):
             print(f'TRIGGERED by CW rule: {cw_rule}')
             if cw_rule == 'carve-results':
                 from c_carve import carve_results
-                carve_results(event, context)
+                carve_results()
             elif cw_rule == 'deploy-prep':
                 from c_deploy_beacons import deploy_prep_check
                 deploy_prep_check(event, context)

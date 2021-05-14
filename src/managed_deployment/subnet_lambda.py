@@ -1,3 +1,4 @@
+import os
 import urllib3
 import socket
 import json
@@ -6,7 +7,6 @@ import json
 this subnet lambda code file is kept separate from the VPC stack CFN template for easier 
 editing/testing and is injected into the CFN template at deploy time by carve-core lambda
 '''
-
 
 def hc(beacon):
     http = urllib3.PoolManager()
@@ -28,26 +28,58 @@ def get_results(beacon):
         r = http.request('GET', f'http://{beacon}/results', timeout=0.1)
         ts = http.request('GET', f'http://{beacon}/ts', timeout=0.1)
         if r.status == 200:
-            result = {'status': r.status, 'fping': format_fping(r.data), 'health': hc(beacon), 'ts': ts.data}
+            result = {
+                'beacon': beacon,
+                'subnet': os.environ['VpcSubnetIds'],
+                'status': r.status,
+                'fping': format_fping(beacon, r.data),
+                'health': hc(beacon),
+                'ts': ts.data
+                }
         else:
-            result = {'status': r.status, 'result': 'error', 'health': hc(beacon)}
+            result = {
+                'beacon': beacon,
+                'subnet': os.environ['VpcSubnetIds'],
+                'status': r.status, 'result':
+                'error',
+                'health': hc(beacon)
+                }
     except urllib3.exceptions.ConnectTimeoutError:
-        result = {'status': 'ConnectTimeoutError', 'result': 'timeout', 'health': hc(beacon)}
+        result = {
+            'beacon': beacon,
+            'subnet': os.environ['VpcSubnetIds'],
+            'status': 'ConnectTimeoutError',
+            'result': 'timeout',
+            'health': hc(beacon)
+            }
     except urllib3.exceptions.MaxRetryError:
-        result = {'status': 'MaxRetryError', 'result': 'timeout', 'health': hc(beacon)}
-    except urllib3.exceptions.HTTPError as e:
-        result = {'status': 'HTTPError', 'result': 'timeout', 'health': hc(beacon)}
+        result = {
+            'beacon': beacon,
+            'subnet': os.environ['VpcSubnetIds'],
+            'status': 'MaxRetryError',
+            'result': 'timeout',
+            'health': hc(beacon)
+            }
+    except urllib3.exceptions.HTTPError:
+        result = {
+            'beacon': beacon,
+            'subnet': os.environ['VpcSubnetIds'],
+            'status': 'HTTPError',
+            'result': 'timeout',
+            'health': hc(beacon)
+            }
     print(result)
     return result
 
-def format_fping(data):
+def format_fping(beacon, data):
     result = {}
     for d in data.decode().split('\n'):
         if ':' in d:
-            beacon = d.split(' :')[0].strip()
-            pings = d.split(': ')[1].split(' ')
-            p = [0 if x=='-' else float(x) for x in pings]
-            result[beacon] = round((sum(p) / len(p)), 3)
+            target = d.split(' :')[0].strip()
+            if target != beacon:
+                pings = d.split(': ')[1].split(' ')
+                p = [0 if x=='-' else float(x) for x in pings]
+                result[target] = round((sum(p) / len(p)), 3)
     return result
 
 def update_beacon(beacon, beacons):

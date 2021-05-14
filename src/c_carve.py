@@ -10,7 +10,7 @@ import concurrent.futures
 import time
 
 
-def carve_results(event, context):
+def carve_results():
     # call subnet lambdas to collect their results from their beacons
 
     # get all registered beacons from SSM
@@ -20,29 +20,36 @@ def carve_results(event, context):
     subnets = get_subnet_beacons()
 
     # use threading for speed, get all beacon reports
-    results = []
+    results = {}
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = []
         p = os.environ['Prefix']
 
-        for subnet in subnets:
-            print(f"getting results from {subnet['beacon']}")
+        for beacon, data in subnets.items():
+            print(f"getting results from {beacon}")
             payload = {
                     'action': 'results',
-                    'beacon': subnet['beacon']
+                    'beacon': beacon
                     }
             futures.append(executor.submit(
                 aws_invoke_lambda,
-                arn=f"arn:aws:lambda:{subnet['region']}:{subnet['account']}:function:{p}carve-{subnet['subnet']}",
+                arn=f"arn:aws:lambda:{data['region']}:{data['account']}:function:{p}carve-{data['subnet']}",
                 payload=payload,
-                region=subnet['region'],
+                region=data['region'],
                 credentials=None))
 
         for future in concurrent.futures.as_completed(futures):
-            results.append(future.result())
+            result = future.result()
 
-    print(results)
-    # process_test_results(results)
+            results[result['subnet']] = {
+                'beacon': result['beacon'],
+                'status': result['status'],
+                'fping': result['fping'],
+                'health': result['health'],
+                'ts': result['ts']
+                }
+
+    return results
 
 
 
@@ -50,7 +57,7 @@ def process_test_results(results):
     # determine verification beacons here
     G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
 
-    subnet_beacons = json.loads(aws_read_s3_direct('managed_deployment/subnet-beacons.json', current_region))
+    subnet_beacons = get_subnet_beacons()
 
     verify_beacons = []
     for edge in G.edges:
@@ -198,24 +205,23 @@ def update_asg_size(account, asg, minsize, maxsize,  desired, region):
 
 
 def get_subnet_beacons():
-    # create a list of all subnets and their beacon, account, and region
+    # return dict containing all subnets with their beacon ip, account, and region
 
     # load latest graph
     G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
 
     subnet_beacons = json.loads(aws_read_s3_direct('managed_deployment/subnet-beacons.json', current_region))
 
-    subnets = []
+    subnets = {}
     # for vpc in list(G.nodes):
     for subnet, data in G.nodes().data():
         # only get results if there is an active beacon in the subnet
         if subnet in subnet_beacons:
-            subnets.append({
-                'subnet': subnet,
+            subnets[subnet] = {
                 'beacon': subnet_beacons[subnet],
                 'account': data['Account'],
                 'region': data['Region']
-                })
+                }
         else:
             # this conditon needs to be handled if there is no beacon
             pass
@@ -284,17 +290,17 @@ def update_carve_beacons():
         futures = []
         p = os.environ['Prefix']
 
-        for subnet in subnets:
+        for beacon, data in subnets.items():
 
             futures.append(executor.submit(
                 aws_invoke_lambda,
-                arn=f"arn:aws:lambda:{subnet['region']}:{subnet['account']}:function:{p}carve-{subnet['subnet']}",
+                arn=f"arn:aws:lambda:{data['region']}:{data['account']}:function:{p}carve-{data['subnet']}",
                 payload={
                     'action': 'update',
-                    'beacon': subnet_beacons[subnet['subnet']],
+                    'beacon': beacon,
                     'beacons': ','.join(all_beacons)
                     },
-                region=subnet['region'],
+                region=data['region'],
                 credentials=None))
 
         for future in concurrent.futures.as_completed(futures):
@@ -392,7 +398,7 @@ def asg_event(event):
             # append azid code to end of instance name
             subnet = aws_describe_subnets(message['region'], credentials, message['account'], ec2['SubnetId'])[0]
             az = subnet['AvailabilityZoneId'].split('-')[-1]
-            name = f"{os.environ['Prefix']}carve-beacon-{vpc}-{az}"
+            name = f"{os.environ['Prefix']}carve-beacon-{subnet}-{az}"
             tags = [{'Key': 'Name', 'Value': name}]
             aws_create_ec2_tag(ec2['InstanceId'], tags, message['region'], credentials)
 
