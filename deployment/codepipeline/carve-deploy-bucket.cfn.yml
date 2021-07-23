@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: S3 Deploy Bucket for CARVE Pipeline
+
+Parameters:
+
+  BucketName:
+    Type: String
+    Description: Name your S3 Bucket
+    Default: ""
+
+Resources:
+  CarveS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref BucketName
+      AccessControl: Private
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: 'AES256'
+
+  # CarveS3BucketPolicy:
+  #   Type: AWS::S3::BucketPolicy
+  #   Properties:
+  #     Bucket: !Ref CarveS3Bucket
+  #     PolicyDocument:
+  #       Statement:
+  #         - Sid: CarveCoreLambda
+  #           Effect: Allow 
+  #           Action:
+  #             - "s3:*"
+  #           Resource: !GetAtt CarveS3Bucket.Arn
+  #           Principal:
+  #             AWS: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-core"
+  #         - Sid: DeploymentAccess
+  #           Effect: Allow 
+  #           Action:
+  #             - "s3:Get*"
+  #             - "s3:PutObject"
+  #           Resource: 
+  #             - !Sub "arn:aws:s3:::${CarveS3Bucket}"
+  #             - !Sub "arn:aws:s3:::${CarveS3Bucket}/*"
+  #           Principal:
+  #             AWS: "*"
+  #           Condition:
+  #             StringEquals:
+  #               aws:PrincipalOrgID: !Ref OrgId
+
+
