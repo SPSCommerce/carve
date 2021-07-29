@@ -21,19 +21,19 @@ Parameters:
     Type: String
     Description: A unique id may be used instead of OrgId on buckets
     Default: ""
-  ImageBuilderExistingSubnetId:
+  ExistingSubnetId:
     Type: String
     Default: ""
     Description: Must have Internet Access, will create if not provided
-  ImageBuilderExistingVpcId:
+  ExistingVpcId:
     Type: String
     Default: ""
     Description: Must have Internet Access, will create if not provided
-  ImageBuilderVpcCIDR:
+  VpcCIDR:
     Description: IP range (CIDR notation) for new VPC if needed
     Type: String
     Default: "10.0.0.0/24"
-  ImageBuilderPublicSubnetCIDR:
+  PublicSubnetCIDR:
     Description: IP range (CIDR notation) for subnet in new VPC if needed
     Type: String
     Default: "10.0.0.0/28"
@@ -81,7 +81,7 @@ Resources:
                 RoleArn: !GetAtt 'CarvePipelineRole.Arn'
                 StackName: !Sub '${Prefix}carve-imagebuilder'
                 TemplatePath: GithubRepo::deployment/carve-image-builder.cfn.yml
-                ParameterOverrides: !Sub '{"ExistingSubnetId":"${ImageBuilderExistingSubnetId}","ExistingVpcId":"${ImageBuilderExistingVpcId}","VpcCIDR":"${ImageBuilderVpcCIDR}","PublicSubnetCIDR":"${ImageBuilderPublicSubnetCIDR}","OrgId":"${OrgId}","UniqueId":"${UniqueId}","Prefix":"${Prefix}","DeployBucket":"${DeployBucket}"}'
+                ParameterOverrides: !Sub '{"ExistingSubnetId":"${ExistingSubnetId}","ExistingVpcId":"${ExistingVpcId}","VpcCIDR":"${VpcCIDR}","PublicSubnetCIDR":"${PublicSubnetCIDR}","OrgId":"${OrgId}","UniqueId":"${UniqueId}","Prefix":"${Prefix}","DeployBucket":"${DeployBucket}"}'
               OutputArtifacts: []
               InputArtifacts:
                 - Name: GithubRepo

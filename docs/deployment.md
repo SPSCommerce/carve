@@ -31,6 +31,6 @@ ImageBuilderExistingVpcId|String||no|EC2 Image Builder instnaces must have Inter
 ImageBuilderVpcCIDR|String|10.0.0.0/24|no|IP range (CIDR notation) for new VPC if Carve is creating the Image Builder VPC
 ImageBuilderPublicSubnetCIDR|String|10.0.0.0/28|no|IP range (CIDR notation) for subnet in new VPC if Carve is creating the Image Builder VPC
 
-## Pipeline Resources
+## Pipeline Actions & Resources
 
-The Carve CodePipeline template deplo
+The Carve CodePipeline template deploys 
