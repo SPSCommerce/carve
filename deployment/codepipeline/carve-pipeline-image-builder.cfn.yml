@@ -51,7 +51,6 @@ Resources:
       Stages:
         - Name: CarveSource
           Actions:
-
             - Name: SourceAction
               Namespace: github_vars
               ActionTypeId:
@@ -67,7 +66,8 @@ Resources:
                 Repo: carve
                 Branch: main
                 OAuthToken: !Sub '{{resolve:secretsmanager:${GitHubOAUTHTokenASMPath}:SecretString:token}}'
-
+        - Name: CarveImageBuilder
+          Actions:
             - Name: carve-imagebuilder
               ActionTypeId:
                 Category: Deploy
@@ -85,7 +85,8 @@ Resources:
               OutputArtifacts: []
               InputArtifacts:
                 - Name: GithubRepo
-
+        - Name: UpdateResources
+          Actions:
             - Name: update-carve-managed-resources
               ActionTypeId:
                 Category: Invoke
