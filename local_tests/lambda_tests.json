@@ -1,9 +1,0 @@
-{
-  "DeployStart": {
-    "DeployStart": true,
-    "NetworkGraphS3Key": "discovery/c_discovered_1614834325.json"
-  },
-  "Discovery": {
-    "Discovery": true
-  }
-}
