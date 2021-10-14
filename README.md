@@ -1,6 +1,8 @@
 # Carve
 # Continuous AWS Route Verification Engine
 
+Currently in POC status.
+
 - Discovery of all subnet routing across the entire AWS Organization by executing tests directly in the VPCs
 - Continuous verification of desired AWS network state with 1 minute resolution and latency metrics
 - Zero network dependencies (no private endpoints, internet egress, specific routes, or other requirements)
