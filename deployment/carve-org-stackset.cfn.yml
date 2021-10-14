@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Account Resources For Carve
+Description: Cross Account Org Role For Carve
 
 Parameters:
 
