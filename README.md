@@ -9,7 +9,8 @@
 to get started, deploy CFN template:  deployment/codepipeline/carve-pipeline.cfn.yml
 *note ASM dependencies for github token in pipeline template
 
-----------------
+License
+=======
 
 Copyright 2021 Daniel Cunningham
 
