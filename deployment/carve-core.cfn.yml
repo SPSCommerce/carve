@@ -32,9 +32,9 @@ Parameters:
     Description: Automatically propogate version updates to managed resources 
   IMAGETAG: 
     Type: 'AWS::SSM::Parameter::Value<String>'
-    Default: /c7n/ecr-tag
+    Default: /carve/ecr-tag
     Description: Version of c7n image in ECR
-  ECR: 
+  ECR:
     Type: 'String'
     Default: carve-repository
     Description: ECR Repo Name

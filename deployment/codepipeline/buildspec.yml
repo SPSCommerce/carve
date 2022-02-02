@@ -4,6 +4,10 @@ version: 0.2
 #   variables: 
 #     GIT_SSH_COMMAND: 'ssh -o UserKnownHostsFile=known_hosts -i id_rsa'
 
+env:
+  exported-variables:
+    - TAG
+
 phases:
   install:
     commands:
@@ -32,4 +36,4 @@ phases:
       # push image to ECR
       - docker push  ${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR}:${TAG}
       # update SSM ECR tag
-      - aws ssm put-parameter --name ${IMAGETAG} --value $TAG --type String --overwrite
+      - aws ssm put-parameter --name ${IMAGETAG} --value ${TAG} --type String --overwrite
