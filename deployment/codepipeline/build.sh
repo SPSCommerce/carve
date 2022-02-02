@@ -49,6 +49,8 @@ aws s3 cp "package.zip" \
 # package requirements layer
 echo "packaging lambda requirements layer"
 mkdir -p ../layer/python && cd ../layer
+python --version
+python3 -m pip install --upgrade pip
 pip install -r ../src/requirements.txt -t ./python
 zip -r "reqs_package.zip" * > /dev/null
 

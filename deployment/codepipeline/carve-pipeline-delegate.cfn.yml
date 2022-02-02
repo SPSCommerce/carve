@@ -5,10 +5,6 @@ Parameters:
     Default: githuboauthtoken
     Description: GitHubServiceOAUTHToken Secret name
     Type: String
-  DeployBucket:
-    Default: ''
-    Description: bucket name
-    Type: String
   OrgId:
     Type: String
     Description: AWS Organizations Id
@@ -43,6 +39,16 @@ Parameters:
     Default: "10.0.0.0/28"
 
 Resources:
+  DeployBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${Prefix}carve-deploy-bucket-${AWS::AccountId}-${AWS::Region}"
+      AccessControl: Private
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: 'AES256'
+
   CarvePipelineRole:
     Type: AWS::IAM::Role
     Properties:
@@ -106,9 +112,9 @@ Resources:
                 - Name: GithubRepo
               Region: !Ref 'AWS::Region'
               Configuration:
-                Owner: anotherhobby
+                Owner: SPSCommerce
                 Repo: carve
-                Branch: main
+                Branch: dev
                 OAuthToken: !Sub '{{resolve:secretsmanager:${GitHubOAUTHTokenASMPath}:SecretString:token}}'
 
         # - Name: UpdatePipeline
