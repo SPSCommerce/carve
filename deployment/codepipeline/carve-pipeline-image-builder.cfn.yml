@@ -78,7 +78,7 @@ Resources:
                 ChangeSetName: pipeline-changeset
                 ActionMode: CREATE_UPDATE
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
-                RoleArn: !Sub arn:aws:iam::012957890772:role/${Prefix}carve-deploy-pipeline
+                RoleArn: !Sub arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-deploy-pipeline
                 StackName: !Sub '${Prefix}carve-imagebuilder'
                 TemplatePath: GithubRepo::deployment/carve-image-builder.cfn.yml
                 ParameterOverrides: !Sub '{"ExistingSubnetId":"${ExistingSubnetId}","ExistingVpcId":"${ExistingVpcId}","VpcCIDR":"${VpcCIDR}","PublicSubnetCIDR":"${PublicSubnetCIDR}","OrgId":"${OrgId}","UniqueId":"${UniqueId}","Prefix":"${Prefix}","DeployBucket":"${DeployBucket}"}'
