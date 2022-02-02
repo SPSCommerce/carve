@@ -52,8 +52,6 @@ Resources:
       Description: Continuous AWS Route Verification Engine
       PackageType: Image
       Code:
-        # S3Bucket: !Ref CodeBucket
-        # S3Key: !Sub "lambda_packages/${GITSHA}/package.zip"
         ImageUri: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECR}:${IMAGETAG}"
       Environment:
         Variables:
@@ -77,38 +75,10 @@ Resources:
           Regions: "us-east-1,us-east-2"
           Prefix: !Ref Prefix
       Handler: entrypoint.lambda_handler
-      Runtime: python3.8
       MemorySize: 1024
       Timeout: 120
       Role: !GetAtt CarveCoreRole.Arn
       ReservedConcurrentExecutions: 20
-      # Layers:
-        # # Carve requirements in their own layer for small lambda pkg
-        # - !Ref CarveRequirementsLayer
-        # # AWS provided lambda layer for scipy and numpy
-        # - !Sub "arn:aws:lambda:${AWS::Region}:668099181075:layer:AWSLambda-Python38-SciPy1x:29"
-        # # public lambda layer for matplotlib from Klayers
-        # - !Sub "arn:aws:lambda:${AWS::Region}:770693421928:layer:Klayers-python38-matplotlib:21"
-
-  # CarveRequirementsLayer:
-  #   Type: AWS::Lambda::LayerVersion
-  #   Properties: 
-  #     CompatibleRuntimes:
-  #       - python3.8
-  #     Content: 
-  #       S3Bucket: !Ref CodeBucket
-  #       S3Key: !Sub "lambda_packages/${GITSHA}/reqs_package.zip"
-  #     Description: "Carve python requirements"
-  #     LayerName: CarveRequirementsLayer
-
-  # LayerPermission:
-  #   Type: AWS::Lambda::LayerVersionPermission
-  #   Properties: 
-  #     Action: lambda:GetLayerVersion
-  #     LayerVersionArn: !Ref CarveRequirementsLayer
-  #     OrganizationId: !Ref OrgId
-  #     Principal: "*"
-
 
   CarveCoreRole:
     Type: AWS::IAM::Role
