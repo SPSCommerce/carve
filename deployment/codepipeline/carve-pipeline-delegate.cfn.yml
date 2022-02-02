@@ -200,6 +200,7 @@ Resources:
         - Name: PackageLambda
           Actions:
             - Name: carve-lambda-packaging
+              Namespace: codebuild_vars
               ActionTypeId:
                 Category: Build
                 Owner: AWS
@@ -228,7 +229,7 @@ Resources:
                 RoleArn: !GetAtt 'CarvePipelineRole.Arn'
                 StackName: !Sub '${Prefix}carve-core'
                 TemplatePath: GithubRepo::deployment/carve-core.cfn.yml
-                ParameterOverrides: !Sub '{"GITSHA":"#{github_vars.CommitId}","Prefix":"${Prefix}","OrgId":"${OrgId}","UniqueId":"${UniqueId}","CodeBucket":"${DeployBucket}","IMAGETAG":"${IMAGETAG}","ECR":"${ECR}"}'
+                ParameterOverrides: !Sub '{"GITSHA":"#{github_vars.CommitId}","Prefix":"${Prefix}","OrgId":"${OrgId}","UniqueId":"${UniqueId}","CodeBucket":"${DeployBucket}","IMAGETAG":"#{codebuild_vars.TAG}","ECR":"${ECR}"}'
               OutputArtifacts: []
               InputArtifacts:
                 - Name: GithubRepo
