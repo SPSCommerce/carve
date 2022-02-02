@@ -62,7 +62,7 @@ Resources:
                 - Name: GithubRepo
               Region: !Ref 'AWS::Region'
               Configuration:
-                Owner: anotherhobby
+                Owner: SPSCommerce
                 Repo: carve
                 Branch: main
                 OAuthToken: !Sub '{{resolve:secretsmanager:${GitHubOAUTHTokenASMPath}:SecretString:token}}'
