@@ -49,6 +49,66 @@ Resources:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: 'AES256'
 
+  IMAGETAG:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${Prefix}carve-resources/ecr-tag"
+      Type: String
+      Value: "0.0"
+      Description: Version of carve image in ECR
+
+  ECR: 
+    Type: AWS::ECR::Repository
+    Properties: 
+      RepositoryName: !Sub "${Prefix}carve-repository"
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration: 
+        ScanOnPush: "true"
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+            {
+              "rulePriority": 1,
+              "description": "Only keep 4 images",
+              "selection": {
+                "tagStatus": "any",
+                "countType": "imageCountMoreThan",
+                "countNumber": 4
+              },
+              "action": { "type": "expire" }
+            }]
+          }
+      RepositoryPolicyText: 
+        Version: "2012-10-17"
+        Statement: 
+          - 
+            Sid: PipelineControl
+            Effect: Allow
+            Principal: 
+              AWS: !GetAtt 'CarvePipelineRole.Arn'
+            Action: 
+              - "ecr:*"
+          - 
+            Sid: RootControl
+            Effect: Allow
+            Principal: 
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            Action: 
+              - "ecr:*"
+          # -
+          #   Sid: "CrossAccountPermission"
+          #   Effect: "Allow"
+          #   Action: 
+          #     - "ecr:BatchGetImage"
+          #     - "ecr:GetDownloadUrlForLayer"
+          #   Principal: 
+          #     AWS: "*"
+          #   Condition:
+          #     StringEquals:
+          #       aws:PrincipalOrgID: !Ref OrgId
+
   CarvePipelineRole:
     Type: AWS::IAM::Role
     Properties:
@@ -168,7 +228,7 @@ Resources:
                 RoleArn: !GetAtt 'CarvePipelineRole.Arn'
                 StackName: !Sub '${Prefix}carve-core'
                 TemplatePath: GithubRepo::deployment/carve-core.cfn.yml
-                ParameterOverrides: !Sub '{"GITSHA":"#{github_vars.CommitId}","Prefix":"${Prefix}","OrgId":"${OrgId}","UniqueId":"${UniqueId}","CodeBucket":"${DeployBucket}"}'
+                ParameterOverrides: !Sub '{"GITSHA":"#{github_vars.CommitId}","Prefix":"${Prefix}","OrgId":"${OrgId}","UniqueId":"${UniqueId}","CodeBucket":"${DeployBucket}","IMAGETAG":"${IMAGETAG}","ECR":"${ECR}"}'
               OutputArtifacts: []
               InputArtifacts:
                 - Name: GithubRepo
@@ -239,6 +299,10 @@ Resources:
             Value: !Ref 'DeployBucket'
           - Name: GIT_TOKEN
             Value: !Ref 'GitHubOAUTHTokenASMPath'
+          - Name: IMAGETAG
+            Value: !Ref 'IMAGETAG'
+          - Name: ECR
+            Value: !Ref ECR
       Source:
         Type: CODEPIPELINE
         BuildSpec: deployment/codepipeline/buildspec.yml

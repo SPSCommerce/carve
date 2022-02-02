@@ -4,7 +4,7 @@ import pylab as plt
 import json
 import sys
 import os
-from c_aws import *
+from aws import *
 import urllib3
 import concurrent.futures
 import time

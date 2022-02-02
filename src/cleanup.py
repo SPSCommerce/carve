@@ -4,9 +4,9 @@ import json
 import os
 import sys
 from copy import deepcopy
-from c_carve import load_graph, save_graph, carve_role_arn
-from c_aws import *
-from c_deploy_beacons import deployment_list, deploy_regions, get_deploy_key
+from carve import load_graph, save_graph, carve_role_arn
+from aws import *
+from deploy_beacons import deployment_list, deploy_regions, get_deploy_key
 from multiprocessing import Process, Pipe
 from crhelper import CfnResource
 import time

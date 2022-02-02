@@ -30,6 +30,14 @@ Parameters:
     Type: String
     Default: 'True'
     Description: Automatically propogate version updates to managed resources 
+  IMAGETAG: 
+    Type: 'AWS::SSM::Parameter::Value<String>'
+    Default: /c7n/ecr-tag
+    Description: Version of c7n image in ECR
+  ECR: 
+    Type: 'String'
+    Default: carve-repository
+    Description: ECR Repo Name
 
 Conditions:
   UseOrgId: !Equals [ !Ref "UniqueId", "" ]
@@ -43,8 +51,9 @@ Resources:
       FunctionName: !Sub "${Prefix}carve-core"
       Description: Continuous AWS Route Verification Engine
       Code:
-        S3Bucket: !Ref CodeBucket
-        S3Key: !Sub "lambda_packages/${GITSHA}/package.zip"
+        # S3Bucket: !Ref CodeBucket
+        # S3Key: !Sub "lambda_packages/${GITSHA}/package.zip"
+        ImageUri: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECR}:${IMAGETAG}"
       Environment:
         Variables:
           CodeBucket: !Ref CodeBucket
@@ -66,38 +75,38 @@ Resources:
           PropogateUpdates: !Ref PropogateUpdates
           Regions: "us-east-1,us-east-2"
           Prefix: !Ref Prefix
-      Handler: c_entrypoint.lambda_handler
+      Handler: entrypoint.lambda_handler
       Runtime: python3.8
       MemorySize: 1024
       Timeout: 120
       Role: !GetAtt CarveCoreRole.Arn
       ReservedConcurrentExecutions: 20
-      Layers:
-        # Carve requirements in their own layer for small lambda pkg
-        - !Ref CarveRequirementsLayer
+      # Layers:
+        # # Carve requirements in their own layer for small lambda pkg
+        # - !Ref CarveRequirementsLayer
         # # AWS provided lambda layer for scipy and numpy
         # - !Sub "arn:aws:lambda:${AWS::Region}:668099181075:layer:AWSLambda-Python38-SciPy1x:29"
         # # public lambda layer for matplotlib from Klayers
         # - !Sub "arn:aws:lambda:${AWS::Region}:770693421928:layer:Klayers-python38-matplotlib:21"
 
-  CarveRequirementsLayer:
-    Type: AWS::Lambda::LayerVersion
-    Properties: 
-      CompatibleRuntimes:
-        - python3.8
-      Content: 
-        S3Bucket: !Ref CodeBucket
-        S3Key: !Sub "lambda_packages/${GITSHA}/reqs_package.zip"
-      Description: "Carve python requirements"
-      LayerName: CarveRequirementsLayer
+  # CarveRequirementsLayer:
+  #   Type: AWS::Lambda::LayerVersion
+  #   Properties: 
+  #     CompatibleRuntimes:
+  #       - python3.8
+  #     Content: 
+  #       S3Bucket: !Ref CodeBucket
+  #       S3Key: !Sub "lambda_packages/${GITSHA}/reqs_package.zip"
+  #     Description: "Carve python requirements"
+  #     LayerName: CarveRequirementsLayer
 
-  LayerPermission:
-    Type: AWS::Lambda::LayerVersionPermission
-    Properties: 
-      Action: lambda:GetLayerVersion
-      LayerVersionArn: !Ref CarveRequirementsLayer
-      OrganizationId: !Ref OrgId
-      Principal: "*"
+  # LayerPermission:
+  #   Type: AWS::Lambda::LayerVersionPermission
+  #   Properties: 
+  #     Action: lambda:GetLayerVersion
+  #     LayerVersionArn: !Ref CarveRequirementsLayer
+  #     OrganizationId: !Ref OrgId
+  #     Principal: "*"
 
 
   CarveCoreRole:

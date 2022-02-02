@@ -7,8 +7,8 @@ import pylab as plt
 import os
 import sys
 import time
-from c_aws import *
-from c_carve import carve_role_arn, save_graph, load_graph, carve_results, get_subnet_beacons
+from aws import *
+from carve import carve_role_arn, save_graph, load_graph, carve_results, get_subnet_beacons
 
 
 # def build_org_graph(vpcs, pcxs):

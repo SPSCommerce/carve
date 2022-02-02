@@ -23,7 +23,7 @@ def lambda_handler(event, context):
             print(event)
 
     if 'update-beacons' in event:
-        from c_carve import update_carve_beacons
+        from carve import update_carve_beacons
         response = update_carve_beacons()
         return response
 
@@ -33,14 +33,14 @@ def lambda_handler(event, context):
             cw_rule = event['resources'][0].split('rule/')[-1]
             print(f'TRIGGERED by CW rule: {cw_rule}')
             if cw_rule == 'carve-results':
-                from c_carve import carve_results
+                from carve import carve_results
                 carve_results()
             elif cw_rule == 'deploy-prep':
-                from c_deploy_beacons import deploy_prep_check
+                from deploy_beacons import deploy_prep_check
                 deploy_prep_check(event, context)
 
         if event['source'] == 'aws.ssm':
-            from c_carve import ssm_event
+            from carve import ssm_event
 
             ssm_arn = event['resources'][0]
             print(f'TRIGGERED by SSM: {ssm_arn}')
@@ -53,47 +53,47 @@ def lambda_handler(event, context):
             message = event['Records'][0]['Sns']['Message']
 
             if event['Records'][0]['Sns']['Subject'] == 'AWS CloudFormation Notification':
-                from c_deploy_beacons import parse_cfn_sns
+                from deploy_beacons import parse_cfn_sns
                 message = parse_cfn_sns(message)
                 print(f'CloudFormation SNS Message: {message}')
             else:
                 message = json.loads(message)
                 if 'source' in message:
                     if message['source'] == 'aws.autoscaling':
-                        from c_carve import asg_event
+                        from carve import asg_event
                         asg_event(event)
 
         elif 's3' in event['Records'][0]:
             if event['Records'][0]['s3']['bucket']['name'] == os.environ['CarveS3Bucket']:
-                from c_deploy_beacons import start_carve_deployment
+                from deploy_beacons import start_carve_deployment
                 start_carve_deployment(event, context)
 
     elif 'DeployStart' in event:
-        from c_deploy_beacons import start_carve_deployment
+        from deploy_beacons import start_carve_deployment
         print('Starting deployment process')
         return start_carve_deployment(event, context)
 
     elif 'DeployAction' in event:
-        from c_deploy_beacons import deploy_steps_entrypoint
+        from deploy_beacons import deploy_steps_entrypoint
         print('TRIGGERED by Beacons Deployment Step Function')
         return deploy_steps_entrypoint(event, context)
 
     elif 'DeployStack' in event:
-        from c_deploy_stack import deploy_stack_entrypoint
+        from deploy_stack import deploy_stack_entrypoint
         print('TRIGGERED by Deploy Stack Step Function')
         return deploy_stack_entrypoint(event, context)
 
     elif 'DiscoveryAction' in event:
-        from c_disco import disco_entrypoint
+        from disco import disco_entrypoint
         print('TRIGGERED by Discovery Step Function')
         return disco_entrypoint(event, context)
 
     elif 'DiscoverRouting' in event:
-        from c_disco import discover_routing
+        from disco import discover_routing
         return discover_routing()
 
     elif 'Tokens' in event:
-        from c_tokens import token_entrypoint
+        from tokens import token_entrypoint
         print('TRIGGERED by Token Step Function')
         return token_entrypoint(event, context)
 
@@ -104,12 +104,12 @@ def lambda_handler(event, context):
 
     elif 'Payload' in event:
         if 'CleanupAction' in event['Payload']:
-            from c_cleanup import cleanup_steps_entrypoint
+            from cleanup import cleanup_steps_entrypoint
             print('TRIGGERED by Cleanup Step Function')
             return cleanup_steps_entrypoint(event, context)
 
     elif 'CodePipeline.job' in event:
-        from c_deploy_beacons import codepipline_job
+        from deploy_beacons import codepipline_job
         print('TRIGGERED by CodePipeline')
         codepipline_job(event, context)
 

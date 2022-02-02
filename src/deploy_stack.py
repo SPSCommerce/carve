@@ -1,8 +1,8 @@
 import json
 import os
 from copy import deepcopy
-from c_carve import carve_role_arn
-from c_aws import *
+from carve import carve_role_arn
+from aws import *
 import time
 
 

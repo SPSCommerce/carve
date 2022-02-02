@@ -1,7 +1,7 @@
 import json
 import os
-from c_aws import aws_ssm_put_parameter, aws_ssm_get_parameter
-from c_carve import update_carve_beacons
+from aws import aws_ssm_put_parameter, aws_ssm_get_parameter
+from carve import update_carve_beacons
 
 def sf_SaveToken(event, context):
     # payload must include the following plus Parameters
