@@ -7,7 +7,7 @@ version: 0.2
 phases:
   install:
     commands:
-      - yum update -y
+      - yum update --skip-broken -y
       - yum install -y docker
       - pip install cfn_flip
   build:
