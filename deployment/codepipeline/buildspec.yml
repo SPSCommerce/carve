@@ -13,11 +13,12 @@ phases:
   build:
     commands:
       # upload state machine defintions to s3
-      - aws s3 sync "buildpipeline/deployment/step_functions" s3://$DEPLOYMENT_BUCKET/step_functions/${CODEBUILD_RESOLVED_SOURCE_VERSION}/
+      - ls -la
+      - aws s3 sync "./buildpipeline/deployment/step_functions" s3://$DEPLOYMENT_BUCKET/step_functions/${CODEBUILD_RESOLVED_SOURCE_VERSION}/
       # upload beacon image code to S3
-      - aws s3 sync "buildpipeline/deployment/beacon-image" s3://$DEPLOYMENT_BUCKET/beacon-image/
+      - aws s3 sync "./buildpipeline/deployment/beacon-image" s3://$DEPLOYMENT_BUCKET/beacon-image/
       # convert the VPC template to JSON for python import (CFN yaml is not valid yaml)
-      - cfn-flip "buildpipeline/src/managed_deployment/carve-vpc-stack.cfn.yml" "buildpipeline/src/managed_deployment/carve-vpc-stack.cfn.json"
+      - cfn-flip "./buildpipeline/src/managed_deployment/carve-vpc-stack.cfn.yml" "./buildpipeline/src/managed_deployment/carve-vpc-stack.cfn.json"
       # build lambda container
       - docker build -t carve .
       # log into ECR 
