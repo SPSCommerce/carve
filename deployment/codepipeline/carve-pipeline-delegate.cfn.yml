@@ -303,6 +303,8 @@ Resources:
             Value: !Ref 'IMAGETAG'
           - Name: ECR
             Value: !Ref ECR
+          - Name: AWS_ACCOUNT
+            Value: !Ref 'AWS::AccountId'
       Source:
         Type: CODEPIPELINE
         BuildSpec: deployment/codepipeline/buildspec.yml
@@ -341,6 +343,7 @@ Resources:
                   - ssm:*
                   - secretsmanager:*
                   - kms:Decrypt
+                  - ecr:GetAuthorizationToken
                 Resource:
                   - '*'
               - Sid: S3Policy
@@ -356,3 +359,9 @@ Resources:
                   - iam:PassRole
                 Resource:
                   - '*'
+              - Sid: ecrpolicy
+                Effect: Allow
+                Action:
+                  - ecr:*
+                Resource:
+                  - !GetAtt ECR.Arn

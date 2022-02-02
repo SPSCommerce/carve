@@ -13,7 +13,6 @@ phases:
   build:
     commands:
       # upload state machine defintions to s3
-      - ls -la
       - aws s3 sync "deployment/step_functions" s3://$DEPLOYMENT_BUCKET/step_functions/${CODEBUILD_RESOLVED_SOURCE_VERSION}/
       # upload beacon image code to S3
       - aws s3 sync "deployment/beacon-image" s3://$DEPLOYMENT_BUCKET/beacon-image/
@@ -29,8 +28,10 @@ phases:
       - MINOR=`echo $OLDTAG | awk -F. '{print $2}'`
       - TAG="${MAJOR}.$((MINOR + 1))"
       # tag image with repository so it can be pushed to ECR
+      - echo "tagging container as ${ECR}:${TAG}"
       - docker tag carve ${ECR}:${TAG}
       # push image to ECR
+      - echo "pushing to ECR repo - ${ECR}"
       - docker push  ${ECR}:${TAG}
       # update SSM ECR tag
       - aws ssm put-parameter --name ${IMAGETAG} --value $TAG --type String --overwrite
