@@ -74,7 +74,6 @@ Resources:
           PropogateUpdates: !Ref PropogateUpdates
           Regions: "us-east-1,us-east-2"
           Prefix: !Ref Prefix
-      Handler: entrypoint.lambda_handler
       MemorySize: 1024
       Timeout: 120
       Role: !GetAtt CarveCoreRole.Arn
