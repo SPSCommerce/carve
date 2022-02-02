@@ -50,6 +50,7 @@ Resources:
     Properties:
       FunctionName: !Sub "${Prefix}carve-core"
       Description: Continuous AWS Route Verification Engine
+      PackageType: Image
       Code:
         # S3Bucket: !Ref CodeBucket
         # S3Key: !Sub "lambda_packages/${GITSHA}/package.zip"
