@@ -883,7 +883,7 @@ def aws_describe_subnets(region, credentials, account_id, subnet_id=None):
         print(f"error descibing subnets in {region} in {account_id}: {e}")
         return []
 
-def aws_describe_vpcs(region, credentials):
+def aws_describe_vpcs(region, credentials, account_id):
     client = boto3.client(
         'ec2',
         config=boto_config,
@@ -893,11 +893,16 @@ def aws_describe_vpcs(region, credentials):
         aws_session_token = credentials['SessionToken']
         )
 
-    paginator = client.get_paginator('describe_vpcs')
     vpcs = []
-    for page in paginator.paginate():
-        for vpc in page['Vpcs']:
-            vpcs.append(vpc)
+    try:
+        paginator = client.get_paginator('describe_vpcs')
+        vpcs = []
+        for page in paginator.paginate():
+            for vpc in page['Vpcs']:
+                vpcs.append(vpc)
+    except ClientError as e:
+        print(f"error descibing subnets in {region} in {account_id}: {e}")
+        vpcs = []
     return vpcs
 
 

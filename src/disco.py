@@ -59,7 +59,7 @@ def discover_subnets(region, account_id, account_name, credentials):
     # get all non-default VpcIds owned by this account
     vpcids = []
 
-    vpcs = aws_describe_vpcs(region, credentials)
+    vpcs = aws_describe_vpcs(region, credentials, account_id)
     for vpc in vpcs:
 
         if vpc['OwnerId'] != account_id:
@@ -115,7 +115,7 @@ def discover_vpcs(region, account_id, account_name, credentials):
 
     subnets = aws_describe_subnets(region, credentials, account_id)
 
-    for vpc in aws_describe_vpcs(region, credentials):
+    for vpc in aws_describe_vpcs(region, credentials, account_id):
 
         if vpc['OwnerId'] != account_id:
             # don't add shared VPCs
