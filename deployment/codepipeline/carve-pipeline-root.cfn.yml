@@ -9,10 +9,6 @@ Parameters:
     Type: String
     Description: AWS Organizations Id
     Default: ''
-  UniqueId:
-    Type: String
-    Description: A unique id may be used instead of OrgId on buckets
-    Default: ""
   RootOU:
     Type: String
     Description: AWS Organizations Root OU Id for stackset deploy
@@ -25,22 +21,10 @@ Parameters:
     Default: githuboauthtoken
     Description: GitHubServiceOAUTHToken path in Secrets Manager
     Type: String
-  ImageBuilderExistingSubnetId:
+  CarveCoreAccount:
     Type: String
+    Description: Carve core AccountId
     Default: ""
-    Description: Must have Internet Access, will create if not provided
-  ImageBuilderExistingVpcId:
-    Type: String
-    Default: ""
-    Description: Must have Internet Access, will create if not provided
-  ImageBuilderVpcCIDR:
-    Description: IP range (CIDR notation) for new VPC if needed
-    Type: String
-    Default: "10.0.0.0/24"
-  ImageBuilderPublicSubnetCIDR:
-    Description: IP range (CIDR notation) for subnet in new VPC if needed
-    Type: String
-    Default: "10.0.0.0/28"
 
 Resources:
   CarvePipelineRole:
@@ -73,12 +57,6 @@ Resources:
                   - '*'
               - Effect: Allow
                 Action:
-                  - codebuild:StartBuild
-                  - codebuild:BatchGetBuilds
-                Resource:
-                  - !Sub 'arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/CarveCodeBuild'
-              - Effect: Allow
-                Action:
                   - '*'
                 Resource:
                   - '*'
@@ -106,14 +84,15 @@ Resources:
                 - Name: GithubRepo
               Region: !Ref 'AWS::Region'
               Configuration:
-                Owner: anotherhobby
+                Owner: SPSCommerce
                 Repo: carve
-                Branch: main
+                Branch: dev
                 OAuthToken: !Sub '{{resolve:secretsmanager:${GitHubOAUTHTokenASMPath}:SecretString:token}}'
 
-        - Name: UpdatePipeline
+        - Name: DeployIAM
           Actions:
-            - Name: update-pipeline
+
+            - Name: root-stack
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
@@ -124,27 +103,18 @@ Resources:
                 ActionMode: CREATE_UPDATE
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt 'CarvePipelineRole.Arn'
-                StackName: !Ref "AWS::StackName"
-                TemplatePath: GithubRepo::deployment/codepipeline/carve-pipeline.cfn.yml
-                ParameterOverrides: !Sub '{"DeployBucket": "${DeployBucket}", "OrgId": "${OrgId}", "UniqueId": "${UniqueId}", "RootOU": "${RootOU}", "Prefix": "${Prefix}", "GitHubOAUTHTokenASMPath": "${GitHubOAUTHTokenASMPath}", "ImageBuilderExistingSubnetId": "${ImageBuilderExistingSubnetId}", "ImageBuilderExistingVpcId": "${ImageBuilderExistingVpcId}", "ImageBuilderVpcCIDR": "${ImageBuilderVpcCIDR}", "ImageBuilderPublicSubnetCIDR": "${ImageBuilderPublicSubnetCIDR}"}'
+                StackName: !Sub "${Prefix}carve-org-role"
+                TemplatePath: GithubRepo::deployment/carve-org-stackset.cfn.yml
+                ParameterOverrides: !Sub |
+                  {
+                  "OrgId": "${OrgId}", 
+                  "Prefix": "${Prefix}", 
+                  "CarveCoreAccount": "${CarveCoreAccount}"
+                  }
               OutputArtifacts: []
               InputArtifacts:
                 - Name: GithubRepo
 
-        - Name: PackageLambda-DeployIAM
-          Actions:
-            - Name: carve-lambda-packaging
-              ActionTypeId:
-                Category: Build
-                Owner: AWS
-                Provider: CodeBuild
-                Version: 1
-              InputArtifacts:
-                - Name: GithubRepo
-              Region: !Ref 'AWS::Region'
-              Configuration:
-                ProjectName: !Ref 'CarveCodeBuild'
-                EnvironmentVariables: '[{"name":"GITSHA","value":"#{github_vars.CommitId}","type":"PLAINTEXT"}]'
             - Name: carve-org-stackset
               Region: !Ref 'AWS::Region'
               ActionTypeId:
@@ -161,150 +131,12 @@ Resources:
                 FailureTolerancePercentage: 100
                 MaxConcurrentPercentage: 100
                 PermissionModel: SERVICE_MANAGED
-                StackSetName: !Sub '${Prefix}carve-org-stackset'
+                StackSetName: !Sub "${Prefix}carve-iam"
                 TemplatePath: GithubRepo::deployment/carve-org-stackset.cfn.yml
-                Parameters: !Sub 'ParameterKey=OrgId,ParameterValue=${OrgId}
+                Parameters: !Sub |
+                  ParameterKey=OrgId,ParameterValue=${OrgId}
                   ParameterKey=Prefix,ParameterValue="${Prefix}"
-                  ParameterKey=CarveCoreAccount,ParameterValue="${AWS::AccountId}"'
+                  ParameterKey=CarveCoreAccount,ParameterValue="${CarveCoreAccount}"
               OutputArtifacts: []
               InputArtifacts:
                 - Name: GithubRepo
-
-        - Name: CarveCoreDeploy
-          Actions:
-            - Name: carve-core-stack
-              RunOrder: 1
-              ActionTypeId:
-                Category: Deploy
-                Owner: AWS
-                Provider: CloudFormation
-                Version: 1
-              Configuration:
-                ChangeSetName: pipeline-changeset
-                ActionMode: CREATE_UPDATE
-                Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
-                RoleArn: !GetAtt 'CarvePipelineRole.Arn'
-                StackName: !Sub '${Prefix}carve-core'
-                TemplatePath: GithubRepo::deployment/carve-core.cfn.yml
-                ParameterOverrides: !Sub '{"GITSHA":"#{github_vars.CommitId}","Prefix":"${Prefix}","OrgId":"${OrgId}","UniqueId":"${UniqueId}","CodeBucket":"${DeployBucket}"}'
-              OutputArtifacts: []
-              InputArtifacts:
-                - Name: GithubRepo
-                
-        - Name: PrepManagedDeployments
-          Actions:
-            - Name: update-s3-notification
-              ActionTypeId:
-                Category: Invoke
-                Owner: AWS
-                Provider: Lambda
-                Version: '1'
-              RunOrder: 1
-              Configuration:
-                FunctionName: !Sub "${Prefix}carve-core"
-                UserParameters: BucketNotification
-              OutputArtifacts: []
-              InputArtifacts: []
-              Region: !Ref 'AWS::Region'
-            # - Name: carve-imagebuilder
-            #   ActionTypeId:
-            #     Category: Deploy
-            #     Owner: AWS
-            #     Provider: CloudFormation
-            #     Version: 1
-            #   Configuration:
-            #     ChangeSetName: pipeline-changeset
-            #     ActionMode: CREATE_UPDATE
-            #     Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
-            #     RoleArn: !GetAtt 'CarvePipelineRole.Arn'
-            #     StackName: !Sub '${Prefix}carve-imagebuilder'
-            #     TemplatePath: GithubRepo::deployment/carve-image-builder.cfn.yml
-            #     ParameterOverrides: !Sub '{"ExistingSubnetId":"${ImageBuilderExistingSubnetId}","ExistingVpcId":"${ImageBuilderExistingVpcId}","VpcCIDR":"${ImageBuilderVpcCIDR}","PublicSubnetCIDR":"${ImageBuilderPublicSubnetCIDR}","OrgId":"${OrgId}","UniqueId":"${UniqueId}","Prefix":"${Prefix}","DeployBucket":"${DeployBucket}"}'
-            #   OutputArtifacts: []
-            #   InputArtifacts:
-            #     - Name: GithubRepo
-            - Name: update-carve-managed-resources
-              ActionTypeId:
-                Category: Invoke
-                Owner: AWS
-                Provider: Lambda
-                Version: '1'
-              RunOrder: 2
-              Configuration:
-                FunctionName: !Sub "${Prefix}carve-core"
-                UserParameters: UpdateManagedStacks
-              OutputArtifacts: []
-              InputArtifacts: []
-              Region: !Ref 'AWS::Region'
-
-  CarveCodeBuild:
-    Type: AWS::CodeBuild::Project
-    Properties:
-      Artifacts:
-        Type: CODEPIPELINE
-      Name: CarveCodeBuild
-      ServiceRole: !GetAtt 'CarveCodeBuildRole.Arn'
-      Environment:
-        Type: LINUX_CONTAINER
-        ComputeType: BUILD_GENERAL1_SMALL
-        # Image: aws/codebuild/python:3.7.1
-        Image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
-        PrivilegedMode: true
-        EnvironmentVariables:
-          - Name: DEPLOYMENT_BUCKET
-            Value: !Ref 'DeployBucket'
-          - Name: GIT_TOKEN
-            Value: !Ref 'GitHubOAUTHTokenASMPath'
-      Source:
-        Type: CODEPIPELINE
-        BuildSpec: deployment/codepipeline/buildspec.yml
-      TimeoutInMinutes: 5
-      Tags:
-        - Key: GitSHA
-          Value: '0'
-
-  CarveCodeBuildRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: carve-deploy-codebuild
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: codebuild.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: CodeBuildServiceRoleV2
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Sid: CloudWatchLogsPolicy
-                Effect: Allow
-                Action:
-                  - logs:CreateLogGroup
-                  - logs:CreateLogStream
-                  - logs:PutLogEvents
-                Resource:
-                  - '*'
-              - Sid: DeployPolicy
-                Effect: Allow
-                Action:
-                  - ssm:*
-                  - secretsmanager:*
-                  - kms:Decrypt
-                Resource:
-                  - '*'
-              - Sid: S3Policy
-                Effect: Allow
-                Action:
-                  - s3:*
-                Resource:
-                  - !Sub "arn:aws:s3:::${DeployBucket}"
-                  - !Sub "arn:aws:s3:::${DeployBucket}/*"
-              - Sid: iampolicy
-                Effect: Allow
-                Action:
-                  - iam:PassRole
-                Resource:
-                  - '*'

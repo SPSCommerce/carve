@@ -74,6 +74,7 @@ Resources:
           PropogateUpdates: !Ref PropogateUpdates
           Regions: "us-east-1,us-east-2"
           Prefix: !Ref Prefix
+          OrgRole: arn:aws:iam::*:role/carve-org-role
       MemorySize: 1024
       Timeout: 120
       Role: !GetAtt CarveCoreRole.Arn
@@ -117,7 +118,7 @@ Resources:
                 Action:
                   - sts:AssumeRole
                 Resource:
-                  - !Sub "arn:aws:iam::*:role/${Prefix}carve-role"
+                  - !Sub "arn:aws:iam::*:role/${Prefix}carve-org-role"
               - Effect: Allow
                 Action:
                   - states:StartExecution

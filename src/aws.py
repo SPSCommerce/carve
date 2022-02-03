@@ -7,6 +7,7 @@ import os
 import shelve
 import sys
 import time
+import datetime
 
 current_region = os.environ['AWS_REGION']
 boto_config = Config(retries=dict(max_attempts=10))
@@ -15,7 +16,7 @@ boto_config = Config(retries=dict(max_attempts=10))
 def _get_credentials(arn=None, account=None):
     if arn is not None:
         account = arn.split(':')[4]        
-    role_name = f"{os.environ['Prefix']}carve-core"
+    role_name = f"{os.environ['Prefix']}carve-org-role"
     role = f"arn:aws:iam::{account}:role/{role_name}"
     session_name = "carve-network-test"
     credentials = aws_assume_role(role, session_name)
@@ -754,25 +755,25 @@ def schedule_cron(minutes):
     return cron
 
 
-def aws_schedule_invoke(name, minutes, payload, context):
-    client = boto3.client('events', config=boto_config)
-    response = client.put_rule(
-        Name=name,
-        ScheduleExpression=schedule_cron(minutes),
-        Description='scheduled event for carve',
-        RoleArn=f"{os.environ['Prefix']}carve-core",
-    )
-    # rule_arn = response['RuleArn']
-    response = client.put_targets(
-        Rule=name,
-        Description='scheduled event for carve',
-        RoleArn=f"{os.environ['Prefix']}carve-core",
-        Targets=[{
-            'Id': 'carve-lambda',
-            'Arn': context.invoked_function_arn,
-            'Input': json.dumps(payload)            
-        }]
-    )
+# def aws_schedule_invoke(name, minutes, payload, context):
+#     client = boto3.client('events', config=boto_config)
+#     response = client.put_rule(
+#         Name=name,
+#         ScheduleExpression=schedule_cron(minutes),
+#         Description='scheduled event for carve',
+#         RoleArn=f"{os.environ['Prefix']}carve-core",
+#     )
+#     # rule_arn = response['RuleArn']
+#     response = client.put_targets(
+#         Rule=name,
+#         Description='scheduled event for carve',
+#         RoleArn=f"{os.environ['Prefix']}carve-core",
+#         Targets=[{
+#             'Id': 'carve-lambda',
+#             'Arn': context.invoked_function_arn,
+#             'Input': json.dumps(payload)            
+#         }]
+#     )
 
 
 def aws_delete_rule(name):

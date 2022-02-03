@@ -358,54 +358,54 @@ def deployment_list(G, context):
 
 
 
-def update_bucket_policies(G):
+# def update_bucket_policies(G):
 
-    # determine which accounts have resources in each region in the graph
-    regions = {}
-    for vpc in list(G.nodes):
-        print(vpc)
-        region = G.nodes().data()[vpc]['Region']
-        account = G.nodes().data()[vpc]['Account']
-        if region in regions:
-            if account not in regions[region]:
-                regions[region].append(account)
-        else:
-            regions[region] = [account]
+#     # determine which accounts have resources in each region in the graph
+#     regions = {}
+#     for vpc in list(G.nodes):
+#         print(vpc)
+#         region = G.nodes().data()[vpc]['Region']
+#         account = G.nodes().data()[vpc]['Account']
+#         if region in regions:
+#             if account not in regions[region]:
+#                 regions[region].append(account)
+#         else:
+#             regions[region] = [account]
 
-    # update the policy of each regional bucket
-    if os.environ['UniqueId'] == "":
-        unique = os.environ['OrgId']
-    else:
-        unique = os.environ['UniqueId']
+#     # update the policy of each regional bucket
+#     if os.environ['UniqueId'] == "":
+#         unique = os.environ['OrgId']
+#     else:
+#         unique = os.environ['UniqueId']
 
-    for region, accounts in regions.items():
-        bucket = f"{os.environ['Prefix']}carve-managed-bucket-{unique}-{region}"
-        policy = aws_get_bucket_policy(bucket)
-        # get all account arns that need to deploy thru this region
-        arns = []
-        for a in accounts:
-            arns.append(f"arn:aws:iam::{a}:root")
+#     for region, accounts in regions.items():
+#         bucket = f"{os.environ['Prefix']}carve-managed-bucket-{unique}-{region}"
+#         policy = aws_get_bucket_policy(bucket)
+#         # get all account arns that need to deploy thru this region
+#         arns = []
+#         for a in accounts:
+#             arns.append(f"arn:aws:iam::{a}:root")
 
-        statement = []
+#         statement = []
 
-        # copy existing statements, omitting existing carve-deploy Sid
-        for s in template['Resources']['CarveS3BucketPolicy']['Properties']['PolicyDocument']['Statement']:
-            if s['Sid'] != 'DeploymentAccess':
-                statement.append(deepcopy(s))
+#         # copy existing statements, omitting existing carve-deploy Sid
+#         for s in template['Resources']['CarveS3BucketPolicy']['Properties']['PolicyDocument']['Statement']:
+#             if s['Sid'] != 'DeploymentAccess':
+#                 statement.append(deepcopy(s))
 
-        statement.append(
-            {
-                "Sid": f"DeploymentAccess",
-                "Effect": "Allow",
-                "Action": ["s3:Get"],
-                "Resource":  f"arn:aws:s3:::{os.environ['Prefix']}carve-managed-bucket-{unique}-{region}",
-                "Principal": {"AWS": arns}
-            }
-        )
-        # policy = "PolicyDocument": {"Statement": deepcopy(statement)}
+#         statement.append(
+#             {
+#                 "Sid": f"DeploymentAccess",
+#                 "Effect": "Allow",
+#                 "Action": ["s3:Get"],
+#                 "Resource":  f"arn:aws:s3:::{os.environ['Prefix']}carve-managed-bucket-{unique}-{region}",
+#                 "Principal": {"AWS": arns}
+#             }
+#         )
+#         # policy = "PolicyDocument": {"Statement": deepcopy(statement)}
 
-    # return json.dumps(policy)
-    return
+#     # return json.dumps(policy)
+#     return
 
 
 def codepipline_job(event, context):
@@ -513,8 +513,8 @@ def deploy_steps_entrypoint(event, context):
     if event['DeployAction'] == 'GetDeploymentList':
         response = sf_GetDeploymentList(context)
 
-    if event['DeployAction'] == 'CreateSubscriptions':
-        response = sf_CreateSubscriptions(context)
+    # if event['DeployAction'] == 'CreateSubscriptions':
+    #     response = sf_CreateSubscriptions(context)
 
     if event['DeployAction'] == 'DeploymentComplete':
         response = sf_DeploymentComplete(context)

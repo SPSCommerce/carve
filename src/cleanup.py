@@ -8,7 +8,7 @@ from carve import load_graph, save_graph, carve_role_arn
 from aws import *
 from deploy_beacons import deployment_list, deploy_regions, get_deploy_key
 from multiprocessing import Process, Pipe
-from crhelper import CfnResource
+# from crhelper import CfnResource
 import time
 
 
@@ -146,11 +146,11 @@ def sf_DeploymentComplete(payload):
     # should move deploy graph to completed
     # need to add a final step to state machine
 
-    # move deployment object immediately
-    filename = key.split('/')[-1]
-    deploy_key = f"deploy_started/{filename}"
-    aws_copy_s3_object(key, deploy_key, region)
-    aws_delete_s3_object(key, region)
+    # # move deployment object immediately
+    # filename = key.split('/')[-1]
+    # deploy_key = f"deploy_started/{filename}"
+    # aws_copy_s3_object(key, deploy_key, region)
+    # aws_delete_s3_object(key, region)
 
 
 def sf_DiscoverCarveStacks(payload):

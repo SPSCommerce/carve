@@ -57,16 +57,16 @@ def carve_results():
 
 
 
-def process_test_results(results):
-    # determine verification beacons here
-    G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
+# def process_test_results(results):
+#     # determine verification beacons here
+#     G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
 
-    subnet_beacons = get_subnet_beacons()
+#     subnet_beacons = get_subnet_beacons()
 
-    verify_beacons = []
-    for edge in G.edges:
-        if vpc not in edge:
-            G.remove_edge(edge[0], edge[1])
+#     verify_beacons = []
+#     for edge in G.edges:
+#         if vpc not in edge:
+#             G.remove_edge(edge[0], edge[1])
 
 
 
@@ -467,7 +467,7 @@ def beacon_results(function, beacon):
 
 def carve_role_arn(account):
     # return the carve IAM role ARN for any account number
-    role_name = f"{os.environ['Prefix']}carve-core"
+    role_name = f"{os.environ['Prefix']}carve-org-role"
     role = f"arn:aws:iam::{account}:role/{role_name}"
     return role
 
