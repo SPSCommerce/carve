@@ -237,7 +237,7 @@ def sf_DiscoverAccount(event):
     account_name = event['Input']['account_name']
     regions = event['Input']['regions']
 
-    credentials = aws_assume_role(carve_role_arn(account_id), f"carve-discovery-{region}")
+    credentials = aws_assume_role(carve_role_arn(account_id), f"carve-discovery")
 
     # for resource in ['vpcs', 'pcxs']:
     for region in regions:
