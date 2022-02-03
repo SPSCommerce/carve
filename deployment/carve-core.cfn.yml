@@ -72,13 +72,13 @@ Resources:
           OrgId: !Ref OrgId
           UniqueId: !Ref UniqueId
           PropogateUpdates: !Ref PropogateUpdates
-          Regions: "us-east-1,us-east-2"
+          # Regions: "us-east-1,us-east-2"
           Prefix: !Ref Prefix
           OrgRoleName: carve-org-role
       MemorySize: 1024
       Timeout: 120
       Role: !GetAtt CarveCoreRole.Arn
-      ReservedConcurrentExecutions: 20
+      # ReservedConcurrentExecutions: 20
 
   CarveCoreRole:
     Type: AWS::IAM::Role

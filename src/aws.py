@@ -88,8 +88,8 @@ def aws_all_regions():
     for region in all_regions:
         if region not in unavailable:
             regions.append(region)
-
     # this will disable regions for testing
+    print(f'using regions: {regions}')
     return regions
 
 
