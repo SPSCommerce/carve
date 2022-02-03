@@ -533,6 +533,16 @@ def aws_put_direct(data, key, bucket=os.environ['CarveS3Bucket']):
         return None
 
 
+def aws_s3_list_objects(prefix='', bucket=os.environ['CarveS3Bucket']):
+    keys = []
+    client = boto3.client('s3', config=boto_config)
+    paginator = client.get_paginator('list_objects_v2')
+    for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+        for key in page['Contents']:
+            keys.append(key['Key'])
+    return(keys)
+
+
 def aws_s3_upload(file_name, object_name=None, bucket=os.environ['CarveS3Bucket']):
     client = boto3.client('s3', config=boto_config)
 

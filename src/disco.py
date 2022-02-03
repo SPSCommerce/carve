@@ -243,7 +243,7 @@ def sf_DiscoverAccount(event):
     for region in regions:
         discovered.append(discover_resources('subnets', region, account_id, account_name, credentials))
 
-    return discovered
+    return {'Discovered': True}
 
 
 def sf_StartDiscovery(context):
@@ -273,15 +273,17 @@ def sf_StartDiscovery(context):
 
 def sf_OrganizeDiscovery(event):
 
-    subnets = []
+    # subnets = []
     # pcxs = []
 
-    for payload in event['Input']:
-        for s3_path in payload['Payload']:
-            if 'subnets' in s3_path:
-                subnets.append(s3_path['subnets'])
-            # elif 'pcxs' in s3_path:
-            #     pcxs.append(s3_path['pcxs'])
+    subnets = aws_s3_list_objects(prefix='discovery/accounts')
+
+    # for payload in event['Input']:
+    #     for s3_path in payload['Payload']:
+    #         if 'subnets' in s3_path:
+    #             subnets.append(s3_path['subnets'])
+    #         # elif 'pcxs' in s3_path:
+    #         #     pcxs.append(s3_path['pcxs'])
 
     # Load all subnets into discovered graph G
     name = f"carve-discovered-{int(time.time())}"
