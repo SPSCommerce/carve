@@ -56,8 +56,6 @@ def discover_subnets(region, account_id, account_name, credentials):
     # create graph structure for VPCs
     G = nx.Graph()
 
-    subnets = aws_describe_subnets(region, credentials, account_id)
-
     # get all non-default VpcIds owned by this account
     vpcids = []
 

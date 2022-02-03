@@ -467,8 +467,9 @@ def beacon_results(function, beacon):
 
 def carve_role_arn(account):
     # return the carve IAM role ARN for any account number
-    role_name = f"{os.environ['Prefix']}carve-org-role"
-    role = f"arn:aws:iam::{account}:role/{role_name}"
+    # role_name = f"{os.environ['Prefix']}carve-org-role"
+    role = f"arn:aws:iam::{account}:role/{os.environ['OrgRoleName']}"
+    # role = f"arn:aws:iam::{account}:role/{role_name}"
     return role
 
 

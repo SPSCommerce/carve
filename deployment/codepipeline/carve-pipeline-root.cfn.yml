@@ -131,7 +131,7 @@ Resources:
                 FailureTolerancePercentage: 100
                 MaxConcurrentPercentage: 100
                 PermissionModel: SERVICE_MANAGED
-                StackSetName: !Sub "${Prefix}carve-iam"
+                StackSetName: !Sub "${Prefix}carve-org-role"
                 TemplatePath: GithubRepo::deployment/carve-org-stackset.cfn.yml
                 Parameters: !Sub |
                   ParameterKey=OrgId,ParameterValue=${OrgId}
