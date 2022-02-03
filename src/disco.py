@@ -235,12 +235,13 @@ def sf_DiscoverAccount(event):
     # for region in regions:
     account_id = event['Input']['account_id']
     account_name = event['Input']['account_name']
-    region = event['Input']['region']
+    regions = event['Input']['regions']
 
     credentials = aws_assume_role(carve_role_arn(account_id), f"carve-discovery-{region}")
 
     # for resource in ['vpcs', 'pcxs']:
-    discovered.append(discover_resources('subnets', region, account_id, account_name, credentials))
+    for region in regions:
+        discovered.append(discover_resources('subnets', region, account_id, account_name, credentials))
 
     return discovered
 
@@ -251,13 +252,17 @@ def sf_StartDiscovery(context):
     regions = aws_all_regions()
     discovery_targets = []
     for account_id, account_name in accounts.items():
-        for region in regions:
-            discovery_targets.append({
-                "account_id": account_id,
-                "account_name": account_name,
-                "region": region
-            })
-
+        # for region in regions:
+        #     discovery_targets.append({
+        #         "account_id": account_id,
+        #         "account_name": account_name,
+        #         "region": region
+        #     })
+        discovery_targets.append({
+            "account_id": account_id,
+            "account_name": account_name,
+            "regions": regions
+        })
     print(f"discovering VPCs/PCXs in {len(accounts)} accounts")
 
     # need to purge S3 discovery folder before starting new discovery
