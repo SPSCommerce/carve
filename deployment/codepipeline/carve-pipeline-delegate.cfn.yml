@@ -240,7 +240,7 @@ Resources:
                 RoleArn: !GetAtt 'CarvePipelineRole.Arn'
                 StackName: !Sub '${Prefix}carve-core'
                 TemplatePath: GithubRepo::deployment/carve-core.cfn.yml
-                TemplateConfiguration: GithubRepo::deployment/tags-template.json
+                TemplateConfiguration: GithubRepo::deployment/codepipeline/tags-template.json
                 ParameterOverrides: !Sub |
                   {
                     "GITSHA":"#{github_vars.CommitId}",
@@ -271,7 +271,7 @@ Resources:
                 RoleArn: !GetAtt 'CarvePipelineRole.Arn'
                 StackName: !Sub '${Prefix}carve-image-builder-pipeline'
                 TemplatePath: GithubRepo::deployment/codepipeline/carve-pipeline-image-builder.cfn.yml
-                TemplateConfiguration: GithubRepo::deployment/tags-template.json
+                TemplateConfiguration: GithubRepo::deployment/codepipeline/tags-template.json
                 ParameterOverrides: !Sub |
                   {
                     "ExistingSubnetId":"${ImageBuilderExistingSubnetId}",
