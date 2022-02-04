@@ -49,6 +49,95 @@ Resources:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: 'AES256'
 
+  TagsLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${Prefix}carve-tags"
+      Description: Generate tags file for carve deployments
+      Handler: index.lambda_handler
+      Role: !GetAtt CarvePipelineRole.Arn
+      Runtime: python3.9
+      Timeout: 20
+      MemorySize: 128
+      Code:
+        ZipFile: !Sub |
+          import boto3
+          import json
+          from boto3.session import Session
+          from zipfile import ZipFile
+          import os
+          import shutil
+          import uuid
+
+          def evaluate(event):
+              # Extract attributes passed in by CodePipeline
+              job_id = event['CodePipeline.job']['id']
+              job_data = event['CodePipeline.job']['data']
+              user_params = job_data['actionConfiguration']['configuration']['UserParameters']
+              credentials = job_data['artifactCredentials']
+              output_artifact = job_data['outputArtifacts'][0]
+              output_bucket = output_artifact['location']['s3Location']['bucketName']
+              output_key = output_artifact['location']['s3Location']['objectKey']
+              # Temporary credentials to access CodePipeline artifact in S3
+              key_id = credentials['accessKeyId']
+              key_secret = credentials['secretAccessKey']
+              session_token = credentials['sessionToken']
+
+              return (job_id, user_params, output_bucket, output_key, key_id, key_secret, session_token)
+
+          def get_tags(stackid):
+              '''
+              generate formatted tag data for CFN from the applied tags on pipeline stack
+              '''
+              # stackid = event['CodePipeline.job']['data']['actionConfiguration']['configuration']['UserParameters']
+              print(f"getting tags from pipeline stack: {stackid}")
+              cfn = boto3.client('cloudformation', region_name='us-east-1')
+              stack = cfn.describe_stacks(StackName=stackid)
+              print(f"pipeline stack tags: {stack['Stacks'][0]['Tags']}")
+              tags = {"Tags":{}}
+              for tag in stack['Stacks'][0]['Tags']:
+                  tags['Tags'][tag['Key']] = tag['Value']
+              return tags
+
+          def create_artifact(data):
+              artifact_dir = '/tmp/output_artifacts/'+str(uuid.uuid4())
+              artifact_file = artifact_dir+'/files/carve-tags.json'
+              zipped_artifact_file = artifact_dir+'/artifact.zip'
+              try:
+                  shutil.rmtree(artifact_dir+'/files/')
+              except Exception:
+                  pass
+              try:
+                  os.remove(zipped_artifact_file)
+              except Exception:
+                  pass
+              os.makedirs(artifact_dir+'/files/')
+              with open(artifact_file, 'w') as outfile:
+                  json.dump(data, outfile)
+              with ZipFile(zipped_artifact_file, 'w') as zipped_artifact:
+                  zipped_artifact.write(artifact_file, os.path.basename(artifact_file))
+
+              return zipped_artifact_file
+
+
+          def lambda_handler(event, context):
+              code_pipeline = boto3.client('codepipeline')
+              try:
+                  job_id, user_params, output_bucket, output_key, key_id, key_secret, session_token = evaluate(event)
+                  session = Session(aws_access_key_id=key_id, aws_secret_access_key=key_secret, aws_session_token=session_token)
+                  s3client = session.client('s3')
+                  tags = get_tags(user_params)
+                  zipped_artifact_file = create_artifact(tags)
+                  s3client.upload_file(zipped_artifact_file, output_bucket, output_key, ExtraArgs={"ServerSideEncryption": "AES256"})
+                  # Tell CodePipeline we succeeded
+                  code_pipeline.put_job_success_result(jobId=job_id)
+              except Exception as e:
+                  print(f"ERROR: {e}")
+                  # Tell CodePipeline we failed
+                  code_pipeline.put_job_failure_result(jobId=job_id, failureDetails={'message': e, 'type': 'JobFailed'})
+              return "complete"
+
+
   IMAGETAG:
     Type: AWS::SSM::Parameter
     Properties:
@@ -121,6 +210,7 @@ Resources:
               Service:
                 - codepipeline.amazonaws.com
                 - cloudformation.amazonaws.com
+                - lambda.amazonaws.com
             Action: sts:AssumeRole
       Policies:
         - PolicyName: CodePipelineServiceRole
@@ -226,6 +316,21 @@ Resources:
 
         - Name: CarveCoreDeploy
           Actions:
+            - Name: generate-tags-file
+              ActionTypeId:
+                Category: Invoke
+                Owner: AWS
+                Provider: Lambda
+                Version: '1'
+              RunOrder: 2
+              Configuration:
+                FunctionName: !Ref "TagsLambda"
+                UserParameters: !Ref "AWS::StackId"
+              OutputArtifacts:
+                - Name: TagData
+              InputArtifacts: []
+              Region: !Ref 'AWS::Region'
+
             - Name: carve-core-stack
               RunOrder: 1
               ActionTypeId:
@@ -233,6 +338,9 @@ Resources:
                 Owner: AWS
                 Provider: CloudFormation
                 Version: 1
+              InputArtifacts:
+                - Name: GithubRepo
+                - Name: TagData
               Configuration:
                 ChangeSetName: pipeline-changeset
                 ActionMode: CREATE_UPDATE
@@ -240,7 +348,7 @@ Resources:
                 RoleArn: !GetAtt 'CarvePipelineRole.Arn'
                 StackName: !Sub '${Prefix}carve-core'
                 TemplatePath: GithubRepo::deployment/carve-core.cfn.yml
-                TemplateConfiguration: GithubRepo::deployment/codepipeline/tags-template.json
+                TemplateConfiguration: TagData::carve-tags.json
                 ParameterOverrides: !Sub |
                   {
                     "GITSHA":"#{github_vars.CommitId}",
@@ -252,8 +360,6 @@ Resources:
                     "ECR":"${ECR}"
                   }
               OutputArtifacts: []
-              InputArtifacts:
-                - Name: GithubRepo
                                 
         - Name: PrepManagedDeployments
           Actions:
