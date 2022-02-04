@@ -117,6 +117,7 @@ Resources:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
                   - organizations:ListAccounts
+                  - organizations:DescribeOrganization
                 Resource: "*"
               - Effect: Allow
                 Action:

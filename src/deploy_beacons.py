@@ -257,9 +257,8 @@ def deployment_list(G, context):
         image_id = aws_ssm_get_parameter(f"/{os.environ['Prefix']}carve-resources/carve-beacon-ami", region=region)
         scale = aws_ssm_get_parameter(f"/{os.environ['Prefix']}carve-resources/scale")
 
-        if scale == 'none':
-            desired = 0
-        elif scale == 'subnet':
+        desired = 0
+        if scale == 'subnet':
             desired = len(vpc_subnets)
         elif scale == 'vpc':
             desired = 1
