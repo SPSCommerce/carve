@@ -38,6 +38,10 @@ Parameters:
     Type: 'String'
     Default: carve-repository
     Description: ECR Repo Name
+  # Regions:
+  #   Type: 'String'
+  #   Default: ''
+  #   Description: List of comma separated regions to limit carve
 
 Conditions:
   UseOrgId: !Equals [ !Ref "UniqueId", "" ]
@@ -72,7 +76,7 @@ Resources:
           OrgId: !Ref OrgId
           UniqueId: !Ref UniqueId
           PropogateUpdates: !Ref PropogateUpdates
-          # Regions: "us-east-1,us-east-2"
+          # Regions: !Ref Regions
           Prefix: !Ref Prefix
           OrgRoleName: carve-org-role
       MemorySize: 1024
@@ -144,13 +148,14 @@ Resources:
                   - "*"
                 Resource:
                   - "*"
-                # Condition:
-                #   ForAnyValue:StringEquals:
-                #     aws:CalledVia:
-                #       - cloudformation.amazonaws.com               
+                Condition:
+                  ForAnyValue:StringEquals:
+                    aws:CalledVia:
+                      - cloudformation.amazonaws.com      
               - Effect: Allow
                 Action:
                   - ec2:DescribeInstances
+                  - ec2:DescribeImages
                   - ec2:DescribeNetworkInterfaces
                   - ec2:DescribeVpcs
                   - ec2:DescribeVpcPeeringConnections

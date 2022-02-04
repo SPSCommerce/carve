@@ -119,23 +119,25 @@ def sf_CleanupDeployments(context):
 def cleanup_images():
     # get current AMI
     parameter = f"/{os.environ['Prefix']}carve-resources/carve-beacon-ami"
-    print('cleaning up images')
 
     for region in aws_all_regions():
-        active_image = aws_ssm_get_parameter(parameter, region=region)
-        carve_images = aws_describe_all_carve_images(region)
-
-        for image in carve_images['Images']:
-            if image['ImageId'] != active_image:
-                print(f"cleaing up {image['ImageId']} in {region}")
-                aws_deregister_image(
-                    image['ImageId'],
-                    region
-                )
-                aws_delete_snapshot(
-                    image['BlockDeviceMappings'][0]['Ebs']['SnapshotId'],
-                    region
-                )
+        print(f'cleaning up images in region {region}')
+        try:
+            active_image = aws_ssm_get_parameter(parameter, region=region)
+            carve_images = aws_describe_all_carve_images(region)
+            for image in carve_images['Images']:
+                if image['ImageId'] != active_image:
+                    print(f"cleaing up {image['ImageId']} in {region}")
+                    aws_deregister_image(
+                        image['ImageId'],
+                        region
+                    )
+                    aws_delete_snapshot(
+                        image['BlockDeviceMappings'][0]['Ebs']['SnapshotId'],
+                        region
+                    )
+        except Exception as e:
+            print(f'ERROR cleaning up images in region {region}: {e}')
 
 
 def sf_DeploymentComplete(payload):
