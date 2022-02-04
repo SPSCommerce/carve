@@ -229,6 +229,7 @@ Resources:
                 RoleArn: !GetAtt 'CarvePipelineRole.Arn'
                 StackName: !Sub '${Prefix}carve-core'
                 TemplatePath: GithubRepo::deployment/carve-core.cfn.yml
+                TemplateConfiguration: GithubRepo::deployment/tags-template.json
                 ParameterOverrides: !Sub '{"GITSHA":"#{github_vars.CommitId}","Prefix":"${Prefix}","OrgId":"${OrgId}","UniqueId":"${UniqueId}","CodeBucket":"${DeployBucket}","IMAGETAG":"#{codebuild_vars.TAG}","ECR":"${ECR}"}'
               OutputArtifacts: []
               InputArtifacts:
@@ -250,6 +251,7 @@ Resources:
                 RoleArn: !GetAtt 'CarvePipelineRole.Arn'
                 StackName: !Sub '${Prefix}carve-image-builder-pipeline'
                 TemplatePath: GithubRepo::deployment/codepipeline/carve-pipeline-image-builder.cfn.yml
+                TemplateConfiguration: GithubRepo::deployment/tags-template.json
                 ParameterOverrides: !Sub '{"ExistingSubnetId":"${ImageBuilderExistingSubnetId}","ExistingVpcId":"${ImageBuilderExistingVpcId}","VpcCIDR":"${ImageBuilderVpcCIDR}","PublicSubnetCIDR":"${ImageBuilderPublicSubnetCIDR}","Prefix":"${Prefix}","OrgId":"${OrgId}","UniqueId":"${UniqueId}","DeployBucket":"${DeployBucket}","GitHubOAUTHTokenASMPath":"${GitHubOAUTHTokenASMPath}"}'
               OutputArtifacts: []
               InputArtifacts:

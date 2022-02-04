@@ -52,7 +52,7 @@
         }
       },
       "End": true,
-      "TimeoutSeconds": 30
+      "TimeoutSeconds": 300
     }
   }
 }
