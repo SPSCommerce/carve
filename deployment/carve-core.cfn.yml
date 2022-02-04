@@ -173,6 +173,12 @@ Resources:
                 Resource:
                   - !Sub "arn:aws:s3:::${Prefix}carve-managed-bucket-${OrgId}-${AWS::Region}"
                   - !Sub "arn:aws:s3:::${Prefix}carve-managed-bucket-${OrgId}-${AWS::Region}/*"
+              - Effect: Allow
+                Action:
+                  - codepipeline:PutJobSuccessResult
+                Resource:
+                  - !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:CarveDeploymentPipeline"
+
 
   CarveDeployStacksStepFunction:
     Type: AWS::StepFunctions::StateMachine
