@@ -177,25 +177,25 @@ Resources:
                 Branch: dev
                 OAuthToken: !Sub '{{resolve:secretsmanager:${GitHubOAUTHTokenASMPath}:SecretString:token}}'
 
-        # - Name: UpdatePipeline
-        #   Actions:
-        #     - Name: update-pipeline
-        #       ActionTypeId:
-        #         Category: Deploy
-        #         Owner: AWS
-        #         Provider: CloudFormation
-        #         Version: 1
-        #       Configuration:
-        #         ChangeSetName: pipeline-changeset
-        #         ActionMode: CREATE_UPDATE
-        #         Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
-        #         RoleArn: !GetAtt 'CarvePipelineRole.Arn'
-        #         StackName: !Ref "AWS::StackName"
-        #         TemplatePath: GithubRepo::deployment/codepipeline/carve-pipeline.cfn.yml
-        #         ParameterOverrides: !Sub '{"DeployBucket": "${DeployBucket}", "OrgId": "${OrgId}", "UniqueId": "${UniqueId}", "RootOU": "${RootOU}", "Prefix": "${Prefix}", "GitHubOAUTHTokenASMPath": "${GitHubOAUTHTokenASMPath}", "ImageBuilderExistingSubnetId": "${ImageBuilderExistingSubnetId}", "ImageBuilderExistingVpcId": "${ImageBuilderExistingVpcId}", "ImageBuilderVpcCIDR": "${ImageBuilderVpcCIDR}", "ImageBuilderPublicSubnetCIDR": "${ImageBuilderPublicSubnetCIDR}"}'
-        #       OutputArtifacts: []
-        #       InputArtifacts:
-        #         - Name: GithubRepo
+        - Name: UpdatePipeline
+          Actions:
+            - Name: update-pipeline
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              Configuration:
+                ChangeSetName: pipeline-changeset
+                ActionMode: CREATE_UPDATE
+                Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
+                RoleArn: !GetAtt 'CarvePipelineRole.Arn'
+                StackName: !Ref "AWS::StackName"
+                TemplatePath: GithubRepo::deployment/codepipeline/carve-pipeline-delegate.cfn.yml
+                ParameterOverrides: !Sub '{"DeployBucket": "${DeployBucket}", "OrgId": "${OrgId}", "UniqueId": "${UniqueId}", "RootOU": "${RootOU}", "Prefix": "${Prefix}", "GitHubOAUTHTokenASMPath": "${GitHubOAUTHTokenASMPath}", "ImageBuilderExistingSubnetId": "${ImageBuilderExistingSubnetId}", "ImageBuilderExistingVpcId": "${ImageBuilderExistingVpcId}", "ImageBuilderVpcCIDR": "${ImageBuilderVpcCIDR}", "ImageBuilderPublicSubnetCIDR": "${ImageBuilderPublicSubnetCIDR}"}'
+              OutputArtifacts: []
+              InputArtifacts:
+                - Name: GithubRepo
 
         - Name: PackageLambda
           Actions:
