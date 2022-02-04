@@ -176,8 +176,9 @@ Resources:
               - Effect: Allow
                 Action:
                   - codepipeline:PutJobSuccessResult
+                  - codepipeline:PutJobFailureResult
                 Resource:
-                  - !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:CarveDeploymentPipeline"
+                  - "*"
 
 
   CarveDeployStacksStepFunction:
