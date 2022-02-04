@@ -322,7 +322,7 @@ Resources:
                 Owner: AWS
                 Provider: Lambda
                 Version: '1'
-              RunOrder: 2
+              RunOrder: 1
               Configuration:
                 FunctionName: !Ref "TagsLambda"
                 UserParameters: !Ref "AWS::StackId"
@@ -332,7 +332,7 @@ Resources:
               Region: !Ref 'AWS::Region'
 
             - Name: carve-core-stack
-              RunOrder: 1
+              RunOrder: 2
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
