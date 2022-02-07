@@ -710,6 +710,7 @@ def aws_ssm_get_parameter(parameter, region=current_region):
         response = client.get_parameter(Name=parameter, WithDecryption=True)
         value = response['Parameter']['Value']
     except ClientError as e:
+        print(f"Error getting paramter {parameter}: {e}")
         value = None
     return value
 
