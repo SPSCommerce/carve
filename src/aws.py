@@ -438,7 +438,7 @@ def aws_describe_change_set(changesetname, region, credentials):
     return response
 
 
-def aws_find_stacks(startswith, region, credentials):
+def aws_find_stacks(startswith, account, region, credentials):
     client = boto3.client(
         'cloudformation',
         config=boto_config,
@@ -456,12 +456,16 @@ def aws_find_stacks(startswith, region, credentials):
         'UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS', 'UPDATE_ROLLBACK_COMPLETE'
     ]
 
-    paginator = client.get_paginator('list_stacks')
     stacks = []
-    for page in paginator.paginate(StackStatusFilter=sfilter):
-        for stack in page['StackSummaries']:
-            if stack['StackName'].startswith(startswith):
-                stacks.append(stack)
+    try:
+        paginator = client.get_paginator('list_stacks')
+        for page in paginator.paginate(StackStatusFilter=sfilter):
+            for stack in page['StackSummaries']:
+                if stack['StackName'].startswith(startswith):
+                    stacks.append(stack)
+    except ClientError as e:
+        print(f"cannot list stacks in {account} in {region}: {e}")
+
     return stacks
 
 
