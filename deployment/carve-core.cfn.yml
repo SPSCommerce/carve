@@ -183,12 +183,13 @@ Resources:
               - Effect: Allow
                 Action:
                   - ssm:DescribeParameters
+                Resources:
                   - ssm:PutParameter
                   - ssm:GetParam*
                   - ssm:DeleteParameter
                   - ssm:DeleteParameters
                 Resource:
-                  - arn:aws:ssm:*:*:parameter/${Prefix}carve-resources/*
+                  - !Sub "arn:aws:ssm:*:*:parameter/${Prefix}carve-resources/*"
 
   CarveDeployStacksStepFunction:
     Type: AWS::StepFunctions::StateMachine
