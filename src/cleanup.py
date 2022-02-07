@@ -100,9 +100,9 @@ def sf_CleanupDeployments(context):
 
     print(f'all safe stacks: {safe_stacks}')
 
-    # create discovery list of all accounts/regions for step function
+    # create discovery list of all accounts for step function
     discover_stacks = []
-    for account_id in accounts.items():
+    for account_id, account_name in accounts.items():
         cleanup = {}
         cleanup['Account'] = account_id
         cleanup['SafeStacks'] = []
