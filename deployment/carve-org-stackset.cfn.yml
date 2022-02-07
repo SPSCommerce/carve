@@ -97,4 +97,4 @@ Resources:
                 Action:
                   - autoscaling:UpdateAutoScalingGroup
                 Resource:
-                  - arn:aws:autoscaling:*:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${Prefix}carve-beacon-asg-vpc-*
+                  - !Sub "arn:aws:autoscaling:*:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${Prefix}carve-beacon-asg-vpc-*"
