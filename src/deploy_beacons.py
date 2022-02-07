@@ -110,17 +110,18 @@ def sf_DeployPrep():
 
     regions = deploy_regions(G)
 
-    # upload the beacon python code snippets for CFN to each deploy region
-    if os.environ['UniqueId'] == "":
-        unique = os.environ['OrgId']
-    else:
-        unique = os.environ['UniqueId']
+    # # upload the beacon python code snippets for CFN to each deploy region
+    # if os.environ['UniqueId'] == "":
+    #     unique = os.environ['OrgId']
+    # else:
+    #     unique = os.environ['UniqueId']
 
     # for r in regions:
     #     bucket=f"{os.environ['Prefix']}carve-managed-bucket-{unique}-{r}"
     #     aws_s3_upload('managed_deployment/carve-updater.yml', bucket=bucket)
 
     parameter = f"/{os.environ['Prefix']}carve-resources/carve-beacon-ami"
+    print(f"getting parameter {parameter} in {current_region}")
     source_image = aws_ssm_get_parameter(parameter)
     print(f"source_image: {source_image}")
     source_name = aws_describe_image(source_image)['Name']
