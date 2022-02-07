@@ -186,6 +186,7 @@ Resources:
               #   Resources:
               #     - "*"
               - Effect: Allow
+                Action:
                   - ssm:PutParameter
                   - ssm:GetParam*
                   - ssm:DeleteParameter
