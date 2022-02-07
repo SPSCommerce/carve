@@ -173,7 +173,8 @@ def sf_DiscoverCarveStacks(payload):
                 credentials=credentials
             ))
         for future in concurrent.futures.as_completed(futures):
-            delete_stacks.append(future.result())
+            for stack in future.result():
+                delete_stacks.append(stack)
 
     return delete_stacks
 
