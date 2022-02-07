@@ -180,10 +180,12 @@ Resources:
                   - codepipeline:PutJobFailureResult
                 Resource:
                   - "*"
+              # - Effect: Allow
+              #   Action:
+              #     - ssm:DescribeParameters
+              #   Resources:
+              #     - "*"
               - Effect: Allow
-                Action:
-                  - ssm:DescribeParameters
-                Resources:
                   - ssm:PutParameter
                   - ssm:GetParam*
                   - ssm:DeleteParameter
