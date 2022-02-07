@@ -11,6 +11,9 @@ from multiprocessing import Process, Pipe
 # from crhelper import CfnResource
 import time
 
+import concurrent.futures
+import threading
+
 
 def sf_DescribeDeleteStack(payload):
     account = payload['Account']
@@ -70,9 +73,8 @@ def sf_CleanupDeployments(context):
 
     print(f'cleaning up after graph deploy: {deploy_key}')
 
-    # need all accounts & regions
     accounts = aws_discover_org_accounts()
-    regions = aws_all_regions()
+    # regions = aws_all_regions()
 
     # create a list for carve stacks to not delete
     safe_stacks = []
@@ -100,17 +102,14 @@ def sf_CleanupDeployments(context):
 
     # create discovery list of all accounts/regions for step function
     discover_stacks = []
-    for region in regions:
-        for account_id, account_name in accounts.items():
-            cleanup = {}
-            cleanup['Account'] = account_id
-            cleanup['Region'] = region
-            cleanup['SafeStacks'] = []
-            for stack in safe_stacks:
-                if stack['Account'] == account_id:
-                    if stack['Region'] == region:
-                        cleanup['SafeStacks'].append(stack['StackName'])
-            discover_stacks.append(cleanup)
+    for account_id in accounts.items():
+        cleanup = {}
+        cleanup['Account'] = account_id
+        cleanup['SafeStacks'] = []
+        for stack in safe_stacks:
+            if stack['Account'] == account_id:
+                cleanup['SafeStacks'] = safe_stacks
+        discover_stacks.append(cleanup)
 
     # returns to a step function iterator
     return discover_stacks
@@ -157,16 +156,36 @@ def sf_DeploymentComplete(payload):
 
 def sf_DiscoverCarveStacks(payload):
     account = payload['Account']
-    region = payload['Region']
     safe_stacks = payload['SafeStacks']
-
-    credentials = aws_assume_role(carve_role_arn(account), f"carve-cleanup-{region}")
-
-    # find all carve managed stacks
+    credentials = aws_assume_role(carve_role_arn(account), f"carve-cleanup")
     startswith = f"{os.environ['Prefix']}carve-managed-"
+
+    futures = set()
+    delete_stacks = []
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        for region in aws_all_regions():
+            futures.add(executor.submit(
+                threaded_find_stacks,
+                account=account,
+                region=region,
+                safe_stacks=safe_stacks,
+                startswith=startswith,
+                credentials=credentials
+            ))
+        for future in concurrent.futures.as_completed(futures):
+            delete_stacks.append(future.result())
+
+    return delete_stacks
+
+
+def threaded_find_stacks(account, region, safe_stacks, startswith, credentials):
+    # find all carve managed stacks
     stacks = aws_find_stacks(startswith, account, region, credentials)
 
-    if len(stacks) == 0:
+    if stacks is None:
+        print(f"cannot list stacks in {account} in {region}.")        
+        return []        
+    elif len(stacks) == 0:
         print(f"found no stacks to delete in {account} in {region}.")        
         return []
     else:

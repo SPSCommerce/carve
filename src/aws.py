@@ -73,7 +73,6 @@ def aws_discover_org_accounts():
     return accounts
 
 
-
 def aws_all_regions():
     # get all regions
     if 'Regions' in os.environ:
