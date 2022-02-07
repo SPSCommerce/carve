@@ -120,11 +120,11 @@ def sf_DeployPrep():
     #     bucket=f"{os.environ['Prefix']}carve-managed-bucket-{unique}-{r}"
     #     aws_s3_upload('managed_deployment/carve-updater.yml', bucket=bucket)
 
-    source_image = aws_ssm_get_parameter(f"/{os.environ['Prefix']}carve-resources/carve-beacon-ami")
+    parameter = f"/{os.environ['Prefix']}carve-resources/carve-beacon-ami"
+    source_image = aws_ssm_get_parameter(parameter)
+    print(f"source_image: {source_image}")
     source_name = aws_describe_image(source_image)['Name']
     print(f'AMI source_name: {source_name}')
-
-    parameter = f"/{os.environ['Prefix']}carve-resources/carve-beacon-ami"
 
     # threaded copy of all AMIs
     results = []
