@@ -158,7 +158,7 @@ Resources:
         - DeviceName: /dev/xvda
           Ebs:
             VolumeType: gp2
-            VolumeSize: '2'
+            VolumeSize: '8'
             DeleteOnTermination: 'true'
             Encrypted: 'true'
 
