@@ -402,7 +402,7 @@ Resources:
                 Version: '1'
               RunOrder: 1
               Configuration:
-                FunctionName: !Sub "${Prefix}carve-core"
+                FunctionName: !Sub "${Prefix}carve-core-entrypoint"
                 UserParameters: BucketNotification
               OutputArtifacts: []
               InputArtifacts: []
@@ -416,7 +416,7 @@ Resources:
                 Version: '1'
               RunOrder: 2
               Configuration:
-                FunctionName: !Sub "${Prefix}carve-core"
+                FunctionName: !Sub "${Prefix}carve-core-entrypoint"
                 UserParameters: UpdateManagedStacks
               OutputArtifacts: []
               InputArtifacts: []
