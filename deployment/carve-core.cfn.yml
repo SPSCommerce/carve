@@ -65,6 +65,7 @@ Resources:
         Prefix: !Ref Prefix
         PropogateUpdates: !Ref PropogateUpdates
         UniqueId: !Ref UniqueId
+        RoleArn: !GetAtt CarveCoreRole.Arn
       TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
       TimeoutInMinutes: 5
 
@@ -457,11 +458,10 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
     #  FunctionName: !Ref CarveFunction
-    FunctionName: 
-      Fn::GetAtt: [CarveFunctionStack, Outputs.LambdaArn]
-    Action: "lambda:InvokeFunction"
-    Principal: "events.amazonaws.com"
-    SourceArn: !GetAtt SSMParameterChange.Arn
+      FunctionName: !GetAtt [CarveFunctionStack, Outputs.LambdaArn]
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn: !GetAtt SSMParameterChange.Arn
 
   CloudWatchRole:
     Type: AWS::IAM::Role

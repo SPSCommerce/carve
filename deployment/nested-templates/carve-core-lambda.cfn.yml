@@ -46,6 +46,10 @@ Parameters:
     Type: 'String'
     Default: entrypoint
     Description: Container's code handler
+  RoleArn:
+    Type: 'String'
+    Default: entrypoint
+    Description: lambda role ARN  
 
 Conditions:
   UseOrgId: !Equals [ !Ref "UniqueId", "" ]
@@ -83,7 +87,7 @@ Resources:
           OrgRoleName: !Sub ${Prefix}carve-org-role
       MemorySize: 1024
       Timeout: 120
-      Role: !GetAtt CarveCoreRole.Arn
+      Role: !Ref RoleArn
       # ReservedConcurrentExecutions: 20
 
 Outputs:
