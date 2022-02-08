@@ -115,6 +115,7 @@ Resources:
                   - states:Describe*
                   - states:Get*
                   - states:List*
+                  - states:SendTaskSuccess
                 Resource:
                   - !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-*-statemachine"
               # - Effect: "Allow"
