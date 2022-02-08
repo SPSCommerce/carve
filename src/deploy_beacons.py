@@ -304,7 +304,7 @@ def deployment_list(G, context):
           },
           {
             "ParameterKey": "PublicIPs",
-            "ParameterValue": "true"
+            "ParameterValue": "false"
           }
         ]
 
