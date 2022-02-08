@@ -40,7 +40,7 @@ def carve_results():
 
         for future in concurrent.futures.as_completed(futures):
             result = future.result()
-
+            print(result)
             results[result['subnet']] = {
                 'beacon': result['beacon'],
                 'status': result['status'],
