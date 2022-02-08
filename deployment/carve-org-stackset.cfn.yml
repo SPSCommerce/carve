@@ -43,7 +43,7 @@ Resources:
                   - lambda:ListTags
                   - lambda:GetFunction
                 Resource:
-                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${Prefix}carve-subnet-*"
+                  - !Sub "arn:aws:lambda:*:${AWS::AccountId}:function:${Prefix}carve-subnet-*"
               - Effect: Allow
                 Action:
                   - iam:PassRole
@@ -57,7 +57,7 @@ Resources:
                 Action:
                   - "sns:*"
                 Resource: 
-                  - !Sub "arn:aws:sns:us-east-1:${CarveCoreAccount}:${Prefix}carve-org-events"
+                  - !Sub "arn:aws:sns:${AWS::Region}:${CarveCoreAccount}:${Prefix}carve-org-events"
               - Effect: Allow
                 Action:
                   - cloudformation:*
