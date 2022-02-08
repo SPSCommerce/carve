@@ -78,7 +78,7 @@ Resources:
           PropogateUpdates: !Ref PropogateUpdates
           # Regions: !Ref Regions
           Prefix: !Ref Prefix
-          OrgRoleName: carve-org-role
+          OrgRoleName: !Sub ${Prefix}carve-org-role
       MemorySize: 1024
       Timeout: 120
       Role: !GetAtt CarveCoreRole.Arn
@@ -493,8 +493,8 @@ Resources:
    #     ScheduleExpression:  "cron(* * * * *)"  # Every Minute
    #     State: ENABLED
    #     Targets:
-   #       - Arn: !GetAtt CraveFunction.Arn
-   #         Id: !Ref CraveFunction
+   #       - Arn: !GetAtt CarveFunction.Arn
+   #         Id: !Ref CarveFunction
 
   CarveS3Bucket:
     Type: AWS::S3::Bucket

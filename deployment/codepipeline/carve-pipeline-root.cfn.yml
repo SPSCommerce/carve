@@ -64,7 +64,7 @@ Resources:
   CarveDeploymentPipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
-      Name: CarveDeploymentPipeline
+      Name: !Sub "${Prefix}CarveDeploymentPipeline"
       RoleArn: !GetAtt 'CarvePipelineRole.Arn'
       RestartExecutionOnUpdate: true
       ArtifactStore:

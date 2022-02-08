@@ -10,7 +10,7 @@ Parameters:
 
   CarveCoreAccount:
     Type: String
-    Description: AWS Organizations Root AccountId
+    Description: Account ID where carve core is deployed
     Default: ""
 
   Prefix:
@@ -80,6 +80,7 @@ Resources:
                   - ec2:DescribeVpcPeeringConnections
                   - ec2:DescribeRegions
                   - ec2:DescribeSubnets
+                  - ec2:DescribeTags
                   - ec2:AttachNetworkInterface
                   - ec2:DetachNetworkInterface
                   - ec2:CreateNetworkInterface
@@ -87,6 +88,14 @@ Resources:
                   - autoscaling:DescribeAutoScalingGroups
                 Resource:
                   - "*"
+              - Effect: Allow
+                Action:
+                  - ec2:CreateTags
+                Resource:
+                  - "*"
+                Condition:
+                  StringEquals:
+                    "ec2:ResourceTag/aws:cloudformation:stack-name": "${Prefix}carve-managed-vpc-*"
               - Effect: Allow
                 Action:
                   - s3:*
