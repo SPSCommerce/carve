@@ -6,7 +6,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
-def handler(event, context):
+def lambda_handler(event, context):
     '''
     entrypoint for invoke events:
         - step function executing route test

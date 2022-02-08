@@ -49,40 +49,24 @@ Conditions:
 
 Resources:
 
-  CarveFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      FunctionName: !Sub "${Prefix}carve-core"
-      Description: Continuous AWS Route Verification Engine
-      PackageType: Image
-      Code:
-        ImageUri: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECR}:${IMAGETAG}"
-      Environment:
-        Variables:
-          CodeBucket: !Ref CodeBucket
-          CarveS3Bucket: !If
-            - UseOrgId
-            - !Sub "${Prefix}carve-managed-bucket-${OrgId}-${AWS::Region}"
-            - !Sub "${Prefix}carve-managed-bucket-${UniqueId}-${AWS::Region}"
-          CarveSNSTopicArn: !Ref OrgSNSTopic
-          CarveVersion: !Ref CarveVersion
-          CleanupStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-cleanup-statemachine
-          DeployBeaconsStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-deploy-beacons-statemachine
-          DeployStacksStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-deploy-stacks-statemachine
-          DiscoveryStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-discovery-statemachine
-          TokenStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-token-statemachine
-          GITSHA: !Ref GITSHA
-          MPLCONFIGDIR: /tmp/matplotlib
-          OrgId: !Ref OrgId
-          UniqueId: !Ref UniqueId
-          PropogateUpdates: !Ref PropogateUpdates
-          # Regions: !Ref Regions
-          Prefix: !Ref Prefix
-          OrgRoleName: !Sub ${Prefix}carve-org-role
-      MemorySize: 1024
-      Timeout: 120
-      Role: !GetAtt CarveCoreRole.Arn
-      # ReservedConcurrentExecutions: 20
+  CarveFunctionStack:
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      Parameters:
+        # only change the hanlder file for each lambda function (file must have a lambda_handler)
+        HandlerFile: entrypoint
+        # params below are the same for all nested lambda stacks
+        CarveVersion: !Ref CarveVersion
+        CodeBucket: !Ref CodeBucket
+        ECR: !Ref ECR
+        IMAGETAG: !Ref IMAGETAG
+        OrgId: !Ref OrgId
+        OrgSNSTopic: !Ref OrgSNSTopic
+        Prefix: !Ref Prefix
+        PropogateUpdates: !Ref PropogateUpdates
+        UniqueId: !Ref UniqueId
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TimeoutInMinutes: 5
 
   CarveCoreRole:
     Type: AWS::IAM::Role
@@ -214,7 +198,7 @@ Resources:
     Properties: 
       DefinitionS3Location: 
         Bucket: !Ref CodeBucket
-        Key: !Sub "step_functions/${GITSHA}/steps-carve-deploy-stacks.json"
+        Key: !Sub "step-functions/${GITSHA}/steps-carve-deploy-stacks.json"
       DefinitionSubstitutions: 
         CarveFunction: !Ref CarveFunction
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
@@ -226,7 +210,7 @@ Resources:
     Properties: 
       DefinitionS3Location: 
         Bucket: !Ref CodeBucket
-        Key: !Sub "step_functions/${GITSHA}/steps-carve-tokens-ssm.json"
+        Key: !Sub "step-functions/${GITSHA}/steps-carve-tokens-ssm.json"
       DefinitionSubstitutions: 
         CarveFunction: !Ref CarveFunction
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
@@ -238,7 +222,7 @@ Resources:
     Properties: 
       DefinitionS3Location: 
         Bucket: !Ref CodeBucket
-        Key: !Sub "step_functions/${GITSHA}/steps-carve-deploy-beacons.json"
+        Key: !Sub "step-functions/${GITSHA}/steps-carve-deploy-beacons.json"
       DefinitionSubstitutions: 
         CarveFunction: !Ref CarveFunction
         CarveDeployStacksStepFunction: !Ref CarveDeployStacksStepFunction
@@ -252,7 +236,7 @@ Resources:
     Properties: 
       DefinitionS3Location: 
         Bucket: !Ref CodeBucket
-        Key: !Sub "step_functions/${GITSHA}/steps-carve-cleanup.json"
+        Key: !Sub "step-functions/${GITSHA}/steps-carve-cleanup.json"
       DefinitionSubstitutions: 
         CarveFunction: !GetAtt CarveFunction.Arn
         CarveDeployStacksStepFunction: !Ref CarveDeployStacksStepFunction
@@ -265,7 +249,7 @@ Resources:
     Properties: 
       DefinitionS3Location: 
         Bucket: !Ref CodeBucket
-        Key: !Sub "step_functions/${GITSHA}/steps-carve-discovery.json"
+        Key: !Sub "step-functions/${GITSHA}/steps-carve-discovery.json"
       DefinitionSubstitutions: 
         CarveFunction: !Ref CarveFunction
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
