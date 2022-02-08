@@ -200,7 +200,8 @@ Resources:
         Bucket: !Ref CodeBucket
         Key: !Sub "step-functions/${GITSHA}/steps-carve-deploy-stacks.json"
       DefinitionSubstitutions: 
-        CarveFunction: !Ref CarveFunction
+        # CarveFunction: !Ref CarveFunction
+        CarveFunction: Fn::GetAtt: [CarveFunctionStack, Outputs.LambdaName]
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
       StateMachineName: !Sub "${Prefix}carve-deploy-stacks-statemachine"
       StateMachineType: STANDARD
@@ -212,7 +213,8 @@ Resources:
         Bucket: !Ref CodeBucket
         Key: !Sub "step-functions/${GITSHA}/steps-carve-tokens-ssm.json"
       DefinitionSubstitutions: 
-        CarveFunction: !Ref CarveFunction
+        # CarveFunction: !Ref CarveFunction
+        CarveFunction: Fn::GetAtt: [CarveFunctionStack, Outputs.LambdaName]
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
       StateMachineName: !Sub "${Prefix}carve-token-statemachine"
       StateMachineType: STANDARD
@@ -224,7 +226,8 @@ Resources:
         Bucket: !Ref CodeBucket
         Key: !Sub "step-functions/${GITSHA}/steps-carve-deploy-beacons.json"
       DefinitionSubstitutions: 
-        CarveFunction: !Ref CarveFunction
+        # CarveFunction: !Ref CarveFunction
+        CarveFunction: Fn::GetAtt: [CarveFunctionStack, Outputs.LambdaName]
         CarveDeployStacksStepFunction: !Ref CarveDeployStacksStepFunction
         CarveCleanupStepFunction: !Ref CarveCleanupStepFunction
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
@@ -238,7 +241,8 @@ Resources:
         Bucket: !Ref CodeBucket
         Key: !Sub "step-functions/${GITSHA}/steps-carve-cleanup.json"
       DefinitionSubstitutions: 
-        CarveFunction: !GetAtt CarveFunction.Arn
+        # CarveFunction: !GetAtt CarveFunction.Arn
+        CarveFunction: Fn::GetAtt: [CarveFunctionStack, Outputs.LambdaArn]
         CarveDeployStacksStepFunction: !Ref CarveDeployStacksStepFunction
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
       StateMachineName: !Sub "${Prefix}carve-cleanup-statemachine"
@@ -251,7 +255,8 @@ Resources:
         Bucket: !Ref CodeBucket
         Key: !Sub "step-functions/${GITSHA}/steps-carve-discovery.json"
       DefinitionSubstitutions: 
-        CarveFunction: !Ref CarveFunction
+        # CarveFunction: !Ref CarveFunction
+        CarveFunction: Fn::GetAtt: [CarveFunctionStack, Outputs.LambdaName]
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
       StateMachineName: !Sub "${Prefix}carve-discovery-statemachine"
       StateMachineType: STANDARD
@@ -304,7 +309,8 @@ Resources:
   OrgSNSSubscription:
     Type: AWS::SNS::Subscription
     Properties:
-      Endpoint: !GetAtt CarveFunction.Arn
+      # Endpoint: !GetAtt CarveFunction.Arn
+      Endpoint: Fn::GetAtt: [CarveFunctionStack, Outputs.LambdaArn]
       Protocol: Lambda
       TopicArn: !Ref OrgSNSTopic
 
@@ -314,7 +320,8 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: sns.amazonaws.com
       SourceArn: !Ref OrgSNSTopic
-      FunctionName: !GetAtt CarveFunction.Arn
+      # FunctionName: !GetAtt CarveFunction.Arn
+      FunctionName: Fn::GetAtt: [CarveFunctionStack, Outputs.LambdaArn]
 
   OrgSNSTopicPolicy:
     Type: AWS::SNS::TopicPolicy
@@ -435,12 +442,14 @@ Resources:
       State: "ENABLED"
       Targets:
         - Id: "InvokeCarve"
-          Arn: !GetAtt CarveFunction.Arn
+          # Arn: !GetAtt CarveFunction.Arn
+          Arn: Fn::GetAtt: [CarveFunctionStack, Outputs.LambdaArn]
 
   CloudWatchInvokeLambda:
      Type: AWS::Lambda::Permission
      Properties:
-       FunctionName: !Ref CarveFunction
+      #  FunctionName: !Ref CarveFunction
+       FunctionName: Fn::GetAtt: [CarveFunctionStack, Outputs.LambdaArn]
        Action: "lambda:InvokeFunction"
        Principal: "events.amazonaws.com"
        SourceArn: !GetAtt SSMParameterChange.Arn
@@ -467,7 +476,8 @@ Resources:
                  Action:
                    - lambda:Invoke*
                  Resource:
-                   - !GetAtt CarveFunction.Arn
+                  #  - !GetAtt CarveFunction.Arn
+                   - Fn::GetAtt: [CarveFunctionStack, Outputs.LambdaArn]
 
    # ScheduleRule:
    #   Type: AWS::Events::Rule
@@ -525,7 +535,8 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !GetAtt CarveFunction.Arn
+      # FunctionName: !GetAtt CarveFunction.Arn
+      FunctionName: Fn::GetAtt: [CarveFunctionStack, Outputs.LambdaArn]
       Principal: s3.amazonaws.com
       SourceArn: !GetAtt CarveS3Bucket.Arn
 

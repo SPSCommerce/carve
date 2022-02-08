@@ -85,3 +85,9 @@ Resources:
       Timeout: 120
       Role: !GetAtt CarveCoreRole.Arn
       # ReservedConcurrentExecutions: 20
+
+Outputs:
+  LambdaName:
+    Value: !Ref CarveFunction       
+  LambdaArn:
+    Value: !GetAtt CarveFunction.Arn    
