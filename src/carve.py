@@ -41,13 +41,16 @@ def carve_results():
         for future in concurrent.futures.as_completed(futures):
             result = future.result()
             print(result)
-            results[result['subnet']] = {
-                'beacon': result['beacon'],
-                'status': result['status'],
-                'fping': result['fping'],
-                'health': result['health'],
-                'ts': result['ts']
-                }
+            try:
+                results[result['subnet']] = {
+                    'beacon': result['beacon'],
+                    'status': result['status'],
+                    'fping': result['fping'],
+                    'health': result['health'],
+                    'ts': result['ts']
+                    }
+            except Exception as e:
+                print(f"error processing beacon result: {e}")
 
     # push subnet beacons data to S3
     log = json.dumps(results, ensure_ascii=True, indent=2, sort_keys=True)
