@@ -132,6 +132,7 @@ Resources:
                     - yum update -y
                     - yum install -y fping
                     - yum install -y docker
+                    - yum install -y https://s3.${AWS::Region}.amazonaws.com/amazon-ssm-${AWS::Region}/latest/linux_arm64/amazon-ssm-agent.rpm
                     - systemctl enable nginx
                     - systemctl start nginx
                     - systemctl enable docker
