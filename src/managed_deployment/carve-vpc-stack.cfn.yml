@@ -183,6 +183,10 @@ Resources:
           FromPort: -1
           ToPort: -1
           CidrIp: 0.0.0.0/0
+        - IpProtocol: ssh
+          FromPort: 22
+          ToPort: 22
+          CidrIP: 172.16.0.0/12
 
   InstanceProfile:
     Type: AWS::IAM::InstanceProfile
