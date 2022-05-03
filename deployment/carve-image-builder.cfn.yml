@@ -42,7 +42,7 @@ Parameters:
   Version:
     Type: String
     Description: "MUST be incremented with changes to image builder in this template"
-    Default: "0.0.15"
+    Default: "0.0.16"
 
 Conditions:
   CreateVpc: !Equals [ !Ref ExistingVpcId, "" ]
@@ -132,11 +132,13 @@ Resources:
                     - yum update -y
                     - yum install -y fping
                     - yum install -y docker
-                    - yum install -y https://s3.${AWS::Region}.amazonaws.com/amazon-ssm-${AWS::Region}/latest/linux_arm64/amazon-ssm-agent.rpm
+                    - yum install -y amazon-ssm-agent
                     - systemctl enable nginx
                     - systemctl start nginx
                     - systemctl enable docker
                     - systemctl start docker
+                    - systemctl enable amazon-ssm-agent
+                    - systemctl start amazon-ssm-agent
                     - mkdir /carve
                     - mkdir /www
                     - aws s3 sync s3://${DeployBucket}/beacon-image /carve/
