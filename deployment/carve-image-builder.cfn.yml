@@ -23,7 +23,7 @@ Parameters:
     Description: The source ImageId of Amazon AMI to use
   BuildInstanceType:
     Type: CommaDelimitedList
-    Default: "t4g.nano,t4g.micro"
+    Default: "t4g.large"
   OrgId:
     Type: String
     Description: AWS Organizations Id
@@ -42,7 +42,7 @@ Parameters:
   Version:
     Type: String
     Description: "MUST be incremented with changes to image builder in this template"
-    Default: "0.0.16"
+    Default: "0.0.17"
 
 Conditions:
   CreateVpc: !Equals [ !Ref ExistingVpcId, "" ]
