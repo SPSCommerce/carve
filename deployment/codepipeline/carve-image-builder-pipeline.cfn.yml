@@ -81,7 +81,17 @@ Resources:
                 RoleArn: !Sub arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-deploy-pipeline
                 StackName: !Sub '${Prefix}carve-imagebuilder'
                 TemplatePath: GithubRepo::deployment/carve-image-builder.cfn.yml
-                ParameterOverrides: !Sub '{"ExistingSubnetId":"${ExistingSubnetId}","ExistingVpcId":"${ExistingVpcId}","VpcCIDR":"${VpcCIDR}","PublicSubnetCIDR":"${PublicSubnetCIDR}","OrgId":"${OrgId}","UniqueId":"${UniqueId}","Prefix":"${Prefix}","DeployBucket":"${DeployBucket}"}'
+                ParameterOverrides: !Sub 
+                  '{
+                  "ExistingSubnetId":"${ExistingSubnetId}",
+                  "ExistingVpcId":"${ExistingVpcId}",
+                  "VpcCIDR":"${VpcCIDR}",
+                  "PublicSubnetCIDR":"${PublicSubnetCIDR}",
+                  "OrgId":"${OrgId}",
+                  "UniqueId":"${UniqueId}",
+                  "Prefix":"${Prefix}",
+                  "DeployBucket":"${DeployBucket}"
+                  }'
               OutputArtifacts: []
               InputArtifacts:
                 - Name: GithubRepo
@@ -100,3 +110,11 @@ Resources:
               OutputArtifacts: []
               InputArtifacts: []
               Region: !Ref 'AWS::Region'
+
+  CarveImageBuilderVersion:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: Image Id for Carve
+      Name: !Sub /${Prefix}carve-resources/carve-image-builder-version
+      Type: String
+      Value: '0'

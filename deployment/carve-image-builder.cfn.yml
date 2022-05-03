@@ -42,7 +42,7 @@ Parameters:
   Version:
     Type: String
     Description: "MUST be incremented with changes to image builder in this template"
-    Default: "0.0.14"
+    Default: "0.0.15"
 
 Conditions:
   CreateVpc: !Equals [ !Ref ExistingVpcId, "" ]
@@ -199,6 +199,53 @@ Resources:
         TimeoutMinutes: 90
       Status: 'ENABLED'
 
+  CarveComponentVersion:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${Prefix}carve-component-version'
+      Description: Simple function to increment the component version
+      Handler: index.lambda_handler
+      Role: !GetAtt CarveComponentVersionRole.Arn
+      Runtime: python3.8
+      Timeout: 20
+      MemorySize: 128
+      Code: 
+        ZipFile: !Sub |
+          import boto3
+          def lambda_handler(event, context):
+              print(event)
+              if 'source' in event:
+                  if event['source'] == 'aws.autoscaling':
+                      client = boto3.client('sns', region_name="${CarveCoreRegion}")
+                      response = client.publish(
+                          TopicArn="${CarveSNSTopicArn}",
+                          Message=json.dumps(event))
+
+  CarveComponentVersionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: "Allow"
+          Principal:
+            Service:
+              - "lambda.amazonaws.com"
+          Action:
+            - "sts:AssumeRole"
+      Policies:
+        - PolicyName: CarveSNS
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "ssm:*"
+                Resource: 
+                  - !Sub "arn:aws:ssm:${AWS::Region}:*:parameter/${Prefix}carve-resources/carve-image-builder-version*"
 
 ###################################
 ## Below here are resources to create a public VPC for image creation if needed
