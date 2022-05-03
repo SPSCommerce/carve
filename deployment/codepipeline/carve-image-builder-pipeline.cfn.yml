@@ -64,7 +64,7 @@ Resources:
               Configuration:
                 Owner: SPSCommerce
                 Repo: carve
-                Branch: main
+                Branch: dev
                 OAuthToken: !Sub '{{resolve:secretsmanager:${GitHubOAUTHTokenASMPath}:SecretString:token}}'
         - Name: CarveImageBuilder
           Actions:

@@ -20,11 +20,11 @@ LATESTSHA=$(curl --location --request GET $GITHUBCURL --header "Authorization: B
 echo "cleaning up prevous deployments"
 aws s3 rm s3://$DEPLOYMENT_BUCKET/requirements_packages/ --recursive --exclude "${LATESTSHA}/*"
 aws s3 rm s3://$DEPLOYMENT_BUCKET/lambda_packages/ --recursive --exclude "${LATESTSHA}/*"
-aws s3 rm s3://$DEPLOYMENT_BUCKET/step_functions/ --recursive --exclude "${LATESTSHA}/*"
+aws s3 rm s3://$DEPLOYMENT_BUCKET/step-functions/ --recursive --exclude "${LATESTSHA}/*"
 
 # upload deployment state machine definitions
 echo "uploading state machine definitions to S3"
-aws s3 sync "$BUILDPATH/deployment/step_functions" s3://$DEPLOYMENT_BUCKET/step_functions/$GITSHA/
+aws s3 sync "$BUILDPATH/deployment/step-functions" s3://$DEPLOYMENT_BUCKET/step-functions/$GITSHA/
 
 # upload beacon image code to S3
 echo "uploading beacon image code to S3"

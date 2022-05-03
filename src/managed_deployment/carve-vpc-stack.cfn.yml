@@ -157,7 +157,9 @@ Resources:
       BlockDeviceMappings:
         - DeviceName: /dev/xvda
           Ebs:
-            VolumeType: gp2
+            # gp3 = $.64/subnet/month
+            # st1 = $.36/subnet/month but slow
+            VolumeType: gp3
             VolumeSize: '8'
             DeleteOnTermination: 'true'
             Encrypted: 'true'
