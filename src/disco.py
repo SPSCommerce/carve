@@ -149,7 +149,9 @@ def discover_routing():
     #     )
     G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
 
-    for beacon, data in subnet_beacons.items():
+    for ip, data in subnet_beacons.items():
+        print(f'results: {results}')
+        print(f'data: {data}')
         result = results[data['subnet']]
         if result['status'] == 200:
             for target, ms in result['fping'].items():
