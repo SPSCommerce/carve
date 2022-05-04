@@ -56,7 +56,7 @@ def carve_results():
     log = json.dumps(results, ensure_ascii=True, indent=2, sort_keys=True)
     aws_put_direct(log, f"logs/verification-{int(time.time())}")
 
-    return log
+    return results
 
 
 

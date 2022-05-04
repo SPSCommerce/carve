@@ -115,7 +115,7 @@ def discover_vpcs(region, account_id, account_name, credentials):
 
 
 def discover_routing():
-    #  {'subnet-0d310df8338186b7f': {
+    #  [{'subnet-0d310df8338186b7f': {
     #      'beacon': '10.0.22.112'
     #      'fping': {
     #          '10.0.22.112': 0.046,
@@ -131,7 +131,7 @@ def discover_routing():
     #     }, ...]
     results = carve_results()
 
-    # {'0.0.0.0' {
+    # {'0.0.0.0': {
     #     'subnet': 'subnet-0d310df8338186b7f',
     #     'account': data['Account'],
     #     'region': data['Region']
