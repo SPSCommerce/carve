@@ -139,6 +139,8 @@ Resources:
                     - systemctl start docker
                     - systemctl enable amazon-ssm-agent
                     - systemctl start amazon-ssm-agent
+                    - echo "BLOCKING IMAGE BUILDER FROM REMOVING SSM AGENT"
+                    - rm -rf /tmp/imagebuilder_service/ssm_installed
                     - echo "MAKING FOLDERS"
                     - mkdir /carve
                     - mkdir /www
