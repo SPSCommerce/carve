@@ -157,6 +157,9 @@ Resources:
               - Effect: Allow
                 Action:
                   - ec2:ModifyImageAttribute
+                  - ec2:CopyImage
+                  - ec2:DeregisterImage
+                  - ec2:DeleteSnapshot
                 Resource:
                   - "*"
                 Condition:
