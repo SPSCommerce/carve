@@ -118,13 +118,7 @@ Resources:
                   - states:SendTaskSuccess
                 Resource:
                   - !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-*-statemachine"
-              # - Effect: "Allow"
-              #   Action:
-              #     - "sns:Subscribe"
-              #     - "sns:Receive"
-              #     - "sns:Publish"
-              #   Resource: 
-              #     - "*"
+
               - Effect: Allow
                 Action:
                   - cloudformation:*
@@ -184,11 +178,6 @@ Resources:
                   - codepipeline:PutJobFailureResult
                 Resource:
                   - "*"
-              # - Effect: Allow
-              #   Action:
-              #     - ssm:DescribeParameters
-              #   Resources:
-              #     - "*"
               - Effect: Allow
                 Action:
                   - ssm:PutParameter
@@ -461,7 +450,6 @@ Resources:
   CloudWatchInvokeLambda:
     Type: AWS::Lambda::Permission
     Properties:
-    #  FunctionName: !Ref CarveFunction
       FunctionName: !GetAtt [CarveFunctionStack, Outputs.LambdaArn]
       Action: "lambda:InvokeFunction"
       Principal: "events.amazonaws.com"
