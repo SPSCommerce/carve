@@ -1,7 +1,23 @@
 {
   "Comment": "Create Carve Beacon Stacks",
-  "StartAt": "BeaconDeployPrep",
+  "StartAt": "DeployS3BucketStacks",
   "States": {
+    "DeployS3BucketStacks": {
+      "Comment": "Create S3 Buckets in each region for deployments",
+      "Type": "Task",
+      "Next": "BeaconDeployPrep",
+      "ResultSelector": {
+        "Payload.$": "States.StringToJson($.Input)"
+      },
+      "Resource": "arn:aws:states:::states:startExecution.sync",
+      "Parameters": {
+        "StateMachineArn": "${CarveDeployStacksStepFunction}",
+        "Input": {
+          "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id",
+          "Input.$": "$"
+        }
+      }
+    },
     "BeaconDeployPrep": {
       "Type": "Task",
       "Resource":"arn:aws:states:::lambda:invoke",
@@ -119,6 +135,6 @@
       },
       "End": true,
       "TimeoutSeconds": 900
-    },
+    }
   }
 }

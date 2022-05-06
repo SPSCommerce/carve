@@ -68,7 +68,7 @@ def start_carve_deployment(event, context, key=False):
 
     if len(list(G.nodes)) > 0:
         name = f"deploy-{filename}-{int(time.time())}"
-        aws_start_stepfunction(os.environ['DeployBeaconsStateMachine'], [], name)
+        aws_start_stepfunction(os.environ['DeployBeaconsStateMachine'], [deploy_buckets], name)
     else:
         # if nothing is being deployed, Run cleanup
         name = f"NO-BEACONS-{filename}-{int(time.time())}"
