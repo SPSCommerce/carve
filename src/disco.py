@@ -1,11 +1,14 @@
-import networkx as nx
-from networkx.readwrite import json_graph
-from botocore.exceptions import ClientError
 # import pylab as plt
 import os
 import time
+
+import networkx as nx
+from botocore.exceptions import ClientError
+from networkx.readwrite import json_graph
+
 from aws import *
-from carve import carve_role_arn, save_graph, load_graph, carve_results, get_subnet_beacons
+from carve import (carve_results, carve_role_arn, get_subnet_beacons,
+                   load_graph, save_graph, update_carve_beacons)
 
 
 def discover_subnets(region, account_id, account_name, credentials):
@@ -115,6 +118,9 @@ def discover_vpcs(region, account_id, account_name, credentials):
 
 
 def discover_routing():
+    # make sure all beacons are accounted for
+    update_carve_beacons()
+
     #  [{'subnet-0d310df8338186b7f': {
     #      'beacon': '10.0.22.112'
     #      'fping': {

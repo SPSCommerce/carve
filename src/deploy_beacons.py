@@ -27,44 +27,44 @@ def start_carve_deployment(event, context, key=False):
 
     print(f'deploying graph: {key}')
 
-    # # create deploy buckets in all required regions for deployment files
-    # regions = deploy_regions(G)
-    # try:
-    #     regions.remove(current_region)
-    # except:
-    #     pass
+    # create deploy buckets in all required regions for deployment files
+    regions = deploy_regions(G)
+    try:
+        regions.remove(current_region)
+    except:
+        pass
 
-    # deploy_buckets = []
+    deploy_buckets = []
 
-    # key = "managed_deployment/carve-managed-bucket.cfn.yml"
-    # with open(key) as f:
-    #     template = f.read()
+    key = "managed_deployment/carve-managed-bucket.cfn.yml"
+    with open(key) as f:
+        template = f.read()
 
-    # aws_put_direct(template, key)
+    aws_put_direct(template, key)
 
-    # for r in regions:
-    #     stackname = f"{os.environ['Prefix']}carve-managed-bucket-{r}"
-    #     parameters = [
-    #         {
-    #             "ParameterKey": "OrgId",
-    #             "ParameterValue": os.environ['OrgId']
-    #         },
-    #         {
-    #             "ParameterKey": "Prefix",
-    #             "ParameterValue": os.environ['Prefix']
-    #         },
-    #         {
-    #             "ParameterKey": "UniqueId",
-    #             "ParameterValue": os.environ['UniqueId']
-    #         }
-    #     ]
-    #     deploy_buckets.append({
-    #         "StackName": stackname,
-    #         "Parameters": parameters,
-    #         "Account": context.invoked_function_arn.split(":")[4],
-    #         "Region": r,
-    #         "Template": key
-    #     })
+    for r in regions:
+        stackname = f"{os.environ['Prefix']}carve-managed-bucket-{r}"
+        parameters = [
+            {
+                "ParameterKey": "OrgId",
+                "ParameterValue": os.environ['OrgId']
+            },
+            {
+                "ParameterKey": "Prefix",
+                "ParameterValue": os.environ['Prefix']
+            },
+            {
+                "ParameterKey": "UniqueId",
+                "ParameterValue": os.environ['UniqueId']
+            }
+        ]
+        deploy_buckets.append({
+            "StackName": stackname,
+            "Parameters": parameters,
+            "Account": context.invoked_function_arn.split(":")[4],
+            "Region": r,
+            "Template": key
+        })
 
     if len(list(G.nodes)) > 0:
         name = f"deploy-{filename}-{int(time.time())}"
