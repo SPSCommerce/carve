@@ -299,7 +299,7 @@
                 "Or": [
                   {
                     "Variable": "$.ExecutionStatus",
-                    "StringEquals": "EXECUTE_COMPLETE",
+                    "StringEquals": "EXECUTE_COMPLETE"
                   },
                   {
                     "Variable": "$.ExecutionStatus",
