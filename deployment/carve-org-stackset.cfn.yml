@@ -60,6 +60,11 @@ Resources:
                   - !Sub "arn:aws:sns:${AWS::Region}:${CarveCoreAccount}:${Prefix}carve-org-events"
               - Effect: Allow
                 Action:
+                  - cloudformation:List*
+                Resource: 
+                  - '*'
+              - Effect: Allow
+                Action:
                   - cloudformation:*
                 Resource: 
                   - !Sub "arn:aws:cloudformation:*:${AWS::AccountId}:stack/${Prefix}carve-managed-*"
