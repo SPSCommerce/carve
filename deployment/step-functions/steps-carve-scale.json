@@ -6,7 +6,7 @@
       "Type": "Task",
       "Resource": "arn:aws:states:::lambda:invoke",
       "Parameters": {
-        "FunctionName": "${StepScaleInitialize}",
+        "FunctionName": "${ScaleStepInitialize}",
         "Payload": {
           "Input.$": "$"
         }
@@ -23,98 +23,68 @@
         "StartAt": "ScaleASG",
         "States": {
 
-          "DeleteStack": {
+          "ScaleASG": {
             "Type": "Task",
-            "Resource":"${CarveFunction}",
+            "Resource":"${ScaleStepScaleASG}",
             "ResultSelector": {
               "Payload.$": "States.StringToJson($)"
             },
             "Parameters": {
               "Payload": {
-                "CleanupAction": "DeleteStack",
                 "Input.$": "$"
               }
             },
-            "Next": "DescribeDeleteStack",
+            "Next": "CheckASG",
             "TimeoutSeconds": 20
           },
 
-          "DescribeDeleteStack": {
+          "CheckASG": {
             "Type": "Task",
-            "Resource":"${CarveFunction}",
+            "Resource":"${ScaleStepCheckASG}",
             "ResultSelector": {
               "Payload.$": "States.StringToJson($)"
             },
             "Parameters": {
               "Payload": {
-                "CleanupAction": "DescribeDeleteStack",
                 "Input.$": "$"
               }
             },
-            "Next": "DeleteStackStatusChoice",
+            "Next": "ASGChoice",
             "TimeoutSeconds": 30
           },
 
-          "DeleteStackWait": {
+          "ASGWait": {
             "Type": "Wait",
             "Seconds": 10,
-            "Next": "DescribeDeleteStack"
+            "Next": "CheckASG"
           },
 
-          "DeleteFailure": {
+          "ASGFailure": {
             "Type": "Fail"
           },
 
-          "DeleteSucceed": {
+          "ASGSucceed": {
             "Type": "Succeed"
           },
 
-          "DeleteStackStatusChoice": {
+          "ASGChoice": {
             "Type": "Choice",
             "InputPath": "$.Payload",
             "Choices": [
               {
-                "Variable": "$.StackStatus",
-                "StringEquals": "DELETE_COMPLETE",
-                "Next": "DeleteSucceed"
+                "Variable": "$.ASGStatus",
+                "StringEquals": "SCALE_COMPLETE",
+                "Next": "ASGSucceed"
               },
               {
-                "Or": [
-                  {
-                    "Variable": "$.StackStatus",
-                    "StringEquals": "DELETE_PENDING"
-                  },
-                  {
-                    "Variable": "$.StackStatus",
-                    "StringEquals": "DELETE_IN_PROGRESS"
-                  }
-                ],
-                "Next": "DeleteStackWait"
+                "Variable": "$.ASGStatus",
+                "StringEquals": "SCALE_IN_PROGRESS",
+                "Next": "ASGWait"
               },
               {
-                "Or": [
-                  {
-                    "Variable": "$.StackStatus",
-                    "StringEquals": "CREATE_COMPLETE"
-                  },
-                  {
-                    "Variable": "$.StackStatus",
-                    "StringEquals": "CREATE_IN_PROGRESS"
-                  },
-                  {
-                    "Variable": "$.StackStatus",
-                    "StringEquals": "CREATE_PENDING"
-                  },
-                  {
-                    "Variable": "$.StackStatus",
-                    "StringEquals": "DELETE_FAILED"
-                  },
-                  {
-                    "Variable": "$.StackStatus",
-                    "StringEquals": "FAILED"
-                  }
-                ],
-                "Next": "DeleteFailure"
+                "Variable": "$.ASGStatus",
+                "StringEquals": "SCALE_FAILED",
+                "Next": "ASGFailure"
               }
             ]
           }

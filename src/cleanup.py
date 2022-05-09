@@ -110,7 +110,8 @@ def sf_CleanupDeployments(context):
         cleanup['SafeStacks'] = []
         for stack in safe_stacks:
             if stack['Account'] == account_id:
-                cleanup['SafeStacks'] = safe_stacks
+                # cleanup['SafeStacks'] = safe_stacks
+                cleanup['SafeStacks'].append(stack['StackName'])
         discover_stacks.append(cleanup)
 
     # returns to a step function iterator
