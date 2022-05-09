@@ -46,10 +46,10 @@ def sf_DeleteStack(payload):
         bucket = f"{os.environ['Prefix']}carve-managed-bucket-{unique}-{region}"
         aws_purge_s3_bucket(bucket)
 
-    # aws_delete_stack(
-    #     stackname=payload['StackName'],
-    #     region=payload['Region'],
-    #     credentials=credentials)
+    aws_delete_stack(
+        stackname=payload['StackName'],
+        region=payload['Region'],
+        credentials=credentials)
 
     print(f"WOULD DELETE STACK: {payload['StackName']} from {account} in {region}")
 
