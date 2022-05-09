@@ -38,10 +38,6 @@ Parameters:
     Type: 'String'
     Default: carve-repository
     Description: ECR Repo Name
-  # Regions:
-  #   Type: 'String'
-  #   Default: ''
-  #   Description: List of comma separated regions to limit carve
 
 Conditions:
   UseOrgId: !Equals [ !Ref "UniqueId", "" ]
@@ -49,12 +45,33 @@ Conditions:
 
 Resources:
 
-  CarveFunctionStack:
+  # To help manage the repetitiveness of the carve lambda resources, we use nested stacks for each lambda function.
+  #   * Duplicate this nested stack resource for each function, only changing the HandlerFile parameter.
+  #   * Name the resource FunctionCamelCasePythonFile, so sf_scale_initialize.py is FunctionSfScaleInitialize
+  FunctionEntrypoint:
     Type: AWS::CloudFormation::Stack
     Properties: 
       Parameters:
-        # only change the hanlder file for each lambda function (file must have a lambda_handler)
         HandlerFile: entrypoint
+        # params below are the same for all nested lambda stacks
+        CarveVersion: !Ref CarveVersion
+        CodeBucket: !Ref CodeBucket
+        ECR: !Ref ECR
+        IMAGETAG: !Ref IMAGETAG
+        OrgId: !Ref OrgId
+        OrgSNSTopic: !Ref OrgSNSTopic
+        Prefix: !Ref Prefix
+        PropogateUpdates: !Ref PropogateUpdates
+        UniqueId: !Ref UniqueId
+        RoleArn: !GetAtt CarveCoreRole.Arn
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TimeoutInMinutes: 5
+
+  FunctionSfScaleInitialize:
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      Parameters:
+        HandlerFile: sf_scale_initialize
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket

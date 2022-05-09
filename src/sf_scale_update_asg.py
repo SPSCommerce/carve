@@ -5,10 +5,10 @@ import json
 import sys
 import os
 from aws import *
+from carve import load_graph, carve_role_arn, beacon_results
 import urllib3
 import concurrent.futures
 import time
-
 
 # STEPS
 # 1. get all VPC ASGs, feed list to iteration
@@ -19,24 +19,41 @@ import time
 # 6. return success
 
 
-# def get_asgs(G=None):
-#     if G is None:
-#         G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
 
-#     # determine all deployed ASGs
-#     asgs = {}
-#     for subnet in list(G.nodes):
-#         asg = f"{os.environ['Prefix']}carve-beacon-asg-{G.nodes().data()[subnet]['VpcId']}"
-#         if asg not in asgs:
-#             asgs[asg] = {
-#                 'account': G.nodes().data()[subnet]['Account'],
-#                 'region': G.nodes().data()[subnet]['Region'],
-#                 }
+def get_carve_asgs(G=None):
+    ''' gets the ARNs for all carve deployed ASGs in G '''
+    if G is None:
+        G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
 
-#     for asg, values in asgs.items():
+    # determine all deployed ASG names
+    asgs = []
+    for subnet in list(G.nodes):
+        name = f"{os.environ['Prefix']}carve-beacon-asg-{G.nodes().data()[subnet]['VpcId']}"
+        asgs[name] = {
+            'account': G.nodes().data()[subnet]['Account'],
+            'region': G.nodes().data()[subnet]['Region'],
+            }
+
+    asg_arns = []
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = []
+        for name, value in asgs.items():
+            futures.append(executor.submit(
+                threaded_asg_lookup, name=name, account=value['account'], region=value['region']))
+
+        for future in concurrent.futures.as_completed(futures):
+            result = future.result()
+            try:
+                asg_arns.append(result['AutoScalingGroups'][0]['AutoScalingGroupARN'])
+            except:
+                pass
+    print(f"ASG arns: {asg_arns}")
+    return asg_arns
 
 
-#     return asgs
+def threaded_asg_lookup(name, account, region):
+    credentials = aws_assume_role(carve_role_arn(account), f"lookup-{name}")
+    aws_describe_asg(name, region, credentials)
 
 
 def scale_beacons(scale):
