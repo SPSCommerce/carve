@@ -515,7 +515,9 @@ Resources:
             Effect: Allow 
             Action:
               - "s3:*"
-            Resource: !GetAtt CarveS3Bucket.Arn
+            Resource:
+              - !Sub "arn:aws:s3:::${CarveS3Bucket}"
+              - !Sub "arn:aws:s3:::${CarveS3Bucket}/*"
             Principal:
               AWS: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-core"
           - Sid: DeploymentAccess
