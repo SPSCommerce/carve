@@ -27,6 +27,9 @@ Resources:
         - !Sub "${Prefix}carve-managed-bucket-${OrgId}-${AWS::Region}"
         - !Sub "${Prefix}carve-managed-bucket-${UniqueId}-${AWS::Region}"
       AccessControl: Private
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
