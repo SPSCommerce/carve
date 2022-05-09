@@ -184,16 +184,17 @@ def threaded_find_stacks(account, region, safe_stacks, startswith, credentials):
     stacks = aws_find_stacks(startswith, account, region, credentials)
 
     if stacks is None:
-        print(f"cannot list stacks in {account} in {region}.")        
+        # print(f"cannot list stacks in {account} in {region}.")        
         return []        
     elif len(stacks) == 0:
-        print(f"found no stacks to delete in {account} in {region}.")        
+        # print(f"found no stacks to delete in {account} in {region}.")        
         return []
     else:
         delete_stacks = []
+        print(f"safe_stacks: {safe_stacks}")
         for stack in stacks:
             if stack['StackName'] not in safe_stacks:
-                print(f"found {stack['StackName']} for deletion")
+                print(f"found {stack['StackName']} for deletion in {account} in {region}.")
                 # create payloads for delete iterator in state machine
                 del_stack = {}
                 del_stack['StackName'] = stack['StackName']
@@ -201,6 +202,8 @@ def threaded_find_stacks(account, region, safe_stacks, startswith, credentials):
                 del_stack['Region'] = region
                 del_stack['Account'] = account
                 delete_stacks.append(del_stack)
+            else:
+                print(f"{stack['StackName']} is protected")
 
         return delete_stacks
 

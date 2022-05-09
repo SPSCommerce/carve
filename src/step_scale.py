@@ -10,6 +10,14 @@ import concurrent.futures
 import time
 
 
+# STEPS
+# 1. get all VPC ASGs, feed list to iteration
+# 2. check current scale of ASG
+#   3. if scale is not correct, update ASG
+#   4. if scale is correct, return success
+# 5. after updating ASG, wait for ASG to scale
+# 6. return success
+
 
 # def get_asgs(G=None):
 #     if G is None:

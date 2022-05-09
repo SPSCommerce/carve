@@ -8,22 +8,16 @@
         },
         "Prefix": {
             "Type": "String",
-            "Description": "Prefix carve AWS resources and stacknames with this"
+            "Description": "Prefix carve AWS resources"
         }
     },
+    "Conditions" : {
+        "HasNot": { "Fn::Equals" : [ "a", "b" ] }
+    },
     "Resources": {
-        "SSMParameter": {
-            "Type": "AWS::SSM::Parameter",
-            "Properties": {
-                "Name": {
-                    "Fn::Sub": "/${Prefix}carve-stack-${AWS::StackName}"
-                },
-                "Description": "bootstrap carve API deployment",
-                "Type": "String",
-                "Value": {
-                    "Fn::Sub": "${AWS::StackId}"
-                }
-            }
+        "NullResource": {
+            "Type": "Custom::NullResource",
+            "Condition": "HasNot"
         }
     }
 }
