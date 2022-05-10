@@ -9,7 +9,7 @@ def get_carve_asgs(G=None):
         G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
 
     # compile a list of all deployed ASG names, accounts, and regions
-    asgs = []
+    asgs = {}
     for subnet in list(G.nodes):
         name = f"{os.environ['Prefix']}carve-beacon-asg-{G.nodes().data()[subnet]['VpcId']}"
         asgs[name] = {
