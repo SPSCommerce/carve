@@ -1,11 +1,12 @@
-import os
-
-import lambdavars
-
-from aws import *
-
+import networkx as nx
+from networkx.readwrite import json_graph
+import pylab as plt
 import json
+import sys
+import os
+from aws import *
 from carve import load_graph, carve_role_arn, beacon_results
+import urllib3
 import concurrent.futures
 import time
 
@@ -359,12 +360,3 @@ def asg_event(event):
             print(f"beacon terminated {message}")
 
 
-def lambda_handler(event, context):
-    print(f"event: {event}")
-
-
-if __name__ == "__main__":
-    event = {'scale': 'subnet'}
-    # event = {}
-    result = lambda_handler(event, None)
-    print(result)

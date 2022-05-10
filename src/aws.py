@@ -478,7 +478,7 @@ def aws_describe_asg(asg, region, credentials):
         aws_session_token = credentials['SessionToken']
         )
     response = client.describe_auto_scaling_groups(AutoScalingGroupNames=[asg])
-    return response['AutoScalingGroups'][0]
+    return response
 
 
 def aws_update_asg_size(asg, minsize, maxsize, desired, region, credentials):
