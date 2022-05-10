@@ -19,6 +19,7 @@
       "End": true,
       "MaxConcurrency": 100,
       "ItemsPath": "$.asgs",
+      "InputPath": "$",
       "Parameters": {
         "scale.$": "$.scale",
         "asg.$": "$$.Map.Item.Value"
@@ -29,7 +30,10 @@
 
           "ScaleASG": {
             "Type": "Task",
-            "Resource":"${FunctionSfScaleUpdateAsg}",
+            "Resource": "arn:aws:states:::lambda:invoke",
+            "Parameters": {
+              "FunctionName": "${FunctionSfScaleUpdateAsg}"
+            },
             "ResultSelector": {
               "Payload.$": "States.StringToJson($)"
             },
@@ -39,14 +43,12 @@
 
           "CheckASG": {
             "Type": "Task",
-            "Resource":"${FunctionSfScaleCheckAsg}",
+            "Resource": "arn:aws:states:::lambda:invoke",
+            "Parameters": {
+              "FunctionName": "${FunctionSfScaleCheckAsg}"
+            },
             "ResultSelector": {
               "Payload.$": "States.StringToJson($)"
-            },
-            "Parameters": {
-              "Payload": {
-                "Input.$": "$"
-              }
             },
             "Next": "ASGChoice",
             "TimeoutSeconds": 30
