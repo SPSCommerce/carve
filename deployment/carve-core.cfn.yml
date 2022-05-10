@@ -213,7 +213,7 @@ Resources:
       DefinitionSubstitutions: 
         # CarveFunction: !Ref CarveFunction
         CarveFunction: 
-          Fn::GetAtt: [CarveFunctionStack, Outputs.LambdaName]
+          Fn::GetAtt: [FunctionEntrypoint, Outputs.LambdaName]
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
       StateMachineName: !Sub "${Prefix}carve-deploy-stacks-statemachine"
       StateMachineType: STANDARD
@@ -227,7 +227,7 @@ Resources:
       DefinitionSubstitutions: 
         # CarveFunction: !Ref CarveFunction
         CarveFunction: 
-          Fn::GetAtt: [CarveFunctionStack, Outputs.LambdaName]
+          Fn::GetAtt: [FunctionEntrypoint, Outputs.LambdaName]
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
       StateMachineName: !Sub "${Prefix}carve-token-statemachine"
       StateMachineType: STANDARD
@@ -241,7 +241,7 @@ Resources:
       DefinitionSubstitutions: 
         # CarveFunction: !Ref CarveFunction
         CarveFunction: 
-          Fn::GetAtt: [CarveFunctionStack, Outputs.LambdaName]
+          Fn::GetAtt: [FunctionEntrypoint, Outputs.LambdaName]
         CarveDeployStacksStepFunction: !Ref CarveDeployStacksStepFunction
         CarveCleanupStepFunction: !Ref CarveCleanupStepFunction
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
@@ -257,7 +257,7 @@ Resources:
       DefinitionSubstitutions: 
         # CarveFunction: !GetAtt CarveFunction.Arn
         CarveFunction: 
-          Fn::GetAtt: [CarveFunctionStack, Outputs.LambdaArn]
+          Fn::GetAtt: [FunctionEntrypoint, Outputs.LambdaArn]
         CarveDeployStacksStepFunction: !Ref CarveDeployStacksStepFunction
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
       StateMachineName: !Sub "${Prefix}carve-cleanup-statemachine"
@@ -272,7 +272,7 @@ Resources:
       DefinitionSubstitutions: 
         # CarveFunction: !Ref CarveFunction
         CarveFunction: 
-          Fn::GetAtt: [CarveFunctionStack, Outputs.LambdaName]
+          Fn::GetAtt: [FunctionEntrypoint, Outputs.LambdaName]
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
       StateMachineName: !Sub "${Prefix}carve-discovery-statemachine"
       StateMachineType: STANDARD
@@ -327,7 +327,7 @@ Resources:
     Properties:
       # Endpoint: !GetAtt CarveFunction.Arn
       Endpoint: 
-        Fn::GetAtt: [CarveFunctionStack, Outputs.LambdaArn]
+        Fn::GetAtt: [FunctionEntrypoint, Outputs.LambdaArn]
       Protocol: Lambda
       TopicArn: !Ref OrgSNSTopic
 
@@ -339,7 +339,7 @@ Resources:
       SourceArn: !Ref OrgSNSTopic
       # FunctionName: !GetAtt CarveFunction.Arn
       FunctionName: 
-        Fn::GetAtt: [CarveFunctionStack, Outputs.LambdaArn]
+        Fn::GetAtt: [FunctionEntrypoint, Outputs.LambdaArn]
 
   OrgSNSTopicPolicy:
     Type: AWS::SNS::TopicPolicy
@@ -462,12 +462,12 @@ Resources:
         - Id: "InvokeCarve"
           # Arn: !GetAtt CarveFunction.Arn
           Arn: 
-            Fn::GetAtt: [CarveFunctionStack, Outputs.LambdaArn]
+            Fn::GetAtt: [FunctionEntrypoint, Outputs.LambdaArn]
 
   CloudWatchInvokeLambda:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !GetAtt [CarveFunctionStack, Outputs.LambdaArn]
+      FunctionName: !GetAtt [FunctionEntrypoint, Outputs.LambdaArn]
       Action: "lambda:InvokeFunction"
       Principal: "events.amazonaws.com"
       SourceArn: !GetAtt SSMParameterChange.Arn
@@ -495,7 +495,7 @@ Resources:
                   - lambda:Invoke*
                 Resource:
                  #  - !GetAtt CarveFunction.Arn
-                  - Fn::GetAtt: [CarveFunctionStack, Outputs.LambdaArn]
+                  - Fn::GetAtt: [FunctionEntrypoint, Outputs.LambdaArn]
 
    # ScheduleRule:
    #   Type: AWS::Events::Rule
@@ -560,7 +560,7 @@ Resources:
       Action: lambda:InvokeFunction
       # FunctionName: !GetAtt CarveFunction.Arn
       FunctionName: 
-        Fn::GetAtt: [CarveFunctionStack, Outputs.LambdaArn]
+        Fn::GetAtt: [FunctionEntrypoint, Outputs.LambdaArn]
       Principal: s3.amazonaws.com
       SourceArn: !GetAtt CarveS3Bucket.Arn
 
