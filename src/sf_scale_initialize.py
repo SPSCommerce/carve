@@ -46,13 +46,14 @@ def threaded_asg_lookup(name, account, region):
 
 
 def lambda_handler(event, context):
-    if 'scale' not in event:
+    print(event)
+    if 'scale' not in event['Input']:
         error = {'error': 'scale not specified in event'}
         print(error)
         return error
     asgs = get_carve_asgs()
     # print(f"Scaling ASGs: {asgs}")
-    return {'asgs': asgs, 'scale': event['scale']}
+    return {'asgs': asgs, 'scale': event['Input']['scale']}
 
 
 if __name__ == "__main__":
