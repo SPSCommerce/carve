@@ -103,7 +103,8 @@ def get_beacons_thread(asg, account, region):
     credentials = aws_assume_role(carve_role_arn(account), f"lookup-{asg}")
     instance_ids = []
     asg_info = aws_describe_asg(asg, region, credentials)
-    for instance in asg_info['Instances']:
+
+    for instance in asg_info['AutoScalingGroups'][0]['Instances']:
         if instance['LifecycleState'] == "InService":
             instance_ids.append(instance['InstanceId'])
 
