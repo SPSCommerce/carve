@@ -15,18 +15,26 @@ import time
 def lambda_handler(event, context):
     print(f"event: {event}")
 
-    account = event['Payload']['asg']['account']
-    name = event['Payload']['asg']['name']
-    region = event['Payload']['asg']['region']
-    scale = event['Payload']['scale']
+    # need to coerce data
+    # data lives in "Payload" on first check, then when passed from the choice
+    # state the data moves to the top of the json object
+    data = {}
 
-    credentials = aws_assume_role(carve_role_arn(account), f"lookup-{name}")
-    response = aws_describe_asg(name, region, credentials)
+    if "Payload" in event:
+        data['asg']['account'] = event['Payload']['asg']['account']
+        data['asg']['name'] = event['Payload']['asg']['name']
+        data['asg']['region'] = event['Payload']['asg']['region']
+        data['scale'] = event['Payload']['scale']
+    else:
+        data = event
+    
+    credentials = aws_assume_role(carve_role_arn(data['asg']['account']), f"lookup-{data['asg']['name']}")
+    response = aws_describe_asg(data['asg']['name'], data['asg']['region'], credentials)
 
     instances = response['AutoScalingGroups'][0]['Instances']
     scale_status = "SCALE_IN_PROGRESS"
 
-    if scale == 'down':
+    if data['scale'] == 'down':
         if len(instances) == 0:
             scale_status = "SCALE_SUCCEEDED"
     else:
@@ -36,10 +44,10 @@ def lambda_handler(event, context):
                 in_service += 1       
         if in_service == len(instances):
             scale_status = "SCALE_SUCCEEDED"
+
     # SHOULD ALSO CATCH FAILURE HERE TO RETURN: SCALE_FAILED
 
-    response = event['Payload']
-    response['ScaleStatus'] = scale_status
+    data['ScaleStatus'] = scale_status
 
     return response
 
