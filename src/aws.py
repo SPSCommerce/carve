@@ -481,7 +481,7 @@ def aws_describe_asg(asg, region, credentials):
     return response
 
 
-def aws_update_asg_size(asg, minsize, maxsize, desired, region, credentials):
+def aws_update_asg_size(asg, desired, region, credentials):
     client = boto3.client(
         'autoscaling',
         config=boto_config,
@@ -492,8 +492,8 @@ def aws_update_asg_size(asg, minsize, maxsize, desired, region, credentials):
         )
     response = client.update_auto_scaling_group(
         AutoScalingGroupName=asg,
-        MinSize=minsize,
-        MaxSize=maxsize,
+        # MinSize=minsize,
+        # MaxSize=maxsize,
         DesiredCapacity=desired
         )
     return response

@@ -18,10 +18,10 @@
       "Type": "Map",
       "End": true,
       "MaxConcurrency": 100,
-      "ItemsPath": "$.asgs",
+      "ItemsPath": "$.Payload.asgs",
       "InputPath": "$",
       "Parameters": {
-        "scale.$": "$.scale",
+        "scale.$": "$.Payload.scale",
         "asg.$": "$$.Map.Item.Value"
       },
       "Iterator": {
@@ -32,10 +32,8 @@
             "Type": "Task",
             "Resource": "arn:aws:states:::lambda:invoke",
             "Parameters": {
-              "FunctionName": "${FunctionSfScaleUpdateAsg}"
-            },
-            "ResultSelector": {
-              "Payload.$": "States.StringToJson($)"
+              "FunctionName": "${FunctionSfScaleUpdateAsg}",
+              "Payload.$": "$"
             },
             "Next": "CheckASG",
             "TimeoutSeconds": 20
@@ -45,26 +43,24 @@
             "Type": "Task",
             "Resource": "arn:aws:states:::lambda:invoke",
             "Parameters": {
-              "FunctionName": "${FunctionSfScaleCheckAsg}"
-            },
-            "ResultSelector": {
-              "Payload.$": "States.StringToJson($)"
+              "FunctionName": "${FunctionSfScaleCheckAsg}",
+              "Payload.$": "$"
             },
             "Next": "ASGChoice",
             "TimeoutSeconds": 30
           },
 
-          "ASGWait": {
+          "ScaleWait": {
             "Type": "Wait",
             "Seconds": 10,
             "Next": "CheckASG"
           },
 
-          "ASGFailure": {
+          "ScaleFailure": {
             "Type": "Fail"
           },
 
-          "ASGSucceed": {
+          "ScaleSucceed": {
             "Type": "Succeed"
           },
 
@@ -73,19 +69,19 @@
             "InputPath": "$.Payload",
             "Choices": [
               {
-                "Variable": "$.ASGStatus",
-                "StringEquals": "SCALE_COMPLETE",
-                "Next": "ASGSucceed"
+                "Variable": "$.ScaleStatus",
+                "StringEquals": "SCALE_SUCCEEDED",
+                "Next": "ScaleSucceed"
               },
               {
-                "Variable": "$.ASGStatus",
+                "Variable": "$.ScaleStatus",
                 "StringEquals": "SCALE_IN_PROGRESS",
-                "Next": "ASGWait"
+                "Next": "ScaleWait"
               },
               {
-                "Variable": "$.ASGStatus",
+                "Variable": "$.ScaleStatus",
                 "StringEquals": "SCALE_FAILED",
-                "Next": "ASGFailure"
+                "Next": "ScaleFailure"
               }
             ]
           }
