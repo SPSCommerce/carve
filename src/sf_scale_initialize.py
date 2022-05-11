@@ -76,7 +76,7 @@ def lambda_handler(event, context):
 
 
 if __name__ == "__main__":
-    event = {"Input": {'scale': 'up'}}
+    event = {"Input": {"scale": "up"}}
     # event = {}
     result = lambda_handler(event, None)
     print(result)

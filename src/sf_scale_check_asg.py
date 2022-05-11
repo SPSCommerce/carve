@@ -15,9 +15,10 @@ import time
 def lambda_handler(event, context):
     print(f"event: {event}")
 
-    account = event['asg']['account']
-    name = event['asg']['name']
-    region = event['asg']['region']
+    account = event['Payload']['asg']['account']
+    name = event['Payload']['asg']['name']
+    region = event['Payload']['asg']['region']
+    scale = event['Payload']['scale']
 
     credentials = aws_assume_role(carve_role_arn(account), f"lookup-{name}")
     response = aws_describe_asg(name, region, credentials)
@@ -25,7 +26,7 @@ def lambda_handler(event, context):
     instances = response['AutoScalingGroups'][0]['Instances']
     scale_status = "SCALE_IN_PROGRESS"
 
-    if event['scale'] == 'down':
+    if scale == 'down':
         if len(instances) == 0:
             scale_status = "SCALE_SUCCEEDED"
     else:
@@ -37,20 +38,21 @@ def lambda_handler(event, context):
             scale_status = "SCALE_SUCCEEDED"
     # SHOULD ALSO CATCH FAILURE HERE TO RETURN: SCALE_FAILED
 
-    event['ScaleStatus'] = scale_status
+    response = event['Payload']
+    response['ScaleStatus'] = scale_status
 
-    return event
+    return response
 
 
 if __name__ == "__main__":
-    event = {
+    event = {"Payload": {
         'asg': {
             'name': 'test-carve-beacon-asg-vpc-0cac04ffc6e165683',
             'account': '094619684579',
             'region': 'us-east-1',
             'subnets': 1
         },
-        'scale': 'down'
-    }
+        'scale': 'up'
+    }}
     result = lambda_handler(event, None)
     print(result)
