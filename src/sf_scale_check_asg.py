@@ -49,8 +49,9 @@ def lambda_handler(event, context):
 
     # SHOULD ALSO CATCH FAILURE HERE TO RETURN: SCALE_FAILED
     data['ScaleStatus'] = scale_status
+
     print(f"returning: {json.dumps(data, default=str)}")
-    return 
+    return json.dumps(data, default=str)
 
 
 if __name__ == "__main__":

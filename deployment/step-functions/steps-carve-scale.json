@@ -46,9 +46,6 @@
               "FunctionName": "${FunctionSfScaleCheckAsg}",
               "Payload.$": "$"
             },
-            "ResultSelector": {
-              "Payload.$": "States.StringToJson($.Payload)"
-            },
             "Next": "ASGChoice",
             "TimeoutSeconds": 30
           },
