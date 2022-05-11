@@ -18,7 +18,7 @@ def lambda_handler(event, context):
     # need to coerce data
     # data lives in "Payload" on first check, then when passed from the choice
     # state the data moves to the top of the json object
-    data = {}
+    data = {'asg':{}}
 
     if "Payload" in event:
         data['asg']['account'] = event['Payload']['asg']['account']
