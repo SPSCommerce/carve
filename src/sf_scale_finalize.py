@@ -1,8 +1,13 @@
 import json
 import os
+
+import lambdavars
+
 from aws import *
 from carve import load_graph, carve_role_arn, get_carve_asgs
 import concurrent.futures
+
+from pprint import pprint
 
 
 def get_subnet_beacons():
@@ -42,9 +47,10 @@ def inventory_carve_beacons():
 
     asgs = get_carve_asgs() # list of dicts
 
-    # threaded look up the IP address of all beacons in all ASGs
     subnet_beacons = {}
     all_beacons = []
+
+    # threaded look up the IP address of all beacons in all ASGs
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = []
         for asg in asgs:
@@ -58,29 +64,35 @@ def inventory_carve_beacons():
         for future in concurrent.futures.as_completed(futures):
             result = future.result()
             subnet_beacons.update(result)
-            for subnet, beacon in result.items():
-                all_beacons.append(beacon)
-
+    
     # push subnet beacons data to S3
     data = json.dumps(subnet_beacons, ensure_ascii=True, indent=2, sort_keys=True)
     aws_put_direct(data, 'managed_deployment/subnet-beacons.json')
+
+    all_beacons = []
+    for subnet, beacon in subnet_beacons.items():
+        all_beacons.append(beacon)
+
     return all_beacons
 
 
-
 def update_beacon_list(all_beacons):
-    # get a dict of subnets, accounts, regions, and beacons
-    subnets = get_subnet_beacons()
+    ##
+    ##
+    ## THIS FEELS LIKE IT SHOULD BE STEP FUNCTION MAP TASK INSTEAD OF THREADED LAMBDA
+    ##  REFACTOR
+    ##
+
+    # get a dict of beacons with subnets, accounts, and regions
+    subnet_beacons = get_subnet_beacons()
 
     # use threading to update all beacons with new beacon lists
     results = []
-
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = []
         p = os.environ['Prefix']
 
-        for beacon, data in subnets.items():
-
+        for beacon, data in subnet_beacons.items():
             futures.append(executor.submit(
                 aws_invoke_lambda,
                 arn=f"arn:aws:lambda:{data['region']}:{data['account']}:function:{p}carve-{data['subnet']}",
@@ -95,8 +107,6 @@ def update_beacon_list(all_beacons):
         for future in concurrent.futures.as_completed(futures):
             results.append(future.result())
 
-    print(results)
-
 
 def get_beacons_thread(asg, account, region):
     # threaded lookup of all beacon IP addresses in an ASG
@@ -104,9 +114,10 @@ def get_beacons_thread(asg, account, region):
     instance_ids = []
     asg_info = aws_describe_asg(asg, region, credentials)
 
-    for instance in asg_info['AutoScalingGroups'][0]['Instances']:
-        if instance['LifecycleState'] == "InService":
-            instance_ids.append(instance['InstanceId'])
+    for asg in asg_info['AutoScalingGroups']:
+        for instance in asg['Instances']:
+            if instance['LifecycleState'] == "InService":
+                instance_ids.append(instance['InstanceId'])
 
     instances = aws_describe_instances(instance_ids, region, credentials)
 
@@ -124,7 +135,21 @@ def lambda_handler(event, context):
     all_beacons = inventory_carve_beacons()
 
     if len(all_beacons) > 0:
-        print("updating inventory on beacons")
+        print(f"updating inventory with {len(all_beacons)} beacons")
         update_beacon_list(all_beacons)
     else:
         print("no beacons to update")
+
+
+if __name__ == "__main__":
+    event = {"Payload": {
+        'asg': {
+            'name': 'test-carve-beacon-asg-vpc-0cac04ffc6e165683',
+            'account': '094619684579',
+            'region': 'us-east-1',
+            'subnets': 1
+        },
+        'scale': 'up'
+    }}
+    result = lambda_handler(event, None)
+    # print(result)

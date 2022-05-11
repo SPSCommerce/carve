@@ -204,6 +204,8 @@ def aws_execute_change_set(changesetname, stackname, region, credentials):
 
 
 def aws_describe_instances(instances, region, credentials):
+    if len(instances) == 0:
+        return []
     client = boto3.client(
         'ec2',
         config=boto_config,
