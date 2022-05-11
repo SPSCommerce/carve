@@ -124,7 +124,7 @@ Resources:
       TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
       TimeoutInMinutes: 5
 
-  FunctionSfScaleGetBeacons:
+  FunctionSfScaleFinalize:
     Type: AWS::CloudFormation::Stack
     Properties: 
       Parameters:
@@ -347,8 +347,8 @@ Resources:
           Fn::GetAtt: [FunctionSfScaleUpdateAsg, Outputs.LambdaName]
         FunctionSfScaleCheckAsg:
           Fn::GetAtt: [FunctionSfScaleCheckAsg, Outputs.LambdaName]
-        FunctionSfScaleGetBeacons: 
-          Fn::GetAtt: [FunctionSfScaleGetBeacons, Outputs.LambdaName]
+        FunctionSfScaleFinalize: 
+          Fn::GetAtt: [FunctionSfScaleFinalize, Outputs.LambdaName]
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
       StateMachineName: !Sub "${Prefix}carve-scale-statemachine"
       StateMachineType: STANDARD
