@@ -72,26 +72,32 @@ def carve_results():
 #             G.remove_edge(edge[0], edge[1])
 
 
+def get_carve_asgs(G=None):
+    ''' gets the ARNs for all carve deployed ASGs in G '''
+    if G is None:
+        G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
 
+    # build a dict of all carve ASGs with their subnets (carve uses one ASG per VPC)
+    asgs = {}
+    for subnet in list(G.nodes):
+        asgname = f"{os.environ['Prefix']}carve-beacon-asg-{G.nodes().data()[subnet]['VpcId']}"
+        if G.nodes().data()[subnet]['VpcId'] not in asgs:
+            asgs[asgname] = {
+               'account': G.nodes().data()[subnet]['Account'],
+               'region': G.nodes().data()[subnet]['Region'],
+               'subnets': [subnet]
+            }          
+        else:
+            asgname = f"{os.environ['Prefix']}carve-beacon-asg-{G.nodes().data()[subnet]['VpcId']}"
+            asgs[asgname]['subnets'].append(subnet)
 
-# def get_asgs(G=None):
-#     if G is None:
-#         G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
+    # convert to list of dicts
+    asgs_list = []
+    for k, v in asgs.items():
+        asg = {'name': k, 'account': v['account'], 'region': v['region'], 'subnets': len(v['subnets'])}
+        asgs_list.append(asg)
 
-#     # determine all deployed ASGs
-#     asgs = {}
-#     for subnet in list(G.nodes):
-#         asg = f"{os.environ['Prefix']}carve-beacon-asg-{G.nodes().data()[subnet]['VpcId']}"
-#         if asg not in asgs:
-#             asgs[asg] = {
-#                 'account': G.nodes().data()[subnet]['Account'],
-#                 'region': G.nodes().data()[subnet]['Region'],
-#                 }
-
-#     for asg, values in asgs.items():
-
-
-#     return asgs
+    return asgs_list
 
 
 def scale_beacons(scale):

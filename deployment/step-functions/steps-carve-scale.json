@@ -46,22 +46,21 @@
               "FunctionName": "${FunctionSfScaleCheckAsg}",
               "Payload.$": "$"
             },
+            "ResultSelector": {
+              "Payload.$": "States.StringToJson($.Payload)"
+            },
             "Next": "ASGChoice",
             "TimeoutSeconds": 30
           },
 
           "ScaleWait": {
             "Type": "Wait",
-            "Seconds": 10,
+            "Seconds": 30,
             "Next": "CheckASG"
           },
 
-          "ScaleFailure": {
+          "Failure": {
             "Type": "Fail"
-          },
-
-          "ScaleSucceed": {
-            "Type": "Succeed"
           },
 
           "ASGChoice": {
@@ -71,7 +70,7 @@
               {
                 "Variable": "$.ScaleStatus",
                 "StringEquals": "SCALE_SUCCEEDED",
-                "Next": "ScaleSucceed"
+                "Next": "Finalize"
               },
               {
                 "Variable": "$.ScaleStatus",
@@ -81,9 +80,19 @@
               {
                 "Variable": "$.ScaleStatus",
                 "StringEquals": "SCALE_FAILED",
-                "Next": "ScaleFailure"
+                "Next": "Failure"
               }
             ]
+          },
+          "Finalize": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::lambda:invoke",
+            "Parameters": {
+              "FunctionName": "${FunctionSfScaleFinalize}",
+              "Payload.$": "$"
+            },
+            "End": true,
+            "TimeoutSeconds": 30
           }
         }
       }

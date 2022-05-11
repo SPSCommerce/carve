@@ -21,11 +21,13 @@ def lambda_handler(event, context):
     data = {'asg': {}}
 
     if "Payload" in event:
+        print("Payload found")
         data['asg']['account'] = event['Payload']['asg']['account']
         data['asg']['name'] = event['Payload']['asg']['name']
         data['asg']['region'] = event['Payload']['asg']['region']
         data['scale'] = event['Payload']['scale']
     else:
+        print("Payload not found")
         data = event
  
     credentials = aws_assume_role(carve_role_arn(data['asg']['account']), f"lookup-{data['asg']['name']}")
@@ -46,9 +48,9 @@ def lambda_handler(event, context):
             scale_status = "SCALE_SUCCEEDED"
 
     # SHOULD ALSO CATCH FAILURE HERE TO RETURN: SCALE_FAILED
-
     data['ScaleStatus'] = scale_status
-    return json.dumps(data, default=str)
+    print(f"returning: {json.dumps(data, default=str)}")
+    return 
 
 
 if __name__ == "__main__":
