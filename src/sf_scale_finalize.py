@@ -47,7 +47,7 @@ def inventory_carve_beacons():
     all_beacons = []
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = []
-        for asg in asgs.items():
+        for asg in asgs:
             futures.append(executor.submit(
                 get_beacons_thread,
                 asg=asg['name'],
@@ -69,7 +69,7 @@ def inventory_carve_beacons():
 
 
 def update_beacon_list(all_beacons):
-    # get a list of subnets, accounts, regions, and beacons
+    # get a dict of subnets, accounts, regions, and beacons
     subnets = get_subnet_beacons()
 
     # use threading to update all beacons with new beacon lists
