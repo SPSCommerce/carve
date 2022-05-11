@@ -39,12 +39,13 @@ def lambda_handler(event, context):
                 from deploy_beacons import deploy_prep_check
                 deploy_prep_check(event, context)
 
-        if event['source'] == 'aws.ssm':
-            from carve import ssm_event
+        # # replaced with step function input
+        # if event['source'] == 'aws.ssm':
+        #     from carve import ssm_event
 
-            ssm_arn = event['resources'][0]
-            print(f'TRIGGERED by SSM: {ssm_arn}')
-            ssm_event(event, context)
+        #     ssm_arn = event['resources'][0]
+        #     print(f'TRIGGERED by SSM: {ssm_arn}')
+        #     ssm_event(event, context)
 
     elif 'Records' in event:
 
