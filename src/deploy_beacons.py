@@ -5,7 +5,7 @@ import json
 import os
 import sys
 from copy import deepcopy
-from carve import load_graph, save_graph, carve_role_arn, ssm_event
+from carve import load_graph, save_graph, carve_role_arn
 from aws import *
 from multiprocessing import Process, Pipe
 import time
