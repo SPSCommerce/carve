@@ -101,8 +101,8 @@ Resources:
       Principal: s3.amazonaws.com
       SourceArn: !If
         - UseOrgId
-        - !Sub "${Prefix}carve-managed-bucket-${OrgId}-${AWS::Region}"
-        - !Sub "${Prefix}carve-managed-bucket-${UniqueId}-${AWS::Region}"
+        - !Sub "arn:aws:s3:::${Prefix}carve-managed-bucket-${OrgId}-${AWS::Region}"
+        - !Sub "arn:aws:s3:::${Prefix}carve-managed-bucket-${UniqueId}-${AWS::Region}"
 
   OrgSNSSubscription:
     Condition: Core
