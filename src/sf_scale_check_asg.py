@@ -1,15 +1,8 @@
-import os
-
-from numpy import insert
-
 import lambdavars
-
 from aws import *
-
 import json
-from carve import load_graph, carve_role_arn, beacon_results
-import concurrent.futures
-import time
+from carve import carve_role_arn
+
 
 
 def lambda_handler(event, context):

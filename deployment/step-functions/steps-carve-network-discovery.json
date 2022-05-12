@@ -1,0 +1,55 @@
+{
+  "Comment": "Carve Network Discovery",
+  "StartAt": "Initialize",
+  "States": {
+    "Initialize": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${FunctionSfNetworkDiscoveryInitialize}",
+        "Payload": {
+          "Input.$": "$"
+        }
+      },
+      "Next": "ConcurrentAccountDiscovery",
+      "TimeoutSeconds": 30
+    },
+    "ConcurrentAccountDiscovery": {
+      "Type": "Map",
+      "Next": "FinalizeDiscovery",
+
+      "MaxConcurrency": 100,
+      "ItemsPath": "$.Payload.asgs",
+      "InputPath": "$",
+      "Parameters": {
+        "regions.$": "$.Payload.regions",
+        "account.$": "$$.Map.Item.Value"
+      },
+      "Iterator": {
+        "StartAt": "DiscoverAccount",
+        "States": {
+          "DiscoverAccount": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::lambda:invoke",
+            "Parameters": {
+              "FunctionName": "${FunctionSfNetworkDiscoveryAccount}",
+              "Payload.$": "$"
+            },
+            "End": true,
+            "TimeoutSeconds": 60
+          }
+        }
+      }
+    },
+    "FinalizeDiscovery": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${FunctionSfNetworkDiscoveryFinalize}",
+        "Payload.$": "$"
+      },
+      "End": true,
+      "TimeoutSeconds": 300
+    }
+  }
+}

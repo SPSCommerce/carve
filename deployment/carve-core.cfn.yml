@@ -143,6 +143,63 @@ Resources:
       TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
       TimeoutInMinutes: 5
 
+  FunctionSfNetworkDiscoveryInitialize:
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      Parameters:
+        HandlerFile: sf_network_discovery_initialize
+        # params below are the same for all nested lambda stacks
+        CarveVersion: !Ref CarveVersion
+        CodeBucket: !Ref CodeBucket
+        ECR: !Ref ECR
+        IMAGETAG: !Ref IMAGETAG
+        OrgId: !Ref OrgId
+        OrgSNSTopic: !Ref OrgSNSTopic
+        Prefix: !Ref Prefix
+        PropogateUpdates: !Ref PropogateUpdates
+        UniqueId: !Ref UniqueId
+        RoleArn: !GetAtt CarveCoreRole.Arn
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TimeoutInMinutes: 5
+
+  FunctionSfNetworkDiscoveryAccount:
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      Parameters:
+        HandlerFile: sf_network_discovery_account
+        # params below are the same for all nested lambda stacks
+        CarveVersion: !Ref CarveVersion
+        CodeBucket: !Ref CodeBucket
+        ECR: !Ref ECR
+        IMAGETAG: !Ref IMAGETAG
+        OrgId: !Ref OrgId
+        OrgSNSTopic: !Ref OrgSNSTopic
+        Prefix: !Ref Prefix
+        PropogateUpdates: !Ref PropogateUpdates
+        UniqueId: !Ref UniqueId
+        RoleArn: !GetAtt CarveCoreRole.Arn
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TimeoutInMinutes: 5
+
+  FunctionSfNetworkDiscoveryFinalize:
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      Parameters:
+        HandlerFile: sf_network_discovery_finalize
+        # params below are the same for all nested lambda stacks
+        CarveVersion: !Ref CarveVersion
+        CodeBucket: !Ref CodeBucket
+        ECR: !Ref ECR
+        IMAGETAG: !Ref IMAGETAG
+        OrgId: !Ref OrgId
+        OrgSNSTopic: !Ref OrgSNSTopic
+        Prefix: !Ref Prefix
+        PropogateUpdates: !Ref PropogateUpdates
+        UniqueId: !Ref UniqueId
+        RoleArn: !GetAtt CarveCoreRole.Arn
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TimeoutInMinutes: 5
+
   CarveCoreRole:
     Type: AWS::IAM::Role
     Properties:
@@ -320,18 +377,22 @@ Resources:
       StateMachineName: !Sub "${Prefix}carve-cleanup-statemachine"
       StateMachineType: STANDARD
 
-  CarveDiscoveryStepFunction:
+  CarveNetworkDiscoveryStepFunction:
     Type: AWS::StepFunctions::StateMachine
     Properties: 
       DefinitionS3Location: 
         Bucket: !Ref CodeBucket
-        Key: !Sub "step-functions/${GITSHA}/steps-carve-discovery.json"
+        Key: !Sub "step-functions/${GITSHA}/steps-carve-network-discovery.json"
       DefinitionSubstitutions: 
         # CarveFunction: !Ref CarveFunction
-        CarveFunction: 
-          Fn::GetAtt: [FunctionEntrypoint, Outputs.LambdaName]
+        FunctionSfNetworkDiscoveryInitialize:
+          Fn::GetAtt: [FunctionSfNetworkDiscoveryInitialize, Outputs.LambdaName]
+        FunctionSfNetworkDiscoveryAccount:
+          Fn::GetAtt: [FunctionSfNetworkDiscoveryAccount, Outputs.LambdaName]
+        FunctionSfNetworkDiscoveryFinalize:
+          Fn::GetAtt: [FunctionSfNetworkDiscoveryFinalize, Outputs.LambdaName]
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
-      StateMachineName: !Sub "${Prefix}carve-discovery-statemachine"
+      StateMachineName: !Sub "${Prefix}carve-network-discovery-statemachine"
       StateMachineType: STANDARD
 
   CarveScaleStepFunction:
