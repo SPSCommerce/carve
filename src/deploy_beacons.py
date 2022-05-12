@@ -256,13 +256,13 @@ def deployment_list(G, context):
         aws_put_direct(data, key)
     
         image_id = aws_ssm_get_parameter(f"/{os.environ['Prefix']}carve-resources/carve-beacon-ami", region=region)
-        scale = aws_ssm_get_parameter(f"/{os.environ['Prefix']}carve-resources/scale")
+        # scale = aws_ssm_get_parameter(f"/{os.environ['Prefix']}carve-resources/scale")
 
-        desired = 0
-        if scale == 'subnet':
-            desired = len(vpc_subnets)
-        elif scale == 'vpc':
-            desired = 1
+        # desired = 0
+        # if scale == 'subnet':
+        desired = len(vpc_subnets)
+        # elif scale == 'vpc':
+        #     desired = 1
 
         stack = {}
         stack['StackName'] = f"{os.environ['Prefix']}carve-managed-{vpc}"
@@ -495,9 +495,18 @@ def sf_DeploymentComplete(context):
     aws_copy_s3_object(deploy_key, f'deployed_graph/{key_name}')
     aws_delete_s3_object(deploy_key, current_region)
 
-    # scale beacons to ssm parameter value
-    event = {'detail': {'name': f"/{os.environ['Prefix']}carve-resources/scale"}}
-    ssm_event(event, context)
+    # execute the last scale up/down
+
+    executions = aws_states_list_executions(arn=os.environ['ScaleStateMachine'], results=100)
+
+    last_exec = aws_states_describe_execution(executions[0])
+
+    scale = json.loads(last_exec['input'])['scale']
+    name = f"scale-{scale}-{int(time.time())}"
+    aws_start_stepfunction(os.environ['ScaleStateMachine'], last_exec['input'], name)
+
+    # event = {'detail': {'name': f"/{os.environ['Prefix']}carve-resources/scale"}}
+    # ssm_event(event, context)
 
 
 def deploy_steps_entrypoint(event, context):

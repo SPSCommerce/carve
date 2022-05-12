@@ -593,10 +593,20 @@ def aws_get_carve_s3(key, file_path, bucket=None):
 
 
 
-def aws_states_list_executions(arn):
+def aws_states_list_executions(arn, results=100):
     client = boto3.client('stepfunctions', config=boto_config)
-    response = client.list_executions(stateMachineArn=arn)
-    return response['executions']
+    paginator = client.get_paginator('list_executions')
+    executions = []
+    for page in paginator.paginate(maxResults=results, stateMachineArn=arn):
+        for e in page['executions']:
+            executions.append(e)
+    return executions
+
+
+def aws_states_describe_execution(arn):
+    client = boto3.client('stepfunctions', config=boto_config)
+    response = client.describe_execution(executionArn=arn)
+    return response
 
 
 def aws_create_s3_path(path):
