@@ -19,7 +19,7 @@
       "Next": "FinalizeDiscovery",
 
       "MaxConcurrency": 100,
-      "ItemsPath": "$.Payload.asgs",
+      "ItemsPath": "$.Payload.accounts",
       "InputPath": "$",
       "Parameters": {
         "regions.$": "$.Payload.regions",
@@ -45,8 +45,7 @@
       "Type": "Task",
       "Resource": "arn:aws:states:::lambda:invoke",
       "Parameters": {
-        "FunctionName": "${FunctionSfNetworkDiscoveryFinalize}",
-        "Payload.$": "$"
+        "FunctionName": "${FunctionSfNetworkDiscoveryFinalize}"
       },
       "End": true,
       "TimeoutSeconds": 300

@@ -909,6 +909,24 @@ def aws_describe_subnets(region, credentials, account_id, subnet_id=None):
         print(f"error descibing subnets in {region} in {account_id}: {e}")
         return []
 
+
+def aws_active_region(region, credentials, account_id):
+    client = boto3.client(
+        'ec2',
+        config=boto_config,
+        region_name=region,
+        aws_access_key_id = credentials['AccessKeyId'],
+        aws_secret_access_key = credentials['SecretAccessKey'],
+        aws_session_token = credentials['SessionToken']
+        )
+    try:
+        client.describe_subnets()
+        return True
+    except ClientError as e:
+        return False
+
+
+
 def aws_describe_vpcs(region, credentials, account_id):
     client = boto3.client(
         'ec2',

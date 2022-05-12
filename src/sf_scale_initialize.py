@@ -1,11 +1,6 @@
-import os
-from pprint import pp
-
 import lambdavars
-
 from aws import *
-from carve import load_graph, carve_role_arn, get_carve_asgs
-import concurrent.futures
+from carve import carve_role_arn, get_carve_asgs
 
 
 def threaded_asg_lookup(name, account, region, subnets):
