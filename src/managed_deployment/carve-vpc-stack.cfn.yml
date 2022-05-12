@@ -210,13 +210,13 @@ Resources:
           Action:
             - "sts:AssumeRole"
 
-  EventInvokeLambda:
-     Type: AWS::Lambda::Permission
-     Properties:
-       FunctionName: !Ref BridgeFunction
-       Action: "lambda:InvokeFunction"
-       Principal: "events.amazonaws.com"
-       SourceArn: !GetAtt AsgEventRule.Arn
+  # EventInvokeLambda:
+  #    Type: AWS::Lambda::Permission
+  #    Properties:
+  #      FunctionName: !Ref BridgeFunction
+  #      Action: "lambda:InvokeFunction"
+  #      Principal: "events.amazonaws.com"
+  #      SourceArn: !GetAtt AsgEventRule.Arn
 
   # AsgEventRule:
   #   Type: AWS::Events::Rule
