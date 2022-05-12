@@ -53,6 +53,7 @@ Parameters:
 
 Conditions:
   UseOrgId: !Equals [ !Ref "UniqueId", "" ]
+  Core: !Equals [ !Ref "HandlerFile", "entrypoint" ]
 
 Resources:
   CarveFunction:
@@ -90,6 +91,33 @@ Resources:
       Timeout: 120
       Role: !Ref RoleArn
       # ReservedConcurrentExecutions: 20
+
+  S3InvokeCarvePermission:
+    Condition: Core
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt CarveFunction.Arn  
+      Principal: s3.amazonaws.com
+      SourceArn: !GetAtt CarveS3Bucket.Arn
+
+  OrgSNSSubscription:
+    Condition: Core
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: !GetAtt CarveFunction.Arn  
+      Protocol: Lambda
+      TopicArn: !Ref OrgSNSTopic
+
+  OrgSNSInvoke:
+    Condition: Core
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      Principal: sns.amazonaws.com
+      SourceArn: !Ref OrgSNSTopic
+      FunctionName: !GetAtt CarveFunction.Arn  
+
 
 Outputs:
   LambdaName:

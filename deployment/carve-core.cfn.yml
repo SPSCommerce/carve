@@ -459,25 +459,6 @@ Resources:
       DisplayName: !Sub "${Prefix}carve-org-events"
       TopicName: !Sub "${Prefix}carve-org-events"
 
-  OrgSNSSubscription:
-    Type: AWS::SNS::Subscription
-    Properties:
-      # Endpoint: !GetAtt CarveFunction.Arn
-      Endpoint: 
-        Fn::GetAtt: [FunctionEntrypoint, Outputs.LambdaArn]
-      Protocol: Lambda
-      TopicArn: !Ref OrgSNSTopic
-
-  OrgSNSInvoke:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      Principal: sns.amazonaws.com
-      SourceArn: !Ref OrgSNSTopic
-      # FunctionName: !GetAtt CarveFunction.Arn
-      FunctionName: 
-        Fn::GetAtt: [FunctionEntrypoint, Outputs.LambdaArn]
-
   OrgSNSTopicPolicy:
     Type: AWS::SNS::TopicPolicy
     Properties:
@@ -582,32 +563,32 @@ Resources:
       Type: String
       Value: subnet
 
-  SSMParameterChange:
-    Type: AWS::Events::Rule
-    Properties:
-      Description: "ASG notifications to SNS"
-      EventPattern: 
-        source:
-          - "aws.ssm"
-        detail-type:
-          - "Parameter Store Change"
-        detail:
-          name:
-            - !Ref SSMParameter
-      State: "ENABLED"
-      Targets:
-        - Id: "InvokeCarve"
-          # Arn: !GetAtt CarveFunction.Arn
-          Arn: 
-            Fn::GetAtt: [FunctionEntrypoint, Outputs.LambdaArn]
+  # SSMParameterChange:
+  #   Type: AWS::Events::Rule
+  #   Properties:
+  #     Description: "ASG notifications to SNS"
+  #     EventPattern: 
+  #       source:
+  #         - "aws.ssm"
+  #       detail-type:
+  #         - "Parameter Store Change"
+  #       detail:
+  #         name:
+  #           - !Ref SSMParameter
+  #     State: "ENABLED"
+  #     Targets:
+  #       - Id: "InvokeCarve"
+  #         # Arn: !GetAtt CarveFunction.Arn
+  #         Arn: 
+  #           Fn::GetAtt: [FunctionEntrypoint, Outputs.LambdaArn]
 
-  CloudWatchInvokeLambda:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !GetAtt [FunctionEntrypoint, Outputs.LambdaArn]
-      Action: "lambda:InvokeFunction"
-      Principal: "events.amazonaws.com"
-      SourceArn: !GetAtt SSMParameterChange.Arn
+  # CloudWatchInvokeLambda:
+  #   Type: AWS::Lambda::Permission
+  #   Properties:
+  #     FunctionName: !GetAtt [FunctionEntrypoint, Outputs.LambdaArn]
+  #     Action: "lambda:InvokeFunction"
+  #     Principal: "events.amazonaws.com"
+  #     SourceArn: !GetAtt SSMParameterChange.Arn
 
   CloudWatchRole:
     Type: AWS::IAM::Role
@@ -690,16 +671,6 @@ Resources:
             Condition:
               StringEquals:
                 aws:PrincipalOrgID: !Ref OrgId
-
-  S3InvokeCarvePermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      # FunctionName: !GetAtt CarveFunction.Arn
-      FunctionName: 
-        Fn::GetAtt: [FunctionEntrypoint, Outputs.LambdaArn]
-      Principal: s3.amazonaws.com
-      SourceArn: !GetAtt CarveS3Bucket.Arn
 
 
 Outputs:
