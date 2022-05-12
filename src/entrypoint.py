@@ -19,8 +19,12 @@ def lambda_handler(event, context):
 
     '''
     if 'CodePipeline.job' not in event:
-        if 'Tokens' not in event:
-            print(event)
+        print(event)
+    else:
+        from deploy_beacons import codepipline_job
+        print('TRIGGERED by CodePipeline')
+        codepipline_job(event, context)
+
 
     if 'update-beacons' in event:
         from carve import update_carve_beacons
@@ -84,35 +88,16 @@ def lambda_handler(event, context):
         print('TRIGGERED by Deploy Stack Step Function')
         return deploy_stack_entrypoint(event, context)
 
-    elif 'DiscoveryAction' in event:
-        from disco import disco_entrypoint
-        print('TRIGGERED by Discovery Step Function')
-        return disco_entrypoint(event, context)
-
     elif 'DiscoverRouting' in event:
         from disco import discover_routing
         return discover_routing()
 
-    elif 'Tokens' in event:
-        from tokens import token_entrypoint
-        print('TRIGGERED by Token Step Function')
-        return token_entrypoint(event, context)
-
-
-    # elif 'ResourceProperties' in event:
-    #     # this is from CFN custom resource
-    #     return custom_resource_entrypoint(event, context)
 
     elif 'Payload' in event:
         if 'CleanupAction' in event['Payload']:
             from cleanup import cleanup_steps_entrypoint
             print('TRIGGERED by Cleanup Step Function')
             return cleanup_steps_entrypoint(event, context)
-
-    elif 'CodePipeline.job' in event:
-        from deploy_beacons import codepipline_job
-        print('TRIGGERED by CodePipeline')
-        codepipline_job(event, context)
 
     else:
         print(f'unrecognized event: {event}')

@@ -82,7 +82,7 @@ def lambda_handler(event, context):
 
     # graph for all subnets in all regions in this account
     A = nx.Graph()
-    A.graph['Name'] = f'subnets_{account_id}_{account_name}_{int(time.time())}'
+    A.graph['Name'] = f'subnets_{account_id}_{account_name}'
 
     # discover subnets in each region
     for region in regions:
@@ -97,14 +97,19 @@ def lambda_handler(event, context):
         A.add_nodes_from(R.nodes.data())
 
 
-    save_graph(A, f"/tmp/{A.graph['Name']}.json")
-    aws_upload_file_s3(f"discovery/{A.graph['Name']}.json", f"/tmp/{A.graph['Name']}.json")
+    if len(A.nodes) > 0:
+        save_graph(A, f"/tmp/{A.graph['Name']}.json")
+        aws_upload_file_s3(f"discovery/{A.graph['Name']}.json", f"/tmp/{A.graph['Name']}.json")
 
-    print(f"discovered in {account_id} {account_name}: {A.nodes.data()}")
+    print(f"discovered {len(A.nodes)} subnets in {account_id} {account_name}: {A.nodes.data()}")
 
 
 if __name__ == "__main__":
-    event = {'regions': ['ap-northeast-1', 'ap-northeast-2', 'ap-northeast-3', 'ap-south-1', 'ap-southeast-1', 'ap-southeast-2', 'ap-southeast-3', 'ca-central-1', 'eu-central-1', 'eu-north-1', 'eu-west-1', 'eu-west-2', 'eu-west-3', 'sa-east-1', 'us-east-1', 'us-east-2', 'us-west-1', 'us-west-2'], 'account': {'account_id': '104966627370', 'account_name': 'spsc'}}
+    event = {
+        'regions': ['ap-northeast-1', 'ap-northeast-2', 'ap-northeast-3', 'ap-south-1', 'ap-southeast-1', 'ap-southeast-2', 'ap-southeast-3', 'ca-central-1', 'eu-central-1', 'eu-north-1', 'eu-west-1', 'eu-west-2', 'eu-west-3', 'sa-east-1', 'us-east-1', 'us-east-2', 'us-west-1', 'us-west-2'],
+        'account': {'account_id': '104966627370', 'account_name': 'spsc'}
+        # 'account': {'account_id': '602068278189', 'account_name': 'spsartifactsnonprod'}
+        }
     result = lambda_handler(event, None)
     print(json.dumps(result))
     

@@ -7,7 +7,7 @@ import networkx as nx
 from networkx.readwrite import json_graph
 
 from aws import *
-from carve import load_graph
+from carve import load_graph, save_graph
 
 
 def lambda_handler(event, context):
@@ -28,12 +28,11 @@ def lambda_handler(event, context):
         S = load_graph(account, local=False)
         G.add_nodes_from(S.nodes.data())
 
-    # upload graph to S3
-    graph = json.dumps(json_graph.node_link_data(G), default=str)
-    aws_put_direct(f'discovered/{name}.json', graph)
+    # push graph to S3
+    save_graph(G, f"/tmp/{name}.json")
+    aws_upload_file_s3(f'discovered/{name}.json', f"/tmp/{name}.json")
 
-    result = {"discovery": f"s3://{os.environ['CarveS3Bucket']}/discovered/{name}.json"}
-    print(result)
+    result = {"discovered": f"s3://{os.environ['CarveS3Bucket']}/discovered/{name}.json"}
 
     return result
 
