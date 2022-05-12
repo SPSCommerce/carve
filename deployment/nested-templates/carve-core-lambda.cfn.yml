@@ -99,7 +99,10 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !GetAtt CarveFunction.Arn  
       Principal: s3.amazonaws.com
-      SourceArn: !GetAtt CarveS3Bucket.Arn
+      SourceArn: !If
+        - UseOrgId
+        - !Sub "${Prefix}carve-managed-bucket-${OrgId}-${AWS::Region}"
+        - !Sub "${Prefix}carve-managed-bucket-${UniqueId}-${AWS::Region}"
 
   OrgSNSSubscription:
     Condition: Core
