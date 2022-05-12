@@ -5,7 +5,6 @@ import json
 import sys
 import os
 from aws import *
-import urllib3
 import concurrent.futures
 import time
 
@@ -100,121 +99,124 @@ def get_carve_asgs(G=None):
     return asgs_list
 
 
-def scale_beacons(scale):
-    ''' 
-        discover all beacon IP address 
-        add the beacons to the carve-config cloudformation snippet
-        push the snipped to regional s3 buckets to be used as a cloudformation include
-    '''
+# def scale_beacons(scale):
+#     ''' 
+#         # THIS FUNCTION APPEARS TO BE REPLACED
 
-    G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
+#         discover all beacon IP address 
+#         add the beacons to the carve-config cloudformation snippet
+#         push the snipped to regional s3 buckets to be used as a cloudformation include
+#     '''
 
-    vpcs = {}
-    payload = []
-    for subnet in list(G.nodes):
-        # determine VPCs and regions
-        a = G.nodes().data()[subnet]['Account']
-        r = G.nodes().data()[subnet]['Region']
-        vpcs[G.nodes().data()[subnet]['VpcId']] = (a, r)
-        # add an ssm path to store tokens for each subnet
-        payload.append({
-            'parameter': f"/{os.environ['Prefix']}carve-resources/tokens/{subnet}",
-            'task': 'scale',
-            'scale': scale
-            })
+#     G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
 
-    # start a step function to generate tokens to track scaling each subnet
-    name = f"scale-{scale}-{int(time.time())}"
-    print('starting token step function')
-    aws_start_stepfunction(os.environ['TokenStateMachine'], payload, name)
+#     vpcs = {}
+#     payload = []
+#     for subnet in list(G.nodes):
+#         # determine VPCs and regions
+#         a = G.nodes().data()[subnet]['Account']
+#         r = G.nodes().data()[subnet]['Region']
+#         vpcs[G.nodes().data()[subnet]['VpcId']] = (a, r)
+#         # add an ssm path to store tokens for each subnet
+#         payload.append({
+#             'parameter': f"/{os.environ['Prefix']}carve-resources/tokens/{subnet}",
+#             'task': 'scale',
+#             'scale': scale
+#             })
 
-    # generate a list of autoscaling groups to scale
-    asgs = []
-    for vpc, ar in vpcs.items():
-        vpc_subnets = [x for x,y in G.nodes(data=True) if y['VpcId'] == vpc]
-        asgs.append({
-            'asg': f"{os.environ['Prefix']}carve-beacon-asg-{vpc}",
-            'account': ar[0],
-            'region': ar[1],
-            'subnets': vpc_subnets
-            })
+#     # start a step function to generate tokens to track scaling each subnet
+#     name = f"scale-{scale}-{int(time.time())}"
+#     print('starting token step function')
+#     aws_start_stepfunction(os.environ['TokenStateMachine'], payload, name)
 
-    # wait for tokens to appear before scaling
-    i = 0
-    while True:
-        tokens = aws_ssm_get_parameters(f"/{os.environ['Prefix']}carve-resources/tokens/")
-        if len(payload) == len(tokens):
-            print('tokens are ready')
-            break
-        else:
-            if i > 30:
-                print('timed out waiting for tokens')
-            else:
-                i = i + 1
-                print('waiting 1s for tokens...')
-                time.sleep(1)
+#     # generate a list of autoscaling groups to scale
+#     asgs = []
+#     for vpc, ar in vpcs.items():
+#         vpc_subnets = [x for x,y in G.nodes(data=True) if y['VpcId'] == vpc]
+#         asgs.append({
+#             'asg': f"{os.environ['Prefix']}carve-beacon-asg-{vpc}",
+#             'account': ar[0],
+#             'region': ar[1],
+#             'subnets': vpc_subnets
+#             })
 
-    print(f'scaling asgs: {asgs}')
-    # using threading, set all ASGs to correct scale for all beacons
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = []
-        for asg in asgs:
+#     # wait for tokens to appear before scaling
+#     i = 0
+#     while True:
+#         tokens = aws_ssm_get_parameters(f"/{os.environ['Prefix']}carve-resources/tokens/")
+#         if len(payload) == len(tokens):
+#             print('tokens are ready')
+#             break
+#         else:
+#             if i > 30:
+#                 print('timed out waiting for tokens')
+#             else:
+#                 i = i + 1
+#                 print('waiting 1s for tokens...')
+#                 time.sleep(1)
 
-            if scale == 'none':
-                desired = 0
-            elif scale == 'subnet':
-                desired = len(asg['subnets'])
-            elif scale == 'vpc':
-                desired = 1
+#     print(f'scaling asgs: {asgs}')
+#     # using threading, set all ASGs to correct scale for all beacons
+#     with concurrent.futures.ThreadPoolExecutor() as executor:
+#         futures = []
+#         for asg in asgs:
 
-            futures.append(executor.submit(
-                update_asg_size,
-                account=asg['account'],
-                asg=asg['asg'],
-                minsize=0, 
-                maxsize=len(asg['subnets']),
-                desired=desired,
-                region=asg['region']
-                ))
+#             if scale == 'none':
+#                 desired = 0
+#             elif scale == 'subnet':
+#                 desired = len(asg['subnets'])
+#             elif scale == 'vpc':
+#                 desired = 1
+
+#             futures.append(executor.submit(
+#                 update_asg_size,
+#                 account=asg['account'],
+#                 asg=asg['asg'],
+#                 minsize=0, 
+#                 maxsize=len(asg['subnets']),
+#                 desired=desired,
+#                 region=asg['region']
+#                 ))
             
-        for future in concurrent.futures.as_completed(futures):
-            result = future.result()
+#         for future in concurrent.futures.as_completed(futures):
+#             result = future.result()
 
 
-def update_asg_size(account, asg, minsize, maxsize,  desired, region):
-    credentials=aws_assume_role(carve_role_arn(account), f"lookup-{asg}")
-    asg_info = aws_describe_asg(asg, region, credentials)
-    print(f'scaling asg: {asg}')
+# def update_asg_size(account, asg, minsize, maxsize,  desired, region):
+#     # REPLACED BY SCALING STEP FUNCTION
+#     credentials=aws_assume_role(carve_role_arn(account), f"lookup-{asg}")
+#     asg_info = aws_describe_asg(asg, region, credentials)
+#     print(f'scaling asg: {asg}')
 
-    # only update ASG if min/max/desired is different
-    update = False
-    if int(asg_info['MinSize']) != int(minsize):
-        print('scale due to MinSize')
-        update = True
-    elif int(asg_info['MaxSize']) != int(maxsize):
-        print('scale due to MaxSize')
-        update = True
-    elif int(asg_info['DesiredCapacity']) != int(desired):
-        print('scale due to DesiredCapacity')
-        update = True
-    else:
-        print('no scaling update to ASG')
+#     # only update ASG if min/max/desired is different
+#     update = False
+#     if int(asg_info['MinSize']) != int(minsize):
+#         print('scale due to MinSize')
+#         update = True
+#     elif int(asg_info['MaxSize']) != int(maxsize):
+#         print('scale due to MaxSize')
+#         update = True
+#     elif int(asg_info['DesiredCapacity']) != int(desired):
+#         print('scale due to DesiredCapacity')
+#         update = True
+#     else:
+#         print('no scaling update to ASG')
     
 
-    if update:
-        aws_update_asg_size(asg, minsize, maxsize, desired, region, credentials)
-    else:
-        # if no udpates, return success for the task tokens
-        subnets = asg_info['VPCZoneIdentifier'].split(',')
-        print(f'clearing tokens for subnets: {subnets}')
-        for subnet in subnets:
-            ssm_param = f"/{os.environ['Prefix']}carve-resources/tokens/{subnet}"
-            token = aws_ssm_get_parameter(ssm_param)
-            aws_ssm_delete_parameter(ssm_param)
-            if token is not None:
-                aws_send_task_success(token, {"action": "scale", "result": "none"})
-            else:
-                print(f'taskToken was None for {subnet}')
+#     if update:
+#         aws_update_asg_size(asg, minsize, maxsize, desired, region, credentials)
+#     else:
+#         # if no udpates, return success for the task tokens
+#         subnets = asg_info['VPCZoneIdentifier'].split(',')
+#         print(f'clearing tokens for subnets: {subnets}')
+#         for subnet in subnets:
+#             ssm_param = f"/{os.environ['Prefix']}carve-resources/tokens/{subnet}"
+#             token = aws_ssm_get_parameter(ssm_param)
+#             aws_ssm_delete_parameter(ssm_param)
+#             if token is not None:
+#                 aws_send_task_success(token, {"action": "scale", "result": "none"})
+#             else:
+#                 print(f'taskToken was None for {subnet}')
 
 
 def get_subnet_beacons():
@@ -241,139 +243,137 @@ def get_subnet_beacons():
 
     return subnets
 
-
 def update_carve_beacons():
-    ''' 
-        discover all beacon IP address 
-        add the beacons to the carve-config cloudformation snippet
-        push the snipped to regional s3 buckets to be used as a cloudformation include
-    '''
-
-    print('updating carve beacons')
-    G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
-
-    # determine all deployed ASGs
-    asgs = {}
-    for subnet in list(G.nodes):
-        asg = f"{os.environ['Prefix']}carve-beacon-asg-{G.nodes().data()[subnet]['VpcId']}"
-        if asg not in asgs:
-            asgs[asg] = {
-                'account': G.nodes().data()[subnet]['Account'],
-                'region': G.nodes().data()[subnet]['Region']
-                }
-
-    # threaded look up the IP address of all beacons in all ASGs
-    subnet_beacons = {}
-    all_beacons = []
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = []
-        for asg, value in asgs.items():
-            futures.append(executor.submit(
-                get_beacons_thread, asg=asg, account=value['account'], region=value['region']))
-
-        for future in concurrent.futures.as_completed(futures):
-            result = future.result()
-            subnet_beacons.update(result)
-            for subnet, beacon in result.items():
-                all_beacons.append(beacon)
-
-    # push subnet beacons data to S3
-    data = json.dumps(subnet_beacons, ensure_ascii=True, indent=2, sort_keys=True)
-    aws_put_direct(data, 'managed_deployment/subnet-beacons.json')
-
-    # # create an updated config file with all the beacons
-    # config_path = "managed_deployment/carve-config.json"
-
-    # with open(config_path) as f:
-    #     config = json.load(f)
-
-    # config['/root/carve.cfg']['content'] = '\n'.join(beacons)
-
-    # # push carve config file to S3
-    # data = json.dumps(config, ensure_ascii=True, indent=2, sort_keys=True)
-    # aws_put_direct(data, config_path)
-
-    # get a list of subnets, accounts, regions, and beacons
-    subnets = get_subnet_beacons()
-
-    # use threading to update all beacons with new beacon lists
-    results = []
-
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = []
-        p = os.environ['Prefix']
-
-        for beacon, data in subnets.items():
-
-            futures.append(executor.submit(
-                aws_invoke_lambda,
-                arn=f"arn:aws:lambda:{data['region']}:{data['account']}:function:{p}carve-{data['subnet']}",
-                payload={
-                    'action': 'update',
-                    'beacon': beacon,
-                    'beacons': ','.join(all_beacons)
-                    },
-                region=data['region'],
-                credentials=None))
-
-        for future in concurrent.futures.as_completed(futures):
-            results.append(future.result())
-
-    print(results)
-
-    # # copy config file to all required regions for CloudFormation includes
-    # prefix = os.environ['Prefix']
-    # org = os.environ['OrgId']
-    # for r in regions:
-    #     aws_copy_s3_object(
-    #         key=config_path,
-    #         target_key=config_path,
-    #         source_bucket=os.environ['CarveS3Bucket'],
-    #         target_bucket=f"{prefix}carve-managed-bucket-{org}-{r}")
-
-    # # update all VPC stacks
-    # deploy_key = get_deploy_key(last=True)
-
-    # if deploy_key is not None:
-    #     start_carve_deployment(event, context, key=deploy_key)
-    # else:
-    #     print('No previous deploy key to run updates with')
+    # re-run the last execution of the scaling step function
+    # this will update the beacons with the latest beacon list
+    executions = aws_states_list_executions(arn=os.environ['ScaleStateMachine'], results=100)
+    last_exec = aws_states_describe_execution(executions[0])
+    scale = json.loads(last_exec['input'])['scale']
+    name = f"scale-{scale}-{int(time.time())}"
+    aws_start_stepfunction(os.environ['ScaleStateMachine'], last_exec['input'], name)
 
 
-def get_beacons_thread(asg, account, region):
-    # threaded lookup of all beacon IP addresses in an ASG
-    credentials = aws_assume_role(carve_role_arn(account), f"lookup-{asg}")
-    instance_ids = []
-    asg_info = aws_describe_asg(asg, region, credentials)
-    for instance in asg_info['Instances']:
-        if instance['LifecycleState'] == "InService":
-            instance_ids.append(instance['InstanceId'])
 
-    instances = aws_describe_instances(instance_ids, region, credentials)
+# def old_update_carve_beacons():
+#     ''' 
+#         #
+#         # THIS ENTIRE FUNCTION APPEARS TO BE REPLACED BY SIMPLY TELLING THE SCALE FUNCTION TO SCALE TO CURRENT 
+#         # SEE ABOVE FUNCTION
+#         #
+#         discover all beacon IP address 
+#         add the beacons to the carve-config cloudformation snippet
+#         push the snipped to regional s3 buckets to be used as a cloudformation include
+#     '''
 
-    beacons = {}
-    for instance in instances:
-        beacons[instance['SubnetId']] = instance['PrivateIpAddress']
+#     print('updating carve beacons')
+#     G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
 
-    return beacons
+#     # determine all deployed ASGs
+#     asgs = {}
+#     for subnet in list(G.nodes):
+#         asg = f"{os.environ['Prefix']}carve-beacon-asg-{G.nodes().data()[subnet]['VpcId']}"
+#         if asg not in asgs:
+#             asgs[asg] = {
+#                 'account': G.nodes().data()[subnet]['Account'],
+#                 'region': G.nodes().data()[subnet]['Region']
+#                 }
+
+#     # threaded look up the IP address of all beacons in all ASGs
+#     subnet_beacons = {}
+#     all_beacons = []
+#     with concurrent.futures.ThreadPoolExecutor() as executor:
+#         futures = []
+#         for asg, value in asgs.items():
+#             futures.append(executor.submit(
+#                 get_beacons_thread, asg=asg, account=value['account'], region=value['region']))
+
+#         for future in concurrent.futures.as_completed(futures):
+#             result = future.result()
+#             subnet_beacons.update(result)
+#             for subnet, beacon in result.items():
+#                 all_beacons.append(beacon)
+
+#     # push subnet beacons data to S3
+#     data = json.dumps(subnet_beacons, ensure_ascii=True, indent=2, sort_keys=True)
+#     aws_put_direct(data, 'managed_deployment/subnet-beacons.json')
+
+#     # # create an updated config file with all the beacons
+#     # config_path = "managed_deployment/carve-config.json"
+
+#     # with open(config_path) as f:
+#     #     config = json.load(f)
+
+#     # config['/root/carve.cfg']['content'] = '\n'.join(beacons)
+
+#     # # push carve config file to S3
+#     # data = json.dumps(config, ensure_ascii=True, indent=2, sort_keys=True)
+#     # aws_put_direct(data, config_path)
+
+#     # get a list of subnets, accounts, regions, and beacons
+#     subnets = get_subnet_beacons()
+
+#     # use threading to update all beacons with new beacon lists
+#     results = []
+
+#     with concurrent.futures.ThreadPoolExecutor() as executor:
+#         futures = []
+#         p = os.environ['Prefix']
+
+#         for beacon, data in subnets.items():
+
+#             futures.append(executor.submit(
+#                 aws_invoke_lambda,
+#                 arn=f"arn:aws:lambda:{data['region']}:{data['account']}:function:{p}carve-{data['subnet']}",
+#                 payload={
+#                     'action': 'update',
+#                     'beacon': beacon,
+#                     'beacons': ','.join(all_beacons)
+#                     },
+#                 region=data['region'],
+#                 credentials=None))
+
+#         for future in concurrent.futures.as_completed(futures):
+#             results.append(future.result())
+
+#     print(results)
+
+#     # # copy config file to all required regions for CloudFormation includes
+#     # prefix = os.environ['Prefix']
+#     # org = os.environ['OrgId']
+#     # for r in regions:
+#     #     aws_copy_s3_object(
+#     #         key=config_path,
+#     #         target_key=config_path,
+#     #         source_bucket=os.environ['CarveS3Bucket'],
+#     #         target_bucket=f"{prefix}carve-managed-bucket-{org}-{r}")
+
+#     # # update all VPC stacks
+#     # deploy_key = get_deploy_key(last=True)
+
+#     # if deploy_key is not None:
+#     #     start_carve_deployment(event, context, key=deploy_key)
+#     # else:
+#     #     print('No previous deploy key to run updates with')
 
 
-def ssm_event(event, context):
-    ssm_param = event['detail']['name']
-    ssm_value = aws_ssm_get_parameter(ssm_param)
+# def get_beacons_thread(asg, account, region):
+#     # threaded lookup of all beacon IP addresses in an ASG
+#     credentials = aws_assume_role(carve_role_arn(account), f"lookup-{asg}")
+#     instance_ids = []
+#     asg_info = aws_describe_asg(asg, region, credentials)
+#     for instance in asg_info['Instances']:
+#         if instance['LifecycleState'] == "InService":
+#             instance_ids.append(instance['InstanceId'])
 
-    if ssm_param.split('/')[-1] == 'scale':
-        scale_beacons(ssm_value)
+#     instances = aws_describe_instances(instance_ids, region, credentials)
 
-    elif ssm_param.split('/')[-1] == 'status':
-        # should enable/disable continuous verification
-        pass
+#     beacons = {}
+#     for instance in instances:
+#         beacons[instance['SubnetId']] = instance['PrivateIpAddress']
+
+#     return beacons
 
 
-def cleanup_ssm():
-    # make function to clean up SSM tokens
-    # move function to cleanup workflow
-    pass
 
 def asg_event(event):
 
@@ -490,7 +490,7 @@ def network_diff(A, B):
 
 def diff_peering(A, B, repeat=True):
     for edge in A.edges() - B.edges():
-        print(f"DIFFERENCE DETECTED! \'{B.graph['Name']}\' contains a PEERING CONNECTION that \'{A.graph['Name']}\' does not:")
+        print(f"DIFFERENCE DETECTED! \'{B.graph['Name']}\' contains a CONNECTION that \'{A.graph['Name']}\' does not:")
         print(f"#######################")
         print(A.nodes().data()[edge[0]])
         print(f"-------peered to-------")

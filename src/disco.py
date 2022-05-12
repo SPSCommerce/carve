@@ -119,7 +119,7 @@ def discover_vpcs(region, account_id, account_name, credentials):
 
 def discover_routing():
     # make sure all beacons are accounted for
-    update_carve_beacons()
+    # update_carve_beacons()
 
     #  [{'subnet-0d310df8338186b7f': {
     #      'beacon': '10.0.22.112'
