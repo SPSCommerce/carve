@@ -18,12 +18,6 @@ def lambda_handler(event, context):
     # lambda needs to log its info at startup
 
     '''
-    if 'CodePipeline.job' not in event:
-        print(event)
-    else:
-        from deploy_beacons import codepipline_job
-        print('TRIGGERED by CodePipeline')
-        codepipline_job(event, context)
 
 
     if 'update-beacons' in event:
@@ -31,7 +25,7 @@ def lambda_handler(event, context):
         response = update_carve_beacons()
         return response
 
-    if 'detail-type' in event:
+    elif 'detail-type' in event:
 
         if event['source'] == 'aws.events':
             cw_rule = event['resources'][0].split('rule/')[-1]
@@ -98,6 +92,11 @@ def lambda_handler(event, context):
             from cleanup import cleanup_steps_entrypoint
             print('TRIGGERED by Cleanup Step Function')
             return cleanup_steps_entrypoint(event, context)
+
+    elif 'CodePipeline.job' in event:
+        from deploy_beacons import codepipline_job
+        print('TRIGGERED by CodePipeline')
+        codepipline_job(event, context)
 
     else:
         print(f'unrecognized event: {event}')
