@@ -80,14 +80,13 @@ def get_carve_asgs(G=None):
     asgs = {}
     for subnet in list(G.nodes):
         asgname = f"{os.environ['Prefix']}carve-beacon-asg-{G.nodes().data()[subnet]['VpcId']}"
-        if G.nodes().data()[subnet]['VpcId'] not in asgs:
+        if asgname not in asgs:
             asgs[asgname] = {
                'account': G.nodes().data()[subnet]['Account'],
                'region': G.nodes().data()[subnet]['Region'],
                'subnets': [subnet]
             }          
         else:
-            asgname = f"{os.environ['Prefix']}carve-beacon-asg-{G.nodes().data()[subnet]['VpcId']}"
             asgs[asgname]['subnets'].append(subnet)
 
     # convert to list of dicts
