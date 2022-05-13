@@ -200,6 +200,25 @@ Resources:
       TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
       TimeoutInMinutes: 5
 
+  FunctionSnsEvent:
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      Parameters:
+        HandlerFile: sns_event
+        # params below are the same for all nested lambda stacks
+        CarveVersion: !Ref CarveVersion
+        CodeBucket: !Ref CodeBucket
+        ECR: !Ref ECR
+        IMAGETAG: !Ref IMAGETAG
+        OrgId: !Ref OrgId
+        OrgSNSTopic: !Ref OrgSNSTopic
+        Prefix: !Ref Prefix
+        PropogateUpdates: !Ref PropogateUpdates
+        UniqueId: !Ref UniqueId
+        RoleArn: !GetAtt CarveCoreRole.Arn
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TimeoutInMinutes: 5
+
   CarveCoreRole:
     Type: AWS::IAM::Role
     Properties:

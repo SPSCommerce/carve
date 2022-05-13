@@ -54,6 +54,7 @@ Parameters:
 Conditions:
   UseOrgId: !Equals [ !Ref "UniqueId", "" ]
   Core: !Equals [ !Ref "HandlerFile", "entrypoint" ]
+  SNS: !Equals [ !Ref "HandlerFile", "sns_event" ]
 
 Resources:
   CarveFunction:
@@ -104,7 +105,7 @@ Resources:
         - !Sub "arn:aws:s3:::${Prefix}carve-managed-bucket-${UniqueId}-${AWS::Region}"
 
   OrgSNSSubscription:
-    Condition: Core
+    Condition: SNS
     Type: AWS::SNS::Subscription
     Properties:
       Endpoint: !GetAtt CarveFunction.Arn  
@@ -112,7 +113,7 @@ Resources:
       TopicArn: !Ref OrgSNSTopic
 
   OrgSNSInvoke:
-    Condition: Core
+    Condition: SNS
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction

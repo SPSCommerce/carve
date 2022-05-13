@@ -210,31 +210,31 @@ Resources:
           Action:
             - "sts:AssumeRole"
 
-  # EventInvokeLambda:
-  #    Type: AWS::Lambda::Permission
-  #    Properties:
-  #      FunctionName: !Ref BridgeFunction
-  #      Action: "lambda:InvokeFunction"
-  #      Principal: "events.amazonaws.com"
-  #      SourceArn: !GetAtt AsgEventRule.Arn
+  EventInvokeLambda:
+     Type: AWS::Lambda::Permission
+     Properties:
+       FunctionName: !Ref BridgeFunction
+       Action: "lambda:InvokeFunction"
+       Principal: "events.amazonaws.com"
+       SourceArn: !GetAtt AsgEventRule.Arn
 
-  # AsgEventRule:
-  #   Type: AWS::Events::Rule
-  #   Properties:
-  #     Description: "ASG notifications to BridgeFunction"
-  #     EventPattern: 
-  #       source:
-  #         - "aws.autoscaling"
-  #       detail-type:
-  #         - "EC2 Instance Terminate Successful"
-  #         - "EC2 Instance Launch Successful"
-  #       detail:
-  #         AutoScalingGroupName:
-  #           - !Ref 'AutoScalingGroup'
-  #     State: "ENABLED"
-  #     Targets:
-  #       - Id: "InvokeBridge"
-  #         Arn: !GetAtt BridgeFunction.Arn
+  AsgEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "ASG notifications to BridgeFunction"
+      EventPattern: 
+        source:
+          - "aws.autoscaling"
+        detail-type:
+          - "EC2 Instance Terminate Successful"
+          - "EC2 Instance Launch Successful"
+        detail:
+          AutoScalingGroupName:
+            - !Ref 'AutoScalingGroup'
+      State: "ENABLED"
+      Targets:
+        - Id: "InvokeBridge"
+          Arn: !GetAtt BridgeFunction.Arn
 
 Outputs:
   AutoScalingGroup:
