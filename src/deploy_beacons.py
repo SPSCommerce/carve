@@ -28,7 +28,7 @@ def start_carve_deployment(event, context, key=False, cleanup=True):
     if cleanup:
         aws_delete_s3_object(key, current_region)
 
-    print(f"deploying uploaded graph: s3://{event['Records'][0]['s3']['object']['bucket']}/{key}")
+    print(f"deploying uploaded graph: {event['Records'][0]['s3']['bucket']['arn']}/{key}")
 
     # create deploy buckets in all required regions for deployment files
     regions = deploy_regions(G)

@@ -13,11 +13,11 @@ def lambda_handler(event, context):
     print(event)
 
     print("updating beacon inventory")
-    all_beacons = update_beacon_inventory()
+    beacon_targets = update_beacon_inventory()
 
-    if len(all_beacons) > 0:
-        print(f"updating inventory on all {len(all_beacons)} beacons")
-        update_beacon_list(all_beacons)
+    if len(beacon_targets) > 0:
+        print(f"updating inventory on all {len(beacon_targets)} beacons")
+        update_beacon_list(beacon_targets)
     else:
         print("no beacons to update")
 

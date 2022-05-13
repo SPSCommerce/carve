@@ -332,20 +332,6 @@ Resources:
       StateMachineName: !Sub "${Prefix}carve-deploy-stacks-statemachine"
       StateMachineType: STANDARD
 
-  CarveTokenStepFunction:
-    Type: AWS::StepFunctions::StateMachine
-    Properties: 
-      DefinitionS3Location: 
-        Bucket: !Ref CodeBucket
-        Key: !Sub "step-functions/${GITSHA}/steps-carve-tokens-ssm.json"
-      DefinitionSubstitutions: 
-        # CarveFunction: !Ref CarveFunction
-        CarveFunction: 
-          Fn::GetAtt: [FunctionEntrypoint, Outputs.LambdaName]
-      RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
-      StateMachineName: !Sub "${Prefix}carve-token-statemachine"
-      StateMachineType: STANDARD
-
   CarveDeployBeaconsStepFunction:
     Type: AWS::StepFunctions::StateMachine
     Properties: 

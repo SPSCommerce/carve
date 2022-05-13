@@ -99,29 +99,26 @@ def get_carve_asgs(G=None):
     return asgs_list
 
 
-def get_subnet_beacons():
+def get_subnet_beacons(include_targets=False):
     # return dict containing all subnets with their beacon ip, account, and region
 
     # load latest graph
     G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
 
-    subnet_beacons = json.loads(aws_read_s3_direct('managed_deployment/subnet-beacons.json', current_region))
+    beacon_targets = json.loads(aws_read_s3_direct('managed_deployment/beacon-targets.json', current_region))
 
-    subnets = {}
-    # for vpc in list(G.nodes):
+    beacons = {}
     for subnet, data in G.nodes().data():
-        # only get results if there is an active beacon in the subnet
-        if subnet in subnet_beacons:
-            subnets[subnet_beacons[subnet]] = {
+        if subnet in beacon_targets:
+            beacons[beacon_targets[subnet]] = {
                 'subnet': subnet,
                 'account': data['Account'],
                 'region': data['Region']
                 }
         else:
-            # this conditon needs to be handled if there is no beacon
             pass
 
-    return subnets
+    return beacons
 
 
 def update_beacon_inventory():
@@ -136,8 +133,13 @@ def update_beacon_inventory():
 
     asgs = get_carve_asgs() # list of dicts
 
-    subnet_beacons = {}
-    all_beacons = []
+    # load additional beacon targets file
+    file = f"{os.path.dirname(__file__)}/managed_deployment/beacon-targets.json"
+    with open(file) as f:
+        beacon_targets = json.loads(f.read())
+
+    # number of tagets before adding beacons
+    no_beacons = len(beacon_targets.keys())
 
     # threaded look up the IP address of all beacons in all ASGs
     with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -152,17 +154,17 @@ def update_beacon_inventory():
 
         for future in concurrent.futures.as_completed(futures):
             result = future.result()
-            subnet_beacons.update(result)
+            beacon_targets.update(result)
     
+    # if no beacons were found, return an empty list
+    if len(beacon_targets.keys()) == no_beacons:
+        beacon_targets = {}
+
     # push subnet beacons data to S3
-    data = json.dumps(subnet_beacons, ensure_ascii=True, indent=2, sort_keys=True)
-    aws_put_direct(data, 'managed_deployment/subnet-beacons.json')
+    data = json.dumps(beacon_targets, ensure_ascii=True, indent=2, sort_keys=True)
+    aws_put_direct(data, 'managed_deployment/beacon-targets.json')
 
-    all_beacons = []
-    for subnet, beacon in subnet_beacons.items():
-        all_beacons.append(beacon)
-
-    return all_beacons
+    return list(beacon_targets.values())
 
 
 def get_beacons_thread(asg, account, region):
@@ -189,11 +191,18 @@ def update_beacon_list(all_beacons):
     ##
     ##
     ## THIS FEELS LIKE IT could BE STEP FUNCTION MAP TASK INSTEAD OF THREADED LAMBDA
-    ##  REFACTOR
+    ##  REFACTOR?
     ##
-
     # get a dict of beacons with subnets, accounts, and regions
     subnet_beacons = get_subnet_beacons()
+
+    # load additional beacon targets file
+    file = f"{os.path.dirname(__file__)}/managed_deployment/beacon-targets.json"
+    with open(file) as f:
+        beacon_targets = json.loads(f.read())
+
+    # add beacon-targets entries to all_beacons
+    all_beacons.extend(list(beacon_targets.values()))
 
     # use threading to update all beacons with new beacon lists
     results = []
@@ -230,7 +239,6 @@ def update_carve_beacons():
 
 
 def asg_event(event):
-    return
 
     # should only be one item, but treat as a list
     for record in event['Records']:
@@ -244,24 +252,17 @@ def asg_event(event):
             if resource.startswith("arn:aws:ec2"):
                 instance_id = resource.split('/')[1]
 
-        vpc = message['detail']['AutoScalingGroupName'].split(f"{os.environ['Prefix']}carve-beacon-asg-")[-1]
+        # vpc = message['detail']['AutoScalingGroupName'].split(f"{os.environ['Prefix']}carve-beacon-asg-")[-1]
         credentials = aws_assume_role(carve_role_arn(message['account']), f"event-{message['detail']['AutoScalingGroupName']}")
 
         # get instance metadata from account and update SSM
         ec2 = aws_describe_instances([instance_id], message['region'], credentials)[0]
         # print(ec2)
 
-        # parameter = f"/{os.environ['Prefix']}carve-resources/vpc-beacons/{vpc}/{ec2['InstanceId']}"
-
         if 'EC2 Instance Launch Successful' == message['detail-type']:
 
-            # # add to SSM
             # print(f"adding beacon to ssm: {instance_id} - {ec2['PrivateIpAddress']} - {ec2['SubnetId']}")
             # beacon = {ec2['PrivateIpAddress']: ec2['SubnetId']}
-            # aws_ssm_put_parameter(parameter, json.dumps(beacon))
-
-
-            ### need to update this code to grab subnet ssm param instead of ASG
 
             # append azid code to end of instance name
             subnet = aws_describe_subnets(message['region'], credentials, message['account'], ec2['SubnetId'])[0]
@@ -270,46 +271,12 @@ def asg_event(event):
             tags = [{'Key': 'Name', 'Value': name}]
             aws_create_ec2_tag(ec2['InstanceId'], tags, message['region'], credentials)
 
-            function = f"arn:aws:lambda:{message['region']}:{message['account']}:function:{os.environ['Prefix']}carve-{ec2['SubnetId']}"
-            beacon = ec2['PrivateIpAddress']
+            # function = f"arn:aws:lambda:{message['region']}:{message['account']}:function:{os.environ['Prefix']}carve-{ec2['SubnetId']}"
+            # beacon = ec2['PrivateIpAddress']
 
-            ## will need to udate SSM logic for tokens to be 1 token per subnet that will come back up?
-            ## or do we check the whole ASG for health?
-
-            i = 0
-            while True:
-                result = beacon_results(function, beacon)
-                print(result)
-                if result['health'] == 'up':
-                    # ssm_param = f"/{os.environ['Prefix']}carve-resources/tokens/{asg}",
-                    ssm_param = f"/{os.environ['Prefix']}carve-resources/tokens/{ec2['SubnetId']}"
-                    token = aws_ssm_get_parameter(ssm_param)
-                    aws_ssm_delete_parameter(ssm_param)
-                    if token is not None:
-                        aws_send_task_success(token, {"action": "scale", "result": "success"})
-                    else:
-                        print(f"taskToken was None for {ec2['SubnetId']}")
-                    break
-                else:
-                    if i > 30:
-                        break
-                        print(f'timed out waiting for beacon {beacon}')
-                    else:
-                        print(f'waiting for beacon {beacon} - {i}')
-                        i = i + 1
-                        time.sleep(1)
-
-        elif 'EC2 Instance Terminate Successful' == message['detail-type']:
-            # ssm_param = f"/{os.environ['Prefix']}carve-resources/tokens/{asg}",
-            subnet = message['detail']['Details']['Subnet ID']
-            ssm_param = f"/{os.environ['Prefix']}carve-resources/tokens/{subnet}"
-            token = aws_ssm_get_parameter(ssm_param)
-            aws_ssm_delete_parameter(ssm_param)
-            if token is not None:
-                aws_send_task_success(token, {"action": "scale", "result": "success"})
-            else:
-                print(f'taskToken was None for {subnet}')
-            print(f"beacon terminated {message}")
+        # elif 'EC2 Instance Terminate Successful' == message['detail-type']:
+        #     subnet = message['detail']['Details']['Subnet ID']
+        #     print(f"beacon terminated {message}")
 
 
 def beacon_results(function, beacon):

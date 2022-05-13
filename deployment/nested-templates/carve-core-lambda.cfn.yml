@@ -79,7 +79,6 @@ Resources:
           DeployBeaconsStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-deploy-beacons-statemachine
           DeployStacksStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-deploy-stacks-statemachine
           NetworkDiscoveryStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-network-discovery-statemachine
-          TokenStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-token-statemachine
           ScaleStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-scale-statemachine
           MPLCONFIGDIR: /tmp/matplotlib
           OrgId: !Ref OrgId

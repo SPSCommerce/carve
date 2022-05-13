@@ -115,23 +115,6 @@ def aws_start_stepfunction(sf_arn, sf_input, name):
     return response
 
 
-def aws_send_task_success(task_token, output):
-    ''' start a step function workflow with the given input '''
-
-    client = boto3.client('stepfunctions', config=boto_config, region_name=current_region)
-
-    try:
-        response = client.send_task_success(
-            taskToken=task_token,
-            output=json.dumps(output)
-            )
-    except ClientError as e:
-        print(e)
-        response = None
-
-    return response
-
-
 def aws_describe_stack(stackname, region, credentials):
     ''' return a stack description if it exists ''' 
     client = boto3.client(
