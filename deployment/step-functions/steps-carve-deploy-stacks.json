@@ -13,6 +13,18 @@
           "CreateStack": {
             "Type": "Task",
             "Resource": "arn:aws:states:::lambda:invoke",
+            "Retry": [
+              {
+                "ErrorEquals": [ 
+                  "Lambda.ServiceException",
+                  "Lambda.AWSLambdaException",
+                  "Lambda.SdkClientException"
+                ],
+                "IntervalSeconds": 1,
+                "MaxAttempts": 7,
+                "BackoffRate": 2
+              }
+            ],  
             "ResultSelector": {
               "Payload.$": "States.StringToJson($.Payload)"
             },
@@ -29,6 +41,18 @@
           "DescribeStackCreation": {
             "Type": "Task",
             "Resource": "arn:aws:states:::lambda:invoke",
+            "Retry": [
+              {
+                "ErrorEquals": [ 
+                  "Lambda.ServiceException",
+                  "Lambda.AWSLambdaException",
+                  "Lambda.SdkClientException"
+                ],
+                "IntervalSeconds": 1,
+                "MaxAttempts": 7,
+                "BackoffRate": 2
+              }
+            ],  
             "ResultSelector": {
               "Payload.$": "States.StringToJson($.Payload)"
             },
@@ -166,6 +190,18 @@
           "CreateChangeSet": {
             "Type": "Task",
             "Resource": "arn:aws:states:::lambda:invoke",
+            "Retry": [
+              {
+                "ErrorEquals": [ 
+                  "Lambda.ServiceException",
+                  "Lambda.AWSLambdaException",
+                  "Lambda.SdkClientException"
+                ],
+                "IntervalSeconds": 1,
+                "MaxAttempts": 7,
+                "BackoffRate": 2
+              }
+            ],  
             "ResultSelector": {
               "Payload.$": "States.StringToJson($.Payload)"
             },
@@ -182,6 +218,18 @@
           "DescribeChangeSet": {
             "Type": "Task",
             "Resource": "arn:aws:states:::lambda:invoke",
+            "Retry": [
+              {
+                "ErrorEquals": [ 
+                  "Lambda.ServiceException",
+                  "Lambda.AWSLambdaException",
+                  "Lambda.SdkClientException"
+                ],
+                "IntervalSeconds": 1,
+                "MaxAttempts": 7,
+                "BackoffRate": 2
+              }
+            ],  
             "ResultSelector": {
               "Payload.$": "States.StringToJson($.Payload)"
             },
@@ -257,6 +305,18 @@
           "ExecuteChangeSet": {
             "Type": "Task",
             "Resource": "arn:aws:states:::lambda:invoke",
+            "Retry": [
+              {
+                "ErrorEquals": [ 
+                  "Lambda.ServiceException",
+                  "Lambda.AWSLambdaException",
+                  "Lambda.SdkClientException"
+                ],
+                "IntervalSeconds": 1,
+                "MaxAttempts": 7,
+                "BackoffRate": 2
+              }
+            ],  
             "ResultSelector": {
               "Payload.$": "States.StringToJson($.Payload)"
             },
@@ -273,6 +333,18 @@
           "DescribeChangeSetExecution": {
             "Type": "Task",
             "Resource": "arn:aws:states:::lambda:invoke",
+            "Retry": [
+              {
+                "ErrorEquals": [ 
+                  "Lambda.ServiceException",
+                  "Lambda.AWSLambdaException",
+                  "Lambda.SdkClientException"
+                ],
+                "IntervalSeconds": 1,
+                "MaxAttempts": 7,
+                "BackoffRate": 2
+              }
+            ],  
             "ResultSelector": {
               "Payload.$": "States.StringToJson($.Payload)"
             },

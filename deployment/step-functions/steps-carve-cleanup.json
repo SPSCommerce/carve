@@ -5,6 +5,18 @@
     "CleanupDeployments": {
       "Type": "Task",
       "Resource":"${CarveFunction}",
+      "Retry": [
+        {
+          "ErrorEquals": [ 
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 7,
+          "BackoffRate": 2
+        }
+      ],
       "ResultSelector": {
         "Payload.$": "States.StringToJson($)"
       },
@@ -27,6 +39,18 @@
           "DiscoverCarveStacks": {
             "Type": "Task",
             "Resource":"${CarveFunction}",
+            "Retry": [
+              {
+                "ErrorEquals": [ 
+                  "Lambda.ServiceException",
+                  "Lambda.AWSLambdaException",
+                  "Lambda.SdkClientException"
+                ],
+                "IntervalSeconds": 1,
+                "MaxAttempts": 7,
+                "BackoffRate": 2
+              }
+            ],      
             "ResultSelector": {
               "Payload.$": "States.StringToJson($)"
             },
@@ -45,6 +69,18 @@
     "OrganizeDeletions": {
       "Type": "Task",
       "Resource":"${CarveFunction}",
+      "Retry": [
+        {
+          "ErrorEquals": [ 
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 7,
+          "BackoffRate": 2
+        }
+      ],
       "ResultSelector": {
         "Payload.$": "States.StringToJson($)"
       },
@@ -68,6 +104,18 @@
           "DeleteStack": {
             "Type": "Task",
             "Resource":"${CarveFunction}",
+            "Retry": [
+              {
+                "ErrorEquals": [ 
+                  "Lambda.ServiceException",
+                  "Lambda.AWSLambdaException",
+                  "Lambda.SdkClientException"
+                ],
+                "IntervalSeconds": 1,
+                "MaxAttempts": 7,
+                "BackoffRate": 2
+              }
+            ],      
             "ResultSelector": {
               "Payload.$": "States.StringToJson($)"
             },
@@ -83,6 +131,18 @@
           "DescribeDeleteStack": {
             "Type": "Task",
             "Resource":"${CarveFunction}",
+            "Retry": [
+              {
+                "ErrorEquals": [ 
+                  "Lambda.ServiceException",
+                  "Lambda.AWSLambdaException",
+                  "Lambda.SdkClientException"
+                ],
+                "IntervalSeconds": 1,
+                "MaxAttempts": 7,
+                "BackoffRate": 2
+              }
+            ],      
             "ResultSelector": {
               "Payload.$": "States.StringToJson($)"
             },

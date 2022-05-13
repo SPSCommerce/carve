@@ -395,7 +395,7 @@ def aws_create_changeset(stackname, changeset_name, region, template, parameters
             unique = os.environ['UniqueId']
 
         rb = f"{os.environ['Prefix']}carve-managed-bucket-{unique}-{region}"
-        key = f'managed_deployment/{stackname}.json'
+        key = f'managed_deployment/{stackname}-changeset.json'
         aws_put_direct(template, key, bucket=rb)
         response = client.create_change_set(
             StackName=stackname,

@@ -21,6 +21,18 @@
     "BeaconDeployPrep": {
       "Type": "Task",
       "Resource":"arn:aws:states:::lambda:invoke",
+      "Retry": [
+        {
+          "ErrorEquals": [ 
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 7,
+          "BackoffRate": 2
+        }
+      ],  
       "ResultSelector": {
         "Payload.$": "States.StringToJson($.Payload)"
       },
@@ -37,6 +49,18 @@
     "DeployPrepCheck": {
       "Type": "Task",
       "Resource": "arn:aws:states:::lambda:invoke",
+      "Retry": [
+        {
+          "ErrorEquals": [ 
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 7,
+          "BackoffRate": 2
+        }
+      ],  
       "ResultSelector": {
         "Payload.$": "States.StringToJson($.Payload)"
       },
@@ -82,6 +106,18 @@
     "GetDeploymentList": {
       "Type": "Task",
       "Resource":"arn:aws:states:::lambda:invoke",
+      "Retry": [
+        {
+          "ErrorEquals": [ 
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 7,
+          "BackoffRate": 2
+        }
+      ],  
       "ResultSelector": {
         "Payload.$": "States.StringToJson($.Payload)"
       },
@@ -123,6 +159,18 @@
       "Comment": "Perform final tasks",
       "Type": "Task",
       "Resource":"arn:aws:states:::lambda:invoke",
+      "Retry": [
+        {
+          "ErrorEquals": [ 
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 7,
+          "BackoffRate": 2
+        }
+      ],
       "ResultSelector": {
         "Payload.$": "States.StringToJson($.Payload)"
       },

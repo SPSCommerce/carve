@@ -5,6 +5,18 @@
     "Initialize": {
       "Type": "Task",
       "Resource": "arn:aws:states:::lambda:invoke",
+      "Retry": [
+        {
+          "ErrorEquals": [ 
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 7,
+          "BackoffRate": 2
+        }
+      ],  
       "Parameters": {
         "FunctionName": "${FunctionSfNetworkDiscoveryInitialize}",
         "Payload": {
@@ -31,6 +43,18 @@
           "DiscoverAccount": {
             "Type": "Task",
             "Resource": "arn:aws:states:::lambda:invoke",
+            "Retry": [
+              {
+                "ErrorEquals": [ 
+                  "Lambda.ServiceException",
+                  "Lambda.AWSLambdaException",
+                  "Lambda.SdkClientException"
+                ],
+                "IntervalSeconds": 1,
+                "MaxAttempts": 7,
+                "BackoffRate": 2
+              }
+            ],  
             "Parameters": {
               "FunctionName": "${FunctionSfNetworkDiscoveryAccount}",
               "Payload.$": "$"
@@ -44,6 +68,18 @@
     "FinalizeDiscovery": {
       "Type": "Task",
       "Resource": "arn:aws:states:::lambda:invoke",
+      "Retry": [
+        {
+          "ErrorEquals": [ 
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 7,
+          "BackoffRate": 2
+        }
+      ],  
       "Parameters": {
         "FunctionName": "${FunctionSfNetworkDiscoveryFinalize}"
       },
