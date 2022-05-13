@@ -65,9 +65,10 @@ def discover_subnets(region, account_id, account_name, credentials):
 
 def lambda_handler(event, context):
     '''
-    this lambda discovers all subnets in the provided account/regions, and uploads the reults to S3
+    this lambda discovers all subnets in the regions and accounts defined in the event
+    the reults are uploaded to the carve managed S3 bucket in the discovery directory
 
-    event = {'regions': ['us-east-1', ...], 'account': {'account_id': '104966627370', 'account_name': 'spsc'}}
+    event = {'regions': ['us-east-1', ...], 'account': {'account_id': '123456789012', 'account_name': 'awsaccountname'}}
     
     '''
     print(event) # for debugging
@@ -105,11 +106,7 @@ def lambda_handler(event, context):
 
 
 if __name__ == "__main__":
-    event = {
-        'regions': ['ap-northeast-1', 'ap-northeast-2', 'ap-northeast-3', 'ap-south-1', 'ap-southeast-1', 'ap-southeast-2', 'ap-southeast-3', 'ca-central-1', 'eu-central-1', 'eu-north-1', 'eu-west-1', 'eu-west-2', 'eu-west-3', 'sa-east-1', 'us-east-1', 'us-east-2', 'us-west-1', 'us-west-2'],
-        'account': {'account_id': '104966627370', 'account_name': 'spsc'}
-        # 'account': {'account_id': '602068278189', 'account_name': 'spsartifactsnonprod'}
-        }
+    event = {}
     result = lambda_handler(event, None)
     print(json.dumps(result))
     

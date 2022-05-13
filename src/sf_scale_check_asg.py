@@ -48,14 +48,6 @@ def lambda_handler(event, context):
 
 
 if __name__ == "__main__":
-    event = {"Payload": {
-        'asg': {
-            'name': 'test-carve-beacon-asg-vpc-0cac04ffc6e165683',
-            'account': '094619684579',
-            'region': 'us-east-1',
-            'subnets': 1
-        },
-        'scale': 'up'
-    }}
+    event = {}
     result = lambda_handler(event, None)
     print(result)
