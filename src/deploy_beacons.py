@@ -1,3 +1,4 @@
+import lambdavars
 import networkx as nx
 import concurrent.futures
 from networkx.readwrite import json_graph
@@ -11,21 +12,23 @@ from multiprocessing import Process, Pipe
 import time
 
 
-def start_carve_deployment(event, context, key=False):
+def start_carve_deployment(event, context, key=False, cleanup=True):
     # read graph from s3 key in event
     if not key:
         key = event['Records'][0]['s3']['object']['key']
 
     G = load_graph(key, local=False)
 
-    # move deployment object to deploy_started path
+    # move deployment artifact to deploy_started/ path
     filename = key.split('/')[-1]
     deploy_key = f"deploy_active/{filename}"
     aws_purge_s3_path("deploy_active/")
     aws_copy_s3_object(key, deploy_key)
-    # aws_delete_s3_object(key, current_region)
+    # remove the old deployment artifact from s3
+    if cleanup:
+        aws_delete_s3_object(key, current_region)
 
-    print(f'deploying graph: {key}')
+    print(f"deploying uploaded graph: s3://{os.environ['Prefix']}-carve-managed-bucket-sps-us-east-1/{key}")
 
     # create deploy buckets in all required regions for deployment files
     regions = deploy_regions(G)
@@ -491,22 +494,29 @@ def sf_GetDeploymentList(context):
 def sf_DeploymentComplete(context):
     # move deployment object
     deploy_key = get_deploy_key()
+    if not deploy_key:
+        raise Exception('No deployment key found')
+
     key_name = deploy_key.split('/')[-1]
     aws_copy_s3_object(deploy_key, f'deployed_graph/{key_name}')
-    aws_delete_s3_object(deploy_key, current_region)
+    
+    # 
+    # aws_delete_s3_object(deploy_key, current_region)
 
-    # execute the last scale up/down
+    ## should carve execute the last scale up/down? Code is below
 
-    executions = aws_states_list_executions(arn=os.environ['ScaleStateMachine'], results=100)
+    # executions = aws_states_list_executions(arn=os.environ['ScaleStateMachine'], results=1)
 
-    last_exec = aws_states_describe_execution(executions[0])
+    # last_exec = executions[0]['executionArn']
+    
+    # response = aws_states_describe_execution(last_exec)
 
-    scale = json.loads(last_exec['input'])['scale']
-    name = f"scale-{scale}-{int(time.time())}"
-    aws_start_stepfunction(os.environ['ScaleStateMachine'], last_exec['input'], name)
+    # input = json.loads(response['input'])
+    # print(f"Running scale step function with last input: {input}")
 
-    # event = {'detail': {'name': f"/{os.environ['Prefix']}carve-resources/scale"}}
-    # ssm_event(event, context)
+    # name = f"deployment-complete-scale-{input['scale']}-{int(time.time())}"
+    # aws_start_stepfunction(os.environ['ScaleStateMachine'], input, name)
+
 
 
 def deploy_steps_entrypoint(event, context):
@@ -531,3 +541,5 @@ def deploy_steps_entrypoint(event, context):
     # return json to step function
     return json.dumps(response, default=str)
 
+if __name__ == '__main__':
+    sf_DeploymentComplete(None)
