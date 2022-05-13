@@ -81,17 +81,17 @@ def sf_CleanupDeployments(context):
     # create a list for carve stacks to not delete
     safe_stacks = []
 
-    # do not delete the s3 stack in the current region
-    deploy_region_list = set(deploy_regions(G))
-    deploy_region_list.add(current_region)
+    # # do not delete the s3 stack in the current region
+    # deploy_region_list = set(deploy_regions(G))
+    # deploy_region_list.add(current_region)
 
-    for r in deploy_region_list:
-        s3_stack = f"{os.environ['Prefix']}carve-managed-bucket-{r}"
-        safe_stacks.append({
-            'StackName': s3_stack,
-            'Account': context.invoked_function_arn.split(":")[4],
-            'Region': r
-            })
+    # for region in aws_all_regions():
+    #     s3_stack = f"{os.environ['Prefix']}carve-managed-bucket-{region}"
+    #     safe_stacks.append({
+    #         'StackName': s3_stack,
+    #         'Account': context.invoked_function_arn.split(":")[4],
+    #         'Region': region
+    #         })
 
     for stack in deployment_list(G, context):
         safe_stacks.append({
@@ -161,7 +161,7 @@ def sf_DiscoverCarveStacks(payload):
     account = payload['Account']
     safe_stacks = payload['SafeStacks']
     credentials = aws_assume_role(carve_role_arn(account), f"carve-cleanup")
-    startswith = f"{os.environ['Prefix']}carve-managed-"
+    startswith = f"{os.environ['Prefix']}carve-managed-vpc-"
 
     futures = set()
     delete_stacks = []
