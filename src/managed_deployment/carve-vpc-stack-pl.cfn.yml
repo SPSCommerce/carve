@@ -1,0 +1,108 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Carve VPC Testing Beacons
+
+Parameters:
+  VpcId:
+    Type: String
+    Description: VPC ID in which the beacons should be created
+    Default: ""
+  VpcSubnetIds:
+    Type: String
+    Description: one or more comma separated subnets in which to create beacons
+    Default: ""
+  Prefix:
+    Type: String
+    Description: "Prefix carve AWS resources and stacknames with this"
+    Default: ""
+  ServiceName:
+    Type: String
+    Description: "Name of the service"
+    Default: ""
+  CarveSNSTopicArn:
+    Type: String
+    Description: Carve SNS Topic
+
+Resources:
+  SubnetFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: CarveSubnetFunction
+      Description: Continuous AWS Route Verification Engine
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: python3.9
+      Timeout: 20
+      MemorySize: 128
+      Environment:
+        Variables:
+          VpcSubnetIds: !Ref VpcSubnetIds
+          VpcId: !Ref VpcId
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroup
+        SubnetIds: !Split [ ",", !Ref VpcSubnetIds ]
+      Code: 
+        ZipFile: "print('error injecting code at deploy time')"
+
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: "Allow"
+          Principal:
+            Service:
+              - "lambda.amazonaws.com"
+          Action:
+            - "sts:AssumeRole"
+      Policies:
+        - PolicyName: CarveSNS
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "sns:Publish"
+                Resource: !Ref CarveSNSTopicArn
+
+  LambdaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VpcId
+      GroupDescription: Carve Lambda Egress
+
+  CarvePrivateEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId:
+        Ref: VpcId
+      ServiceName: !Ref ServiceName
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: false
+      SubnetIds: !Split [ ",", !Ref VpcSubnetIds ]
+      SecurityGroupIds:
+        -
+          !Ref EndpointSecurityGroup
+
+  EndpointSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VpcId
+      GroupName: !Sub '${Prefix}carve-endponit-${VpcId}'
+      GroupDescription: Carve Endpoint SecurityGroup
+      SecurityGroupIngress:
+        -
+          IpProtocol: "tcp"
+          FromPort: 443
+          ToPort: 443
+          CidrIp: "0.0.0.0/0"
+        -
+          IpProtocol: "tcp"
+          FromPort: 80
+          ToPort: 80
+          CidrIp: "0.0.0.0/0"
+

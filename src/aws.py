@@ -132,9 +132,34 @@ def aws_describe_stack(stackname, region, credentials):
 
     return stack
 
+def aws_describe_vpc_endpoint_permissions(service_id):
+    ''' get allowed principals on vpc endpoint ''' 
+    client = boto3.client('ec2',config=boto_config)
+    try:
+        paginator = client.get_paginator('describe_vpc_endpoint_service_permissions')
+        results = []
+        for page in paginator.paginate(ServiceId=service_id, PaginationConfig={'PageSize': 100}):
+            for allowed in page['AllowedPrincipals']:
+                results.append(allowed['Principal'])
+        return results
 
-# def aws_put_asm_policy():
-#     client = boto3.client('secretsmanager', config=boto_config)
+    except ClientError as e:
+        results = []
+
+    return results
+
+
+def aws_modify_vpc_endpoint_permissions(service_id, add_principals=[], remove_principals=[]):
+    ''' update allowed principals on vpc endpoint ''' 
+    client = boto3.client('ec2',config=boto_config)
+    try:
+        response = client.modify_vpc_endpoint_service_permissions(
+            ServiceId=service_id,
+            AddAllowedPrincipals=add_principals,
+            RemoveAllowedPrincipals=remove_principals
+        )
+    except ClientError as e:
+        print(f'error modifying vpc endpoint permissions: {e}')
 
 
 

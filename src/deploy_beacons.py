@@ -1,3 +1,4 @@
+from re import A
 import lambdavars
 import networkx as nx
 import concurrent.futures
@@ -107,22 +108,55 @@ def deploy_accounts(G):
     return accounts
 
 
+def update_vpce_access(accounts):
+    ''' update the carve private vpce access to allow all VPC accounts '''
+
+    # get service name from the stack output
+    stack_info = aws_describe_stack(
+        stackname=f"{os.environ['Prefix']}carve-privatelink",
+        region=current_region,
+        )
+
+    for output in stack_info['Outputs']:
+        if output['OutputKey'] == 'EndpointService':
+            endpoint_service = output['OutputValue']
+            break
+
+    # get a list of all current principals (account roots) it's shared to
+    #   principals: ['arn:aws:iam::123456789012:root']
+    principals = aws_describe_vpc_endpoint_permissions(endpoint_service)
+    current_accounts = []
+    for p in principals:
+        current_accounts.append(p.split(':')[4])
+
+    # build lists of all accounts to add/remove
+    remove, add = []
+    for a in current_accounts:
+        if a not in accounts:
+            remove.append(f"arn:aws:iam::{a}:root")
+    for a in accounts:
+        if a not in current_accounts:
+            add.append(f"arn:aws:iam::{a}:root")
+
+    # update carve private vpce access
+    aws_modify_vpc_endpoint_permissions(endpoint_service, add_principals=add, remove_principals=remove)
+
+
+
 def sf_DeployPrep():
     ''' if the carve ami in the current region is newer, update the regional copies '''
     G = load_graph(get_deploy_key(), local=False)
+    
+    # update the carve vpce access with all accounts in the deployment
+    accounts = deploy_accounts(G)
+    update_vpce_access(accounts)
 
-    regions = deploy_regions(G)
+    # # this is disabled now that carve does not use EC2 for beacons
+    # regions = deploy_regions(G)
+    # distribute_regional_carve_amis(regions)
 
-    # # upload the beacon python code snippets for CFN to each deploy region
-    # if os.environ['UniqueId'] == "":
-    #     unique = os.environ['OrgId']
-    # else:
-    #     unique = os.environ['UniqueId']
 
-    # for r in regions:
-    #     bucket=f"{os.environ['Prefix']}carve-managed-bucket-{unique}-{r}"
-    #     aws_s3_upload('managed_deployment/carve-updater.yml', bucket=bucket)
-
+def distribute_regional_carve_amis(regions):
     parameter = f"/{os.environ['Prefix']}carve-resources/carve-beacon-ami"
     print(f"getting parameter {parameter} in {current_region}")
     source_image = aws_ssm_get_parameter(parameter)
@@ -131,7 +165,6 @@ def sf_DeployPrep():
     print(f'AMI source_name: {source_name}')
 
     # threaded copy of all AMIs
-    results = []
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = []
         for region in regions:
@@ -163,28 +196,32 @@ def sf_DeployPrep():
 
 
 def sf_DeployPrepCheck():
-    G = load_graph(get_deploy_key(), local=False)
-    regions = deploy_regions(G)
-    accounts = deploy_accounts(G)
+    # since carve is not using ec2 for beacons, this is not needed, simply return complete
+    # so the step function can continue. will be removed with step function refactor
+    payload = {'ImageStatus': 'complete'}
 
-    parameter = f"/{os.environ['Prefix']}carve-resources/carve-beacon-ami"
+    # G = load_graph(get_deploy_key(), local=False)
+    # regions = deploy_regions(G)
+    # accounts = deploy_accounts(G)
 
-    # check if all AMIs are ready in each region
-    complete = True
-    for region in regions:
-        ami = aws_ssm_get_parameter(parameter, region=region)
-        if ami_ready(ami, region):
-            # update AMI sharing for deployment accounts
-            print(f'sharing {ami} in {region} to: {accounts}')
-            aws_share_image(ami, accounts, region)
-        else:
-            print(f'ami in {region} is not ready.')
-            complete = False
+    # parameter = f"/{os.environ['Prefix']}carve-resources/carve-beacon-ami"
 
-    if complete:
-        payload = {'ImageStatus': 'complete'}
-    else:
-        payload = {'ImageStatus': 'pending'}
+    # # check if all AMIs are ready in each region
+    # complete = True
+    # for region in regions:
+    #     ami = aws_ssm_get_parameter(parameter, region=region)
+    #     if ami_ready(ami, region):
+    #         # update AMI sharing for deployment accounts
+    #         print(f'sharing {ami} in {region} to: {accounts}')
+    #         aws_share_image(ami, accounts, region)
+    #     else:
+    #         print(f'ami in {region} is not ready.')
+    #         complete = False
+
+    # if complete:
+    #     payload = {'ImageStatus': 'complete'}
+    # else:
+    #     payload = {'ImageStatus': 'pending'}
 
     return payload
 
@@ -196,6 +233,139 @@ def ami_ready(ami, region):
         return True
     else:
         return False
+
+
+def beacon_ec2_template(vpc, vpc_subnets, account, region):
+    # all subnets in the VPC
+    with open("managed_deployment/carve-vpc-stack-ec2.cfn.json") as f:
+        vpc_template = json.load(f)
+
+    with open("managed_deployment/subnet_ec2_lambda.py") as f:
+        lambda_code = f.read()
+
+    # update the VPC CFN template with 1 lambda function per subnet
+    # create a list of subnets for CFN parameters
+    for subnet in vpc_subnets:
+        Function = deepcopy(vpc_template['Resources']['SubnetFunction'])
+        Function['Properties']['FunctionName'] = f"{os.environ['Prefix']}carve-{subnet}"
+        Function['Properties']['Environment']['Variables']['VpcSubnetIds'] = subnet
+        Function['Properties']['VpcConfig']['SubnetIds'] = [subnet]
+        Function['Properties']['Code']['ZipFile'] = lambda_code
+        name = f"Function{subnet.split('-')[-1]}"
+        vpc_template['Resources'][name] = deepcopy(Function)
+
+    # remove orig templated function
+    del vpc_template['Resources']['SubnetFunction']
+
+    image_id = aws_ssm_get_parameter(f"/{os.environ['Prefix']}carve-resources/carve-beacon-ami", region=region)
+
+    stack = {}
+    stack['StackName'] = f"{os.environ['Prefix']}carve-managed-{vpc}"
+    stack['Account'] = account
+    stack['Region'] = region
+    stack['Template'] = f"managed_deployment/{vpc}.cfn.json"
+    stack['Parameters'] = [
+        {
+            "ParameterKey": "VpcId",
+            "ParameterValue": vpc
+        },
+        {
+            "ParameterKey": "VpcSubnetIds",
+            "ParameterValue": ','.join(vpc_subnets)
+        },      
+        {
+            "ParameterKey": "Prefix",
+            "ParameterValue": os.environ['Prefix']
+        },
+        {
+            "ParameterKey": "ImageId",
+            "ParameterValue": image_id
+        },
+        {
+            "ParameterKey": "CarveSNSTopicArn",
+            "ParameterValue": os.environ['CarveSNSTopicArn']
+        },
+        {
+            "ParameterKey": "CarveCoreRegion",
+            "ParameterValue": current_region
+        },
+        {
+            "ParameterKey": "MaxSize",
+            "ParameterValue": str(len(vpc_subnets))
+        },
+        {
+            "ParameterKey": "DesiredSize",
+            "ParameterValue": str(len(vpc_subnets))
+        },
+        {
+            "ParameterKey": "PublicIPs",
+            "ParameterValue": "false"
+        }
+    ]
+
+    return vpc_template, stack
+
+def beacon_pl_template(vpc, vpc_subnets, account, region):
+    # all subnets in the VPC
+    with open("managed_deployment/carve-vpc-stack-pl.cfn.json") as f:
+        vpc_template = json.load(f)
+
+    with open("managed_deployment/subnet_pl_lambda.py") as f:
+        lambda_code = f.read()
+
+    # update the VPC CFN template with 1 lambda function per subnet
+    # create a list of subnets for CFN parameters
+    for subnet in vpc_subnets:
+        Function = deepcopy(vpc_template['Resources']['SubnetFunction'])
+        Function['Properties']['FunctionName'] = f"{os.environ['Prefix']}carve-{subnet}"
+        Function['Properties']['Environment']['Variables']['VpcSubnetIds'] = subnet
+        Function['Properties']['VpcConfig']['SubnetIds'] = [subnet]
+        Function['Properties']['Code']['ZipFile'] = lambda_code
+        name = f"Function{subnet.split('-')[-1]}"
+        vpc_template['Resources'][name] = deepcopy(Function)
+
+    # remove orig templated function
+    del vpc_template['Resources']['SubnetFunction']
+
+    # get service name
+    stack_info = aws_describe_stack(
+        stackname=f"{os.environ['Prefix']}carve-privatelink",
+        region=current_region,
+        )
+
+    for output in stack_info['Outputs']:
+        if output['OutputKey'] == 'EndpointService':
+            service_name = f"com.amazonaws.vpce.{current_region}.{output['OutputValue']}"
+
+    stack = {}
+    stack['StackName'] = f"{os.environ['Prefix']}carve-managed-{vpc}"
+    stack['Account'] = account
+    stack['Region'] = region
+    stack['Template'] = f"managed_deployment/{vpc}.cfn.json"
+    stack['Parameters'] = [
+        {
+            "ParameterKey": "VpcId",
+            "ParameterValue": vpc
+        },
+        {
+            "ParameterKey": "VpcSubnetIds",
+            "ParameterValue": ','.join(vpc_subnets)
+        },      
+        {
+            "ParameterKey": "Prefix",
+            "ParameterValue": os.environ['Prefix']
+        },
+        {
+            "ParameterKey": "CarveSNSTopicArn",
+            "ParameterValue": os.environ['CarveSNSTopicArn']
+        },
+        {
+            "ParameterKey": "ServiceName",
+            "ParameterValue": service_name
+        }
+    ]
+
+    return vpc_template, stack
 
 
 def deployment_list(G, context):
@@ -210,12 +380,6 @@ def deployment_list(G, context):
     deploy_beacons = []
     concurrent = len(list(G.nodes))
 
-    with open("managed_deployment/carve-vpc-stack.cfn.json") as f:
-        template = json.load(f)
-
-    with open("managed_deployment/subnet_lambda.py") as f:
-        lambda_code = f.read()
-
     # determine all VPCs and their account and region
     vpcs = {}
     for subnet in list(G.nodes):
@@ -229,88 +393,16 @@ def deployment_list(G, context):
         account = ar[0]
         region = ar[1]
 
-        # copy the CFN template to make a new stack from
-        vpc_template = deepcopy(template)
-
-        # all subnets in the VPC
         vpc_subnets = [x for x,y in G.nodes(data=True) if y['VpcId'] == vpc]
 
-        # update the VPC CFN template with 1 lambda function per subnet
-        # create a list of subnets for CFN parameters
-        for subnet in vpc_subnets:
-            Function = deepcopy(vpc_template['Resources']['SubnetFunction'])
-            Function['Properties']['FunctionName'] = f"{os.environ['Prefix']}carve-{subnet}"
-            Function['Properties']['Environment']['Variables']['VpcSubnetIds'] = subnet
-            Function['Properties']['VpcConfig']['SubnetIds'] = [subnet]
-            Function['Properties']['Code']['ZipFile'] = lambda_code
-            name = f"Function{subnet.split('-')[-1]}"
-            vpc_template['Resources'][name] = deepcopy(Function)
-
-        # remove orig templated function
-        del vpc_template['Resources']['SubnetFunction']
-
-        # update beacon launch config
-        # location = {"Location": f"s3://{os.environ['CarveS3Bucket']}/managed_deployment/carve-updater.yml"}
-        # vpc_template['Resources']['LaunchConfig']['Metadata']['AWS::CloudFormation::Init']['config']['files']["Fn::Transform"]["Parameters"] = location
+        # vpc_template = beacon_ec2_template(vpc, vpc_subnets, account, region)
+        vpc_template, stack = beacon_pl_template(vpc, vpc_subnets, account, region)
 
         # push template to s3
         key = f"managed_deployment/{vpc}.cfn.json"
         data = json.dumps(vpc_template, ensure_ascii=True, indent=2, sort_keys=True)
         aws_put_direct(data, key)
     
-        image_id = aws_ssm_get_parameter(f"/{os.environ['Prefix']}carve-resources/carve-beacon-ami", region=region)
-        # scale = aws_ssm_get_parameter(f"/{os.environ['Prefix']}carve-resources/scale")
-
-        # desired = 0
-        # if scale == 'subnet':
-        desired = len(vpc_subnets)
-        # elif scale == 'vpc':
-        #     desired = 1
-
-        stack = {}
-        stack['StackName'] = f"{os.environ['Prefix']}carve-managed-{vpc}"
-        stack['Account'] = account
-        stack['Region'] = region
-        stack['Template'] = key
-        stack['Parameters'] = [
-          {
-            "ParameterKey": "VpcId",
-            "ParameterValue": vpc
-          },
-          {
-            "ParameterKey": "VpcSubnetIds",
-            "ParameterValue": ','.join(vpc_subnets)
-          },      
-          {
-            "ParameterKey": "Prefix",
-            "ParameterValue": os.environ['Prefix']
-          },
-          {
-            "ParameterKey": "ImageId",
-            "ParameterValue": image_id
-          },
-          {
-            "ParameterKey": "CarveSNSTopicArn",
-            "ParameterValue": os.environ['CarveSNSTopicArn']
-          },
-          {
-            "ParameterKey": "CarveCoreRegion",
-            "ParameterValue": current_region
-          },
-          {
-            "ParameterKey": "MaxSize",
-            "ParameterValue": str(len(vpc_subnets))
-          },
-          {
-            "ParameterKey": "DesiredSize",
-            "ParameterValue": str(desired)
-          },
-          {
-            "ParameterKey": "PublicIPs",
-            "ParameterValue": "false"
-          }
-        ]
-
         deploy_beacons.append(stack)
 
 
@@ -487,8 +579,14 @@ def codepipline_job(event, context):
 
 
 def sf_GetDeploymentList(context):
+    '''
+    returns a list of cfn stack deployments using deployment_list() to render the templates
+    and generate the stack parameters
+    '''
     G = load_graph(get_deploy_key(), local=False)
-    return deployment_list(G, context)
+    stack_deployments = deployment_list(G, context)
+
+    return stack_deployments
 
 
 def sf_DeploymentComplete(context):
