@@ -135,7 +135,7 @@ def aws_describe_stack(stackname, region, credentials=None):
     try:
         stack = client.describe_stacks(StackName=stackname)['Stacks'][0]
     except ClientError as e:
-        stack = None
+        raise e
 
     return stack
 
