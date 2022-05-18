@@ -115,16 +115,23 @@ def aws_start_stepfunction(sf_arn, sf_input, name):
     return response
 
 
-def aws_describe_stack(stackname, region, credentials):
+def aws_describe_stack(stackname, region, credentials=None):
     ''' return a stack description if it exists ''' 
-    client = boto3.client(
-        'cloudformation',
-        config=boto_config,
-        region_name=region,
-        aws_access_key_id = credentials['AccessKeyId'],
-        aws_secret_access_key = credentials['SecretAccessKey'],
-        aws_session_token = credentials['SessionToken']
-        )
+    if credentials is None:
+        client = boto3.client(
+            'cloudformation',
+            config=boto_config,
+            region_name=region,
+            aws_access_key_id = credentials['AccessKeyId'],
+            aws_secret_access_key = credentials['SecretAccessKey'],
+            aws_session_token = credentials['SessionToken']
+            )
+    else:
+        client = boto3.client(
+            'cloudformation',
+            config=boto_config,
+            region_name=region
+            )
     try:
         stack = client.describe_stacks(StackName=stackname)['Stacks'][0]
     except ClientError as e:
