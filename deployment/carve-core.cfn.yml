@@ -273,7 +273,7 @@ Resources:
                 Action:
                   - cloudformation:*
                 Resource: 
-                  - !Sub "arn:aws:cloudformation:*:${AWS::AccountId}:stack/${Prefix}carve-managed-*"
+                  - !Sub "arn:aws:cloudformation:*:${AWS::AccountId}:stack/${Prefix}carve-*"
               - Effect: Allow
                 Action:
                   - "*"
