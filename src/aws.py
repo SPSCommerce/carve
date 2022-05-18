@@ -121,16 +121,16 @@ def aws_describe_stack(stackname, region, credentials=None):
         client = boto3.client(
             'cloudformation',
             config=boto_config,
-            region_name=region,
-            aws_access_key_id = credentials['AccessKeyId'],
-            aws_secret_access_key = credentials['SecretAccessKey'],
-            aws_session_token = credentials['SessionToken']
+            region_name=region
             )
     else:
         client = boto3.client(
             'cloudformation',
             config=boto_config,
-            region_name=region
+            region_name=region,
+            aws_access_key_id = credentials['AccessKeyId'],
+            aws_secret_access_key = credentials['SecretAccessKey'],
+            aws_session_token = credentials['SessionToken']
             )
     try:
         stack = client.describe_stacks(StackName=stackname)['Stacks'][0]
