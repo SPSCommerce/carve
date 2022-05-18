@@ -169,7 +169,7 @@ def sf_CreateStack(event, context):
 
     response = aws_describe_stack(
         stackname=stackname,
-        region= region,
+        region=region,
         credentials=credentials
         )
 

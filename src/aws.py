@@ -135,7 +135,10 @@ def aws_describe_stack(stackname, region, credentials=None):
     try:
         stack = client.describe_stacks(StackName=stackname)['Stacks'][0]
     except ClientError as e:
-        raise e
+        if e.response['Error']['Code'] == 'ValidationError':
+            stack = None
+        else:
+            raise e
 
     return stack
 
