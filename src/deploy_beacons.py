@@ -130,7 +130,8 @@ def update_vpce_access(accounts):
         current_accounts.append(p.split(':')[4])
 
     # build lists of all accounts to add/remove
-    remove, add = []
+    remove = []
+    add = []
     for a in current_accounts:
         if a not in accounts:
             remove.append(f"arn:aws:iam::{a}:root")
