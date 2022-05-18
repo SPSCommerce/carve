@@ -154,6 +154,7 @@ def sf_DeployPrep():
 
     # # this is disabled now that carve does not use EC2 for beacons
     # regions = deploy_regions(G)
+    
     # distribute_regional_carve_amis(regions)
 
 

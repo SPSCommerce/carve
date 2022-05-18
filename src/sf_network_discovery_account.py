@@ -55,6 +55,8 @@ def discover_subnets(region, account_id, account_name, credentials):
             Account=account_id,
             AccountName=account_name,
             Region=region,
+            AvailabilityZone=subnet['AvailabilityZone'],
+            AvailabilityZoneId=subnet['AvailabilityZoneId'],
             CidrBlock=vpc['CidrBlock'],
             VpcId=subnet['VpcId']
             )
