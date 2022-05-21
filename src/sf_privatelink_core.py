@@ -35,9 +35,9 @@ def lambda_handler(event, context):
 
     if 'graph' in event['Input']:
         G = load_graph(event['Input']['graph'], local=False)
-        print(f"successfully loaded graph {event['Input']['graph']} named: {G.graph['name']}")
+        print(f"successfully loaded graph: {event['Input']['graph']}")
     else:
-        raise Exception('no graph provided in input. input format: {"input": {"graph": "carve-privatelink-graph.json"}}')
+        raise Exception('no graph provided in input. input format: {\"input\": {\"graph\": \"carve-privatelink-graph.json\"}}')
     
     # get all regions and AZids in use in the carve deployment
     deploy_regions = sorted(unique_node_values(G, 'Region'))
@@ -54,7 +54,7 @@ def lambda_handler(event, context):
 
 
     deploy_regions = ['us-east-1', 'us-east-2']
-    print('testing with only two regions')
+    print(f"testing with only {len(deploy_regions)} regions: {deploy_regions}")
 
 
     # update any carve peering connection names in the current region
@@ -72,7 +72,7 @@ def lambda_handler(event, context):
 
     # build the private link CFN template for the current region/subnets
     second_octet = 0
-    template = privatelink_template(second_octet, deploy_accounts, azmap)
+    template = privatelink_template(current_region, second_octet, deploy_accounts, azmap)
 
     if routing:
         routing_template = add_peer_routes(template, deploy_regions)
@@ -93,6 +93,6 @@ def lambda_handler(event, context):
 
 
 if __name__ == '__main__':
-    event = {"input": {"graph": "discovered/carve-discovered-1652883036.json"}}
+    event = {"Input": {"graph": "discovered/carve-discovered-1652883036.json"}}
     lambda_handler(event, None)
    

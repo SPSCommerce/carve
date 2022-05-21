@@ -13,23 +13,25 @@ def lambda_handler(event, context):
 
     if 'graph' in event['Input']:
         G = load_graph(event['Input']['graph'], local=False)
-        print(f"successfully loaded graph {event['Input']['graph']} named: {G.graph['name']}")
+        print(f"successfully loaded graph: {event['Input']['graph']}")
     else:
-        raise Exception('no graph provided in input. input format: {"input": {"graph": "carve-privatelink-graph.json"}}')
+        raise Exception('no graph provided in input. input format: {\"input\": {\"graph\": \"carve-privatelink-graph.json\"}}')
     
+    print(f"building CFN templates for regional private link deployments")
+
     # get all regions and AZids in use in the carve deployment
     deploy_regions = sorted(unique_node_values(G, 'Region'))
-    print(f"additional regions in use: {len(deploy_regions)-1}")
+    print(f"Graph contains {len(deploy_regions)-1} additional regions with VPCs: {deploy_regions}")
     deploy_azids = sorted(unique_node_values(G, 'AvailabilityZoneId'))
-    print(f"availability zone ids in use: {deploy_azids}")
+    print(f"Graph contains {len(deploy_azids)} availability zone ids in use by VPCs: {deploy_azids}")
     deploy_accounts = sorted(unique_node_values(G, 'Account'))
-    print(f"accounts in use: {deploy_accounts}")
+    print(f"Graph contains {len(deploy_accounts)} accounts wtih VPCs: {deploy_accounts}")
 
     # remove the current region since that was already deployed
     deploy_regions.remove(current_region)
 
     deploy_regions = ['us-east-2']
-    print('testing with only us-east-2 region!')
+    print(f"testing with only {len(deploy_regions)} additonal regions: {deploy_regions}")
 
     # get all azid's in use by region
     private_link_subnets = {}
@@ -44,7 +46,7 @@ def lambda_handler(event, context):
                 private_link_subnets[region][az['ZoneName']] = az['ZoneId']
                 i += 1
 
-    print(f"total azids in use across {len()} regions: {i}")
+    print(f"total azids in use across additional {len(deploy_regions)} regions: {i}")
 
     # build the privatelink CFN templates for each region with the correct azids and upload to s3
     deployments = {}
@@ -66,6 +68,6 @@ def lambda_handler(event, context):
 
 
 if __name__ == '__main__':
-    event = {"input": {"graph": "discovered/carve-discovered-1652883036.json"}}
+    event = {"Input": {"graph": "discovered/carve-discovered-1652883036.json"}}
     lambda_handler(event, None)
     pass

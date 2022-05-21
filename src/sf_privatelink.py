@@ -80,16 +80,16 @@ def privatelink_template(region, second_octet, deploy_accounts, azs):
     with open(template_file) as f:
         template = json.load(f)
 
-    print(f"creating private link CFN template for region: {region}")
+    print(f"{region} template: creating private link CFN template for region")
 
     template['Resources']['PrivateLinkVPC']['Properties']['CidrBlock'] = f"10.{second_octet}.0.0/24"
-    print(f"added CidrBlock 10.{second_octet}.0.0/24 to PrivateLinkVPC")
+    print(f"{region} template: added CidrBlock 10.{second_octet}.0.0/24 to PrivateLinkVPC")
 
     template['Resources']['PublicNATSubnet']['Properties']['CidrBlock'] = f"10.{second_octet}.0.0/28"
-    print(f"added CidrBlock 10.{second_octet}.0.0/28 to PublicNATSubnet")
+    print(f"{region} template: added CidrBlock 10.{second_octet}.0.0/28 to PublicNATSubnet")
 
-    template['Resources']['AutoScaleGroup']['Properties']['MaxSize'] = len(azs)
-    print(f"Set MaxSize on AutoScaleGroup to {len(azs)}")
+    template['Resources']['AutoScalingGroup']['Properties']['MaxSize'] = len(azs)
+    print(f"{region} template: set MaxSize on AutoScalingGroup to {len(azs)}")
 
 
     az_count = 1
@@ -108,19 +108,19 @@ def privatelink_template(region, second_octet, deploy_accounts, azs):
         # add private subnet to template
         PrivateSubnetName = f"PrivateSubnet{az_count}"
         template['Resources'][PrivateSubnetName] = PrivateSubnet
-        print(f"added CidrBlock 10.{second_octet}.0.{fourth_octet}/28 to {PrivateSubnetName}")
+        print(f"{region} template: added CidrBlock 10.{second_octet}.0.{fourth_octet}/28 to {PrivateSubnetName}")
 
         # create routes for each subnet
         RoutingTableAssociation = deepcopy(template['Resources']['RoutingTableAssociation'])
         RoutingTableAssociation['Properties']['SubnetId'] = {"Ref": PrivateSubnetName}
         RoutingTableAssociationName = f"RoutingTableAssociation{az_count}"
         template['Resources'][RoutingTableAssociationName] = RoutingTableAssociation
-        print(f"added SubnetId to {RoutingTableAssociationName}")
+        print(f"{region} template: added SubnetId to {RoutingTableAssociationName}")
 
         # add the subnet to the NLB and ASG
         template['Resources']['EndpointServiceNLB']['Properties']['Subnets'].append({"Ref": PrivateSubnetName})
         template['Resources']['AutoScalingGroup']['Properties']['VPCZoneIdentifier'].append({"Ref": PrivateSubnetName})
-        print(f"added {PrivateSubnetName} to EndpointServiceNLB and AutoScalingGroup")
+        print(f"{region} template: added {PrivateSubnetName} to EndpointServiceNLB and AutoScalingGroup")
 
         # increment the octet math
         az_count += 1
@@ -134,20 +134,22 @@ def privatelink_template(region, second_octet, deploy_accounts, azs):
         role = f"arn:aws:iam::{account}:role/{os.environ['Prefix']}carve-org-role"
         template['Resources']['EndpointServicePermissions']['Properties']['AllowedPrincipals'].append(role)
     
-    print(f"added carve role ARN from {len(deploy_accounts)} accounts to EndpointServicePermissions")
+    print(f"{region} template: added carve role ARN from {len(deploy_accounts)} accounts to EndpointServicePermissions")
 
-    print(f"rendering complete for private link CFN template for region: {region}")
+    print(f"{region} template: rendering complete for private link CFN template for region")
 
     return template
 
+
 def add_peer_routes(template, deploy_regions):
     ''' add routes to the peered regions in CFN '''
-    print(f"adding routes to rendered template for peered regions: {deploy_regions}")
     stackname = f"{os.environ['Prefix']}carve-managed-privatelink"
     for region in deploy_regions:
+        if region == current_region:
+            continue
         stack = aws_describe_stack(stackname, region)
         if stack is not None:
-            print(f"adding routes for {region}")
+            print(f"{current_region}: adding route to {current_region} template for peered region: {region}")
             conn_id = None
             cidr = None
             for output in stack['Outputs']:
@@ -164,12 +166,12 @@ def add_peer_routes(template, deploy_regions):
                 VPCPeeringRoute['Properties']['DestinationCidrBlock'] = cidr
                 VPCPeeringRoute = f"VPCPeeringRoute{aws_region_dict[region]}"
                 template['Resources'][VPCPeeringRoute] = VPCPeeringRoute
-                print(f"added route for {conn_id} with Cidr {cidr} in {region}")
+                print(f"{current_region}: added route to {region} vpc using {conn_id} with Cidr {cidr}")
             else:
-                print(f"failed to add route for {region}")
+                print(f"{current_region}: failed to add route to {region} vpc")
 
     # remove the VPCPeeringRoute template resource
     del template['Resources']['VPCPeeringRoute']
-    print(f"completed adding routes for peered regions: {deploy_regions}")
+    print(f"{current_region}: completed adding routes for peered regions: {deploy_regions}")
 
     return template
