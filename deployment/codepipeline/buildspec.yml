@@ -25,6 +25,7 @@ phases:
       # convert the VPC template to JSON for python import (CFN yaml is not valid yaml)
       - cfn-flip "src/managed_deployment/carve-vpc-stack-ec2.cfn.yml" "src/managed_deployment/carve-vpc-stack-ec2.cfn.json"
       - cfn-flip "src/managed_deployment/carve-vpc-stack-pl.cfn.yml" "src/managed_deployment/carve-vpc-stack-pl.cfn.json"
+      - cfn-flip "src/managed_deployment/private-link.cfn.yml" "src/managed_deployment/private-link.cfn.json"
       # build lambda container
       - docker build -t carve .
       # log into ECR 

@@ -26,27 +26,8 @@ def update_peer_names(deploy_regions):
                                 "Key": "Name",
                                 "Value": f"{os.environ['Prefix']}carve-privatelink-{region}"
                             }])
+                    print(f"updated the name on VPC peering connection id {output['OutputValue']} in {region}")
     return routing
-
-
-def private_link_template(azmap, deploy_accounts, deploy_regions, routing=False):
-    ''' create private link templates for each region/az '''
-
-    templates = {}
-    second_octet = 0
-    template = privatelink_template(second_octet, deploy_accounts, azmap)
-
-    if routing:
-        routing_template = add_peer_routes(template, deploy_regions)
-        template = routing_template
-
-    key = f"managed_deployment/private-link-{current_region}.cfn.json"
-    data = json.dumps(template, ensure_ascii=True, indent=2, sort_keys=True)
-    aws_put_direct(data, key)
-
-    templates[current_region] = key
-
-    return templates
 
 
 def lambda_handler(event, context):
@@ -54,13 +35,17 @@ def lambda_handler(event, context):
 
     if 'graph' in event:
         G = load_graph(event['graph'], local=False)
+        print(f"successfully loaded graph {event['graph']} named: {G.graph['name']}")
     else:
-        G = load_graph(get_deploy_key(), local=False)
+        raise Exception('no graph provided in input')
     
     # get all regions and AZids in use in the carve deployment
     deploy_regions = sorted(unique_node_values(G, 'Region'))
+    print(f"additional regions in use: {len(deploy_regions)-1}")
     deploy_azids = sorted(unique_node_values(G, 'AvailabilityZoneId'))
+    print(f"availability zone ids in use: {deploy_azids}")
     deploy_accounts = sorted(unique_node_values(G, 'Account'))
+    print(f"accounts in use: {deploy_accounts}")
 
     peer_regions =[]
     for region in deploy_regions:
@@ -69,10 +54,12 @@ def lambda_handler(event, context):
 
 
     deploy_regions = ['us-east-1', 'us-east-2']
+    print('testing with only two regions')
 
 
     # update any carve peering connection names in the current region
     routing = update_peer_names(peer_regions)
+    print(f"routing found: {routing}")
 
     # get the AZ id to AZ name mapping for this account
     azs = aws_describe_availability_zones(current_region)['AvailabilityZones']
@@ -84,12 +71,24 @@ def lambda_handler(event, context):
             azmap[az['ZoneName']] = az['ZoneId']
 
     # build the private link CFN template for the current region/subnets
-    templates = private_link_template(azmap, deploy_accounts, deploy_regions, routing=routing)
+    second_octet = 0
+    template = privatelink_template(second_octet, deploy_accounts, azmap)
+
+    if routing:
+        routing_template = add_peer_routes(template, deploy_regions)
+        template = routing_template
+
+    key = f"managed_deployment/private-link-{current_region}.cfn.json"
+    data = json.dumps(template, ensure_ascii=True, indent=2, sort_keys=True)
+    aws_put_direct(data, key)
+    print(f"successfully uploaded privatelink template to s3: {key}")
+
+    deployments = {current_region: key}
 
     # deploy the private link CFN template using the deploy stacks step function
-    deployment = private_link_deployment(templates, aws_current_account(), deploy_regions, routing)
+    deploy_stacks = private_link_deployment(deployments, aws_current_account(), deploy_regions, routing)
     
-    return json.dumps(deployment, default=str)
+    return json.dumps(deploy_stacks, default=str)
 
 
 

@@ -2,18 +2,6 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: VPC Endpoint service stack.
 
 Parameters:
-  MinSize:
-    Description: Minimum number of instances in the ASG
-    Type: Number
-    Default: '0'
-  MaxSize:
-    Description: Maximum number of instances in the ASG
-    Type: Number
-    Default: '3'
-  DesiredSize:
-    Description: Desored number of instances in the ASG
-    Type: Number
-    Default: '1'
   ImageId:
     Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
     Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-minimal-hvm-arm64-ebs'
@@ -153,8 +141,8 @@ Resources:
       VPCZoneIdentifier: []
       HealthCheckGracePeriod: '60'
       HealthCheckType: EC2
-      MinSize: !Ref MinSize
-      MaxSize: !Ref MaxSize
+      MinSize: 0
+      MaxSize: 3
       MetricsCollection:
         - Granularity: 1Minute
       TargetGroupARNs:
