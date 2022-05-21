@@ -1,22 +1,21 @@
 import lambdavars
-import json
-import os
-from copy import deepcopy
-from carve import load_graph, get_deploy_key,  unique_node_values
-from sf_privatelink import private_link_deployment, privatelink_template
-from aws import *
-import time
 
-    
+import json
+from aws import *
+from carve import load_graph, unique_node_values
+from sf_privatelink import private_link_deployment, privatelink_template
+
 
 def lambda_handler(event, context):
     ''' build CFN templates for a carve private link deployment '''
 
-    if 'graph' in event:
-        G = load_graph(event['graph'], local=False)
-        print(f"successfully loaded graph {event['graph']} named: {G.graph['name']}")
+    print(event)
+
+    if 'graph' in event['Input']:
+        G = load_graph(event['Input']['graph'], local=False)
+        print(f"successfully loaded graph {event['Input']['graph']} named: {G.graph['name']}")
     else:
-        raise Exception('no graph provided in input')
+        raise Exception('no graph provided in input. input format: {"input": {"graph": "carve-privatelink-graph.json"}}')
     
     # get all regions and AZids in use in the carve deployment
     deploy_regions = sorted(unique_node_values(G, 'Region'))
@@ -67,6 +66,6 @@ def lambda_handler(event, context):
 
 
 if __name__ == '__main__':
-    event = {'graph': 'discovered/carve-discovered-1652883036.json'}
+    event = {"input": {"graph": "discovered/carve-discovered-1652883036.json"}}
     lambda_handler(event, None)
     pass

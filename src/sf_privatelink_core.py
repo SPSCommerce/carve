@@ -2,10 +2,9 @@ import lambdavars
 
 import json
 import os
-import time
 
 from aws import *
-from carve import get_deploy_key, load_graph, unique_node_values
+from carve import load_graph, unique_node_values
 from sf_privatelink import (add_peer_routes, private_link_deployment,
                             privatelink_template)
 
@@ -35,7 +34,7 @@ def lambda_handler(event, context):
     print(event)
 
     if 'graph' in event['Input']:
-        G = load_graph(event['graph'], local=False)
+        G = load_graph(event['Input']['graph'], local=False)
         print(f"successfully loaded graph {event['Input']['graph']} named: {G.graph['name']}")
     else:
         raise Exception('no graph provided in input. input format: {"input": {"graph": "carve-privatelink-graph.json"}}')
@@ -94,6 +93,6 @@ def lambda_handler(event, context):
 
 
 if __name__ == '__main__':
-    event = {'input': {'graph': 'discovered/carve-discovered-1652883036.json'}}
+    event = {"input": {"graph": "discovered/carve-discovered-1652883036.json"}}
     lambda_handler(event, None)
    
