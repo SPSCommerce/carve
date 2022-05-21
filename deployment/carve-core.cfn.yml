@@ -408,7 +408,7 @@ Resources:
           Fn::GetAtt: [FunctionSfPrivateLinkRegions, Outputs.LambdaName]
         CarveDeployStacksStepFunction: !Ref CarveDeployStacksStepFunction
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
-      StateMachineName: !Sub "${Prefix}carve-deploy-stacks-statemachine"
+      StateMachineName: !Sub "${Prefix}carve-privatelink-statemachine"
       StateMachineType: STANDARD
 
   CarveDeployBeaconsStepFunction:
