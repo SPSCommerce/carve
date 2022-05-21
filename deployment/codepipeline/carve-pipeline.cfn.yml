@@ -15,6 +15,8 @@ Parameters:
     Default: ''
   Prefix:
     Type: String
+    MaxLength: 12
+    ConstraintDescription: Prefix is limited to 12 alphanumeric characters
     Description: "Prefix carve AWS resources and stacknames with this"
     Default: ''
   UniqueId:
@@ -363,36 +365,36 @@ Resources:
                                 
         - Name: PrepManagedDeployments
           Actions:
-            - Name: ec2-image-builder-pipeline
-              RunOrder: 1
-              ActionTypeId:
-                Category: Deploy
-                Owner: AWS
-                Provider: CloudFormation
-                Version: 1
-              Configuration:
-                ChangeSetName: pipeline-changeset
-                ActionMode: CREATE_UPDATE
-                Capabilities: CAPABILITY_NAMED_IAM
-                RoleArn: !GetAtt 'CarvePipelineRole.Arn'
-                StackName: !Sub '${Prefix}carve-image-builder-pipeline'
-                TemplatePath: GithubRepo::deployment/codepipeline/carve-image-builder-pipeline.cfn.yml
-                TemplateConfiguration: GithubRepo::deployment/codepipeline/tags-template.json
-                ParameterOverrides: !Sub |
-                  {
-                    "ExistingSubnetId":"${ImageBuilderExistingSubnetId}",
-                    "ExistingVpcId":"${ImageBuilderExistingVpcId}",
-                    "VpcCIDR":"${ImageBuilderVpcCIDR}",
-                    "PublicSubnetCIDR":"${ImageBuilderPublicSubnetCIDR}",
-                    "Prefix":"${Prefix}",
-                    "OrgId":"${OrgId}",
-                    "UniqueId":"${UniqueId}",
-                    "DeployBucket":"${DeployBucket}",
-                    "GitHubOAUTHTokenASMPath":"${GitHubOAUTHTokenASMPath}"
-                  }
-              OutputArtifacts: []
-              InputArtifacts:
-                - Name: GithubRepo
+            # - Name: ec2-image-builder-pipeline
+            #   RunOrder: 1
+            #   ActionTypeId:
+            #     Category: Deploy
+            #     Owner: AWS
+            #     Provider: CloudFormation
+            #     Version: 1
+            #   Configuration:
+            #     ChangeSetName: pipeline-changeset
+            #     ActionMode: CREATE_UPDATE
+            #     Capabilities: CAPABILITY_NAMED_IAM
+            #     RoleArn: !GetAtt 'CarvePipelineRole.Arn'
+            #     StackName: !Sub '${Prefix}carve-image-builder-pipeline'
+            #     TemplatePath: GithubRepo::deployment/codepipeline/carve-image-builder-pipeline.cfn.yml
+            #     TemplateConfiguration: GithubRepo::deployment/codepipeline/tags-template.json
+            #     ParameterOverrides: !Sub |
+            #       {
+            #         "ExistingSubnetId":"${ImageBuilderExistingSubnetId}",
+            #         "ExistingVpcId":"${ImageBuilderExistingVpcId}",
+            #         "VpcCIDR":"${ImageBuilderVpcCIDR}",
+            #         "PublicSubnetCIDR":"${ImageBuilderPublicSubnetCIDR}",
+            #         "Prefix":"${Prefix}",
+            #         "OrgId":"${OrgId}",
+            #         "UniqueId":"${UniqueId}",
+            #         "DeployBucket":"${DeployBucket}",
+            #         "GitHubOAUTHTokenASMPath":"${GitHubOAUTHTokenASMPath}"
+            #       }
+            #   OutputArtifacts: []
+            #   InputArtifacts:
+            #     - Name: GithubRepo
 
             - Name: update-s3-notification
               ActionTypeId:
@@ -408,19 +410,19 @@ Resources:
               InputArtifacts: []
               Region: !Ref 'AWS::Region'
 
-            - Name: update-carve-managed-resources
-              ActionTypeId:
-                Category: Invoke
-                Owner: AWS
-                Provider: Lambda
-                Version: '1'
-              RunOrder: 2
-              Configuration:
-                FunctionName: !Sub "${Prefix}carve-core-entrypoint"
-                UserParameters: UpdateManagedStacks
-              OutputArtifacts: []
-              InputArtifacts: []
-              Region: !Ref 'AWS::Region'
+            # - Name: update-carve-managed-resources
+            #   ActionTypeId:
+            #     Category: Invoke
+            #     Owner: AWS
+            #     Provider: Lambda
+            #     Version: '1'
+            #   RunOrder: 2
+            #   Configuration:
+            #     FunctionName: !Sub "${Prefix}carve-core-entrypoint"
+            #     UserParameters: UpdateManagedStacks
+            #   OutputArtifacts: []
+            #   InputArtifacts: []
+            #   Region: !Ref 'AWS::Region'
 
   CarveCodeBuild:
     Type: AWS::CodeBuild::Project

@@ -29,7 +29,7 @@ def discover_subnets(region, account_id, account_name, credentials):
         vpcids.append(vpc['VpcId'])
 
 
-    for subnet in aws_describe_subnets(region, credentials, account_id):
+    for subnet in aws_describe_subnets(region, account_id, credentials):
 
         # ignore default VPCs and shared subnets
         if subnet['VpcId'] not in vpcids:

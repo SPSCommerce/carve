@@ -67,6 +67,44 @@ Resources:
       TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
       TimeoutInMinutes: 5
 
+  FunctionSfPrivateLinkCore:
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      Parameters:
+        HandlerFile: sf_privatelink_core
+        # params below are the same for all nested lambda stacks
+        CarveVersion: !Ref CarveVersion
+        CodeBucket: !Ref CodeBucket
+        ECR: !Ref ECR
+        IMAGETAG: !Ref IMAGETAG
+        OrgId: !Ref OrgId
+        OrgSNSTopic: !Ref OrgSNSTopic
+        Prefix: !Ref Prefix
+        PropogateUpdates: !Ref PropogateUpdates
+        UniqueId: !Ref UniqueId
+        RoleArn: !GetAtt CarveCoreRole.Arn
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TimeoutInMinutes: 5
+
+  FunctionSfPrivateLinkRegions:
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      Parameters:
+        HandlerFile: sf_privatelink_regions
+        # params below are the same for all nested lambda stacks
+        CarveVersion: !Ref CarveVersion
+        CodeBucket: !Ref CodeBucket
+        ECR: !Ref ECR
+        IMAGETAG: !Ref IMAGETAG
+        OrgId: !Ref OrgId
+        OrgSNSTopic: !Ref OrgSNSTopic
+        Prefix: !Ref Prefix
+        PropogateUpdates: !Ref PropogateUpdates
+        UniqueId: !Ref UniqueId
+        RoleArn: !GetAtt CarveCoreRole.Arn
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TimeoutInMinutes: 5
+
   FunctionSfScaleInitialize:
     Type: AWS::CloudFormation::Stack
     Properties: 
@@ -292,12 +330,18 @@ Resources:
                   - ec2:DescribeVpcPeeringConnections
                   - ec2:DescribeRegions
                   - ec2:DescribeSubnets
+                  - ec2:DescribeAvailabilityZones
                   - ec2:AttachNetworkInterface
                   - ec2:DetachNetworkInterface
                   - ec2:CreateNetworkInterface
                   - ec2:DeleteNetworkInterface
                 Resource:
                   - "*"
+              - Effect: Allow
+                Action:
+                  - elbv2:RegisterTargets
+                Resource:
+                  - !Sub "arn:aws:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:targetgroup/${Prefix}carve-nlb-*"
               - Effect: Allow
                 Action:
                   - ec2:ModifyImageAttribute
@@ -347,6 +391,22 @@ Resources:
         # CarveFunction: !Ref CarveFunction
         CarveFunction: 
           Fn::GetAtt: [FunctionEntrypoint, Outputs.LambdaName]
+      RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
+      StateMachineName: !Sub "${Prefix}carve-deploy-stacks-statemachine"
+      StateMachineType: STANDARD
+
+  CarvePrivateLinkStepFunction:
+    Type: AWS::StepFunctions::StateMachine
+    Properties: 
+      DefinitionS3Location: 
+        Bucket: !Ref CodeBucket
+        Key: !Sub "step-functions/${GITSHA}/steps-carve-privatelink.json"
+      DefinitionSubstitutions: 
+        FunctionSfPrivateLinkCore:
+          Fn::GetAtt: [FunctionSfPrivateLinkCore, Outputs.LambdaName]
+        FunctionSfPrivateLinkRegions:
+          Fn::GetAtt: [FunctionSfPrivateLinkRegions, Outputs.LambdaName]
+        CarveDeployStacksStepFunction: !Ref CarveDeployStacksStepFunction
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
       StateMachineName: !Sub "${Prefix}carve-deploy-stacks-statemachine"
       StateMachineType: STANDARD

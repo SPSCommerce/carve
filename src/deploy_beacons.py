@@ -7,7 +7,7 @@ import json
 import os
 import sys
 from copy import deepcopy
-from carve import load_graph, save_graph, carve_role_arn
+from carve import load_graph, get_deploy_key, unique_node_values
 from aws import *
 from multiprocessing import Process, Pipe
 import time
@@ -32,7 +32,7 @@ def start_carve_deployment(event, context, key=False, cleanup=True):
     print(f"deploying uploaded graph: {event['Records'][0]['s3']['bucket']['arn']}/{key}")
 
     # create deploy buckets in all required regions for deployment files
-    regions = deploy_regions(G)
+    regions = unique_node_values(G, 'Region')
     try:
         regions.remove(current_region)
     except:
@@ -77,35 +77,8 @@ def start_carve_deployment(event, context, key=False, cleanup=True):
         # if nothing is being deployed, Run cleanup
         name = f"NO-BEACONS-{filename}-{int(time.time())}"
         aws_start_stepfunction(os.environ['CleanupStateMachine'], [], name)
-
-
-def get_deploy_key(last=False):
-    # get either the current or last deployment graph key from s3
-    if not last:
-        path = 'deploy_active/'
-    else:
-        path = 'deployed_graph/'
-    return aws_newest_s3(path)
-
-
-def deploy_regions(G):
-    # get all other regions where buckets are needed
-    regions = set()
-    for node in list(G.nodes):
-        r = G.nodes().data()[node]['Region']
-        if r not in regions:
-            regions.add(r)
-    return regions    
-
-
-def deploy_accounts(G):
-    # get all other regions where buckets are needed
-    accounts = set()
-    for node in list(G.nodes):
-        r = G.nodes().data()[node]['Account']
-        if r not in accounts:
-            accounts.add(r)
-    return accounts
+        # move the deployment file
+        sf_DeploymentComplete(None)
 
 
 def update_vpce_access(accounts):
@@ -149,11 +122,11 @@ def sf_DeployPrep():
     G = load_graph(get_deploy_key(), local=False)
     
     # update the carve vpce access with all accounts in the deployment
-    accounts = deploy_accounts(G)
+    accounts = unique_node_values(G, 'Account')
     update_vpce_access(accounts)
 
     # # this is disabled now that carve does not use EC2 for beacons
-    # regions = deploy_regions(G)
+    # regions = unique_node_values(G, 'Region')
     
     # distribute_regional_carve_amis(regions)
 

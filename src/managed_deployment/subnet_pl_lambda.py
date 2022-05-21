@@ -13,7 +13,7 @@ def http_call(beacon):
     http = urllib3.PoolManager()
     result = None
     try:
-        r = http.request('GET', beacon, timeout=1.0)
+        r = http.request('GET', beacon, retries=False, timeout=1.0)
         if r.status == 200:
             result = {'beacon': beacon, 'result': 'up'}
         else:

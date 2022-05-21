@@ -31,7 +31,7 @@ def asg_event(event):
             # beacon = {ec2['PrivateIpAddress']: ec2['SubnetId']}
 
             # append azid code to end of instance name
-            subnet = aws_describe_subnets(message['region'], credentials, message['account'], ec2['SubnetId'])[0]
+            subnet = aws_describe_subnets(message['region'], message['account'], credentials, ec2['SubnetId'])[0]
             az = subnet['AvailabilityZoneId'].split('-')[-1]
             name = f"{os.environ['Prefix']}carve-beacon-{ec2['SubnetId']}-{az}"
             tags = [{'Key': 'Name', 'Value': name}]

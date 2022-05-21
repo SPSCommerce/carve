@@ -12,6 +12,24 @@ import datetime
 current_region = os.environ['AWS_REGION']
 boto_config = Config(retries=dict(max_attempts=10))
 
+aws_region_dict = {"us-east-1": "use1",
+    "us-east-2": "use2",
+    "us-west-1": "usw1",
+    "us-west-2": "usw2",
+    "us-gov-west-1": "usgw2",
+    "ca-central-1": "cac1",
+    "eu-west-1": "ew1",
+    "eu-west-2": "ew2",
+    "eu-central-1": "ec1",
+    "ap-southeast-1": "apse1",
+    "ap-southeast-2": "apse2",
+    "ap-south-1": "aps1",
+    "ap-northeast-1": "apne1",
+    "ap-northeast-2": "apne2",
+    "sa-east-1": "sae1",
+    "cn-north-1": "cn1"
+}
+
 
 def _get_credentials(arn=None, account=None):
     if arn is not None:
@@ -43,13 +61,17 @@ def aws_assume_role(role_arn, session_name, token_life=900):
         sys.exit()
 
 
+
+def aws_current_account():
+    sts = boto3.client('sts')
+    account = sts.get_caller_identity()['Account']
+    return account
+
 def aws_discover_org_accounts():
     ''' discover all accounts in the AWS Org'''
     orgs = boto3.client('organizations')
     root = orgs.describe_organization()['Organization']['MasterAccountArn'].split(':')[4]
-    sts = boto3.client('sts')
-    account = sts.get_caller_identity()['Account']
-
+    account = aws_current_account()
     if account == root:
         client = orgs
     else:
@@ -141,6 +163,35 @@ def aws_describe_stack(stackname, region, credentials=None):
             raise e
 
     return stack
+
+
+
+def aws_get_template(stackname, region, credentials=None):
+    ''' return the template for a stack '''
+    if credentials is None:
+        client = boto3.client(
+            'cloudformation',
+            config=boto_config,
+            region_name=region
+            )
+    else:
+        client = boto3.client(
+            'cloudformation',
+            config=boto_config,
+            region_name=region,
+            aws_access_key_id = credentials['AccessKeyId'],
+            aws_secret_access_key = credentials['SecretAccessKey'],
+            aws_session_token = credentials['SessionToken']
+            )
+    try:
+        template = client.get_template(StackName=stackname)
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'ValidationError':
+            template = None
+        else:
+            raise e
+    return template
+
 
 def aws_describe_vpc_endpoint_permissions(service_id):
     ''' get allowed principals on vpc endpoint ''' 
@@ -610,6 +661,21 @@ def aws_get_carve_s3(key, file_path, bucket=None):
         # logger.exception(f'Failed to write outputs/logs s3 bucket')
 
 
+def aws_register_targets(arn, targets, region):
+    client = boto3.client('elbv2', config=boto_config, region_name=region)
+    response = client.register_targets(
+        TargetGroupArn=arn,
+        Targets=targets
+        # [
+        #     {
+        #         'Id': '10.0.0.1',
+        #         'Port': 80,
+        #         'AvailabilityZone': 'all'
+        #     },
+        # ]
+    )
+    return response
+
 
 def aws_states_list_executions(arn, results=100):
     client = boto3.client('stepfunctions', config=boto_config)
@@ -662,7 +728,7 @@ def aws_delete_bucket_notification():
         print(f'error creating bucket notification: {e}')
 
 
-def tag_value( tags, key ):
+def aws_tag_value( tags, key ):
     if type(tags) != list:
         return None
     res = map( lambda tag: tag['Value'] , filter( lambda tag: tag['Key'] == key, tags ) )
@@ -831,6 +897,13 @@ def aws_delete_rule(name):
     return response
 
 
+def aws_update_tags(resource: str, tags: dict):
+    # return all images created by carve in a region
+    client = boto3.client('ec2', config=boto_config, region_name=current_region)
+    response = client.create_tags(Resources=[resource], Tags=tags)
+    return response
+
+
 def aws_describe_all_carve_images(region):
     # return all images created by carve in a region
     client = boto3.client('ec2', config=boto_config, region_name=region)
@@ -906,7 +979,17 @@ def aws_describe_peers(region, credentials):
     return pcxs
 
 
-def aws_describe_subnets(region, credentials, account_id, subnet_id=None):
+def aws_describe_availability_zones(region):
+    client = boto3.client(
+        'ec2',
+        config=boto_config,
+        region_name=region
+        )
+    response = client.describe_availability_zones()
+    return response
+
+
+def aws_describe_subnets(region, account_id, credentials, subnet_id=None):
     client = boto3.client(
         'ec2',
         config=boto_config,

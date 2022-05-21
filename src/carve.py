@@ -264,7 +264,7 @@ def asg_event(event):
             # beacon = {ec2['PrivateIpAddress']: ec2['SubnetId']}
 
             # append azid code to end of instance name
-            subnet = aws_describe_subnets(message['region'], credentials, message['account'], ec2['SubnetId'])[0]
+            subnet = aws_describe_subnets(message['region'], message['account'], credentials, ec2['SubnetId'])[0]
             az = subnet['AvailabilityZoneId'].split('-')[-1]
             name = f"{os.environ['Prefix']}carve-beacon-{ec2['SubnetId']}-{az}"
             tags = [{'Key': 'Name', 'Value': name}]
@@ -301,6 +301,23 @@ def carve_role_arn(account):
     role = f"arn:aws:iam::{account}:role/{os.environ['OrgRoleName']}"
     # role = f"arn:aws:iam::{account}:role/{role_name}"
     return role
+
+
+def get_deploy_key(last=False):
+    # get either the current or last deployment graph key from s3
+    if not last:
+        path = 'deploy_active/'
+    else:
+        path = 'deployed_graph/'
+    return aws_newest_s3(path)
+
+
+def unique_node_values(G, key):
+    # from graph G, get all unique values of key
+    values = set()
+    for node in list(G.nodes):
+        values.add(G.nodes().data()[node][key])
+    return values
 
 
 def network_diff(A, B):

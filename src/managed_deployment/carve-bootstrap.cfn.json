@@ -1,16 +1,6 @@
 {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Description": "Carve managed stack",
-    "Parameters": {
-        "OrgId": {
-            "Type": "String",
-            "Description": "AWS Organizations Id"
-        },
-        "Prefix": {
-            "Type": "String",
-            "Description": "Prefix carve AWS resources"
-        }
-    },
     "Conditions" : {
         "HasNot": { "Fn::Equals" : [ "a", "b" ] }
     },
