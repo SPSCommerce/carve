@@ -32,6 +32,7 @@ def update_peer_names(deploy_regions):
 
 def lambda_handler(event, context):
     ''' build CFN templates for a carve private link deployment '''
+    print(event)
 
     if 'graph' in event:
         G = load_graph(event['graph'], local=False)
