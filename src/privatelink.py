@@ -147,28 +147,18 @@ def add_peer_routes(template, deploy_regions):
     for region in deploy_regions:
         if region == current_region:
             continue
-        stack = aws_describe_stack(stackname, region)
-        if stack is not None:
+        outputs = aws_get_stack_outputs_dict(stackname, region)
+        if 'VpcPeeringConnectionId' in outputs:
             print(f"{current_region}: adding route to {current_region} template for peered region: {region}")
-            conn_id = None
-            cidr = None
-            for output in stack['Outputs']:
-
-                if output['OutputKey'] == 'VpcPeeringConnectionId':
-                    conn_id = output['OutputValue']
-                elif output['OutputKey'] == 'VPCCidrBlock':
-                    cidr = output['OutputValue']
-
-            if conn_id is not None and cidr is not None:
-                # duplicate the VPCPeeringRoute resource and add the route
-                VPCPeeringRoute = deepcopy(template['Resources']['VPCPeeringRoute'])
-                VPCPeeringRoute['Properties']['VpcPeeringConnectionId'] = conn_id
-                VPCPeeringRoute['Properties']['DestinationCidrBlock'] = cidr
-                VPCPeeringRoute = f"VPCPeeringRoute{aws_region_dict[region]}"
-                template['Resources'][VPCPeeringRoute] = VPCPeeringRoute
-                print(f"{current_region}: added route to {region} vpc using {conn_id} with Cidr {cidr}")
-            else:
-                print(f"{current_region}: failed to add route to {region} vpc")
+            # duplicate the VPCPeeringRoute resource and add the route
+            VPCPeeringRoute = deepcopy(template['Resources']['VPCPeeringRoute'])
+            VPCPeeringRoute['Properties']['VpcPeeringConnectionId'] = outputs['VpcPeeringConnectionId']
+            VPCPeeringRoute['Properties']['DestinationCidrBlock'] = outputs['VPCCidrBlock']
+            VPCPeeringRouteName = f"VPCPeeringRoute{aws_region_dict[region]}"
+            template['Resources'][VPCPeeringRouteName] = VPCPeeringRoute
+            print(f"{current_region}: added route to {region} vpc using {outputs['VpcPeeringConnectionId']} with Cidr {outputs['VPCCidrBlock']}")
+        else:
+            print(f"{current_region}: failed to add route to {region} vpc")
 
     # remove the VPCPeeringRoute template resource
     del template['Resources']['VPCPeeringRoute']
