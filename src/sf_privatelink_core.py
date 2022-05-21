@@ -5,7 +5,7 @@ import os
 
 from aws import *
 from carve import load_graph, unique_node_values
-from sf_privatelink import (add_peer_routes, private_link_deployment,
+from privatelink import (add_peer_routes, private_link_deployment,
                             privatelink_template)
 
 
@@ -95,4 +95,8 @@ def lambda_handler(event, context):
 if __name__ == '__main__':
     event = {"Input": {"graph": "discovered/carve-discovered-1652883036.json"}}
     lambda_handler(event, None)
-   
+
+    # from privatelink import discover_privatelink_services
+    # services = discover_privatelink_services(["us-east-1", "us-east-2"])
+    # print(services)
+

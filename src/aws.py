@@ -165,6 +165,31 @@ def aws_describe_stack(stackname, region, credentials=None):
     return stack
 
 
+def aws_get_stack_outputs_dict(stackname, region, credentials=None):
+    ''' get the outputs of the stack '''
+    stack = aws_describe_stack(stackname, region, credentials)
+    outputs = {}
+    if stack is not None:
+        for output in stack['Outputs']:
+            outputs[output['OutputKey']] = output['OutputValue']
+    return outputs
+
+
+
+def aws_describe_vpc_endpoint_service_configuration(service, region):
+    client = boto3.client(
+        'ec2',
+        config=boto_config,
+        region_name=region
+        )
+    try:
+        response = client.describe_vpc_endpoint_service_configurations(
+            ServiceIds=[service],
+        )
+        return response['ServiceConfigurations'][0]
+    except ClientError as e:
+        raise(e)
+
 
 def aws_get_template(stackname, region, credentials=None):
     ''' return the template for a stack '''

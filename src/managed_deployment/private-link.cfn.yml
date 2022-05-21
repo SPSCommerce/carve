@@ -394,7 +394,6 @@ Resources:
 
 Outputs:
   EndpointService:
-    Condition: CoreRegion
     Value: !Ref 'EndpointService'
   EndpointServiceNLBTargetGroup:
     Condition: CoreRegion

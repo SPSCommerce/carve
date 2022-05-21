@@ -614,7 +614,6 @@
     },
     "Outputs": {
         "EndpointService": {
-            "Condition": "CoreRegion",
             "Value": {
                 "Ref": "EndpointService"
             }

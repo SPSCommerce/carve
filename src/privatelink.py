@@ -175,3 +175,17 @@ def add_peer_routes(template, deploy_regions):
     print(f"{current_region}: completed adding routes for peered regions: {deploy_regions}")
 
     return template
+
+def discover_privatelink_services(deploy_regions):
+    print(f"discovering privatelink services in regions: {deploy_regions}")
+    services = []
+    for region in deploy_regions:
+        outputs = aws_get_stack_outputs_dict(f"{os.environ['Prefix']}carve-managed-privatelink", region)
+        if 'EndpointService' in outputs:
+            print(f"{region}: found privatelink service: {outputs['EndpointService']}")
+            service_data = aws_describe_vpc_endpoint_service_configuration(outputs['EndpointService'], region)
+            services.append(service_data['ServiceName'])
+        else:
+            print(f"{region}: failed to find privatelink service")
+    
+    return services
