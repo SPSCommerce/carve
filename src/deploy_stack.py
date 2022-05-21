@@ -180,21 +180,11 @@ def sf_CreateStack(event, context):
         with open('managed_deployment/carve-bootstrap.cfn.json') as f:
             template = (json.load(f))
 
-        parameters = [
-            {
-                "ParameterKey": "OrgId",
-                "ParameterValue": os.environ['OrgId']
-            },
-            {
-                "ParameterKey": "Prefix",
-                "ParameterValue": os.environ['Prefix']
-            }
-        ]
         stack = aws_create_stack(
             stackname=stackname,
             region=region,
             template=str(template),
-            parameters=parameters,
+            parameters=[],
             credentials=credentials,
             tags=aws_get_carve_tags(context.invoked_function_arn)
             )

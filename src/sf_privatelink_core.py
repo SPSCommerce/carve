@@ -94,9 +94,10 @@ def lambda_handler(event, context):
 
 if __name__ == '__main__':
     event = {"Input": {"graph": "discovered/carve-discovered-1652883036.json"}}
-    lambda_handler(event, None)
+    deploy = json.loads(lambda_handler(event, None))
 
-    # from privatelink import discover_privatelink_services
-    # services = discover_privatelink_services(["us-east-1", "us-east-2"])
-    # print(services)
+    if len(deploy) > 0:
+        import time
+        name = f"deploying-privatelink-{int(time.time())}"
+        aws_start_stepfunction(os.environ['DeployStacksStateMachine'], {'Input': deploy}, name)
 

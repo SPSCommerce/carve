@@ -10,10 +10,10 @@ def private_link_deployment(deployments, account, regions, routing=False):
     vpcid = None
     print(f"creating {len(deployments.items())} item deployment input list for deploy-stacks state machine")
     for region, template in deployments.items():
-        if region == current_region:
-            internet = 'true'
-        else:
-            internet = 'false'
+        # if region == current_region:
+        #     internet = 'true'
+        # else:
+        internet = 'false'
 
         stackname = f"{os.environ['Prefix']}carve-managed-privatelink"
         parameters = [
@@ -68,9 +68,7 @@ def private_link_deployment(deployments, account, regions, routing=False):
         })
 
     print(f"deploy list: {deploy}")
-    # if len(templates.items()) > 0:
-    #     name = f"deploying-privatelink-{int(time.time())}"
-    #     aws_start_stepfunction(os.environ['DeployStacksStateMachine'], {'Input': deploy}, name)
+
     return deploy
 
 
@@ -91,7 +89,6 @@ def privatelink_template(region, second_octet, deploy_accounts, azs):
     template['Resources']['AutoScalingGroup']['Properties']['MaxSize'] = len(azs)
     print(f"{region} template: set MaxSize on AutoScalingGroup to {len(azs)}")
 
-
     az_count = 1
     for az, azid in azs.items():
         # create one private /28 subnet for each AZ
@@ -109,6 +106,11 @@ def privatelink_template(region, second_octet, deploy_accounts, azs):
         PrivateSubnetName = f"PrivateSubnet{az_count}"
         template['Resources'][PrivateSubnetName] = PrivateSubnet
         print(f"{region} template: added CidrBlock 10.{second_octet}.0.{fourth_octet}/28 to {PrivateSubnetName}")
+
+        # use the first subnet for AWS SSM interface endpoints
+        if az_count == 1:
+            template['Resources']['SSMInterfaceEndpoint']['Properties']['SubnetIds'] = [{"Ref": PrivateSubnetName}]
+            template['Resources']['SSMMessagesInterfaceEndpoint']['Properties']['SubnetIds'] = [{"Ref": PrivateSubnetName}]
 
         # create routes for each subnet
         RoutingTableAssociation = deepcopy(template['Resources']['RoutingTableAssociation'])

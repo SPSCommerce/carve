@@ -273,7 +273,7 @@
                 ],
                 "UserData": {
                     "Fn::Base64": {
-                        "Fn::Sub": "#!/bin/bash\namazon-linux-extras install -y epel\nyum update -y\nyum install -y nginx\nsystemctl enable nginx\nsystemctl start nginx\nsystemctl stop nginx\ncat <<EOF > /etc/nginx/nginx.conf\nevents {}\nhttp {\n    server {\n        listen       *:80;\n        server_name carve;\n        root    /dev/null;\n        location /up {\n            add_header Content-Type text/plain;\n            return 200 'OK';\n        }\n    }\n}\nEOF\nsystemctl start nginx\nyum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_arm64/amazon-ssm-agent.rpm\nsystemctl enable amazon-ssm-agent\nsystemctl start amazon-ssm-agent\n"
+                        "Fn::Sub": "#!/bin/bash\namazon-linux-extras install -y nginx1\nsystemctl enable nginx\nsystemctl start nginx\nsystemctl stop nginx\ncat <<EOF > /etc/nginx/nginx.conf\nevents {}\nhttp {\n    server {\n        listen       *:80;\n        server_name carve;\n        root    /dev/null;\n        location /up {\n            add_header Content-Type text/plain;\n            return 200 'OK';\n        }\n    }\n}\nEOF\nsystemctl start nginx\nyum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_arm64/amazon-ssm-agent.rpm\nsystemctl enable amazon-ssm-agent\nsystemctl start amazon-ssm-agent\n"
                     }
                 }
             }
@@ -407,6 +407,92 @@
                 "RouteTableId": {
                     "Ref": "PrivateRoutingTable"
                 }
+            }
+        },
+        "S3GatewayEndpoint": {
+            "Type": "AWS::EC2::VPCEndpoint",
+            "Properties": {
+                "ServiceName": {
+                    "Fn::Sub": "com.amazonaws.${AWS::Region}.s3"
+                },
+                "VpcId": {
+                    "Ref": "PrivateLinkVPC"
+                },
+                "RouteTableIds": [
+                    {
+                        "Ref": "PrivateRoutingTable"
+                    }
+                ],
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": "*",
+                            "Action": [
+                                "s3:GetObject"
+                            ],
+                            "Resource": [
+                                {
+                                    "Fn::Sub": "arn:aws:s3:::amazonlinux.${AWS::Region}.amazonaws.com/*"
+                                },
+                                {
+                                    "Fn::Sub": "arn:aws:s3:::amazonlinux-2-repos-${AWS::Region}/*"
+                                },
+                                {
+                                    "Fn::Sub": "arn:aws:s3:::amazonlinux-2-repos-hvm.${AWS::Region}.amazonaws.com/*"
+                                },
+                                {
+                                    "Fn::Sub": "arn:aws:s3:::ec2-downloads-windows/*"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+        },
+        "SSMInterfaceEndpoint": {
+            "Type": "AWS::EC2::VPCEndpoint",
+            "Properties": {
+                "VpcEndpointType": "Interface",
+                "ServiceName": {
+                    "Fn::Sub": "com.amazonaws.${AWS::Region}.ssm"
+                },
+                "VpcId": {
+                    "Ref": "PrivateLinkVPC"
+                },
+                "SubnetIds": [
+                    {
+                        "Ref": "PrivateSubnet"
+                    }
+                ],
+                "SecurityGroupIds": [
+                    {
+                        "Ref": "InstanceSecurityGroup"
+                    }
+                ]
+            }
+        },
+        "SSMMessagesInterfaceEndpoint": {
+            "Type": "AWS::EC2::VPCEndpoint",
+            "Properties": {
+                "VpcEndpointType": "Interface",
+                "ServiceName": {
+                    "Fn::Sub": "com.amazonaws.${AWS::Region}.ssmmessages"
+                },
+                "VpcId": {
+                    "Ref": "PrivateLinkVPC"
+                },
+                "SubnetIds": [
+                    {
+                        "Ref": "PrivateSubnet"
+                    }
+                ],
+                "SecurityGroupIds": [
+                    {
+                        "Ref": "InstanceSecurityGroup"
+                    }
+                ]
             }
         },
         "VPCPeeringConnection": {

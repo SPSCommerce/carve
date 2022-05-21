@@ -174,7 +174,9 @@ Resources:
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
-          amazon-linux-extras install -y nginx1
+          amazon-linux-extras install -y epel
+          yum update -y
+          yum install -y nginx
           systemctl enable nginx
           systemctl start nginx
           systemctl stop nginx
@@ -274,49 +276,6 @@ Resources:
     Properties:
       SubnetId: !Ref 'PrivateSubnet'
       RouteTableId: !Ref 'PrivateRoutingTable'
-
-  S3GatewayEndpoint:
-    Type: AWS::EC2::VPCEndpoint
-    Properties:
-      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.s3'
-      VpcId: !Ref PrivateLinkVPC
-      RouteTableIds:
-        - !Ref PrivateRoutingTable
-      PolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal: '*'
-            Action:
-              - 's3:GetObject'
-            Resource:
-              # allow access to amazon-linux-extras packages
-              - !Sub "arn:aws:s3:::amazonlinux.${AWS::Region}.amazonaws.com/*"
-              - !Sub "arn:aws:s3:::amazonlinux-2-repos-${AWS::Region}/*"
-              - !Sub "arn:aws:s3:::amazonlinux-2-repos-hvm.${AWS::Region}.amazonaws.com/*"
-              - !Sub "arn:aws:s3:::ec2-downloads-windows/*"
-
-  SSMInterfaceEndpoint:
-    Type: 'AWS::EC2::VPCEndpoint'
-    Properties:
-      VpcEndpointType: Interface
-      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ssm'
-      VpcId: !Ref PrivateLinkVPC
-      SubnetIds: 
-        - !Ref PrivateSubnet
-      SecurityGroupIds:
-        - !Ref InstanceSecurityGroup    
-
-  SSMMessagesInterfaceEndpoint:
-    Type: 'AWS::EC2::VPCEndpoint'
-    Properties:
-      VpcEndpointType: Interface
-      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ssmmessages'
-      VpcId: !Ref PrivateLinkVPC
-      SubnetIds: 
-        - !Ref PrivateSubnet
-      SecurityGroupIds:
-        - !Ref InstanceSecurityGroup
 
   VPCPeeringConnection:
     Type: AWS::EC2::VPCPeeringConnection

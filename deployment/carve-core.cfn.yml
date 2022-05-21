@@ -401,7 +401,7 @@ Resources:
     Properties: 
       DefinitionS3Location: 
         Bucket: !Ref CodeBucket
-        Key: !Sub "step-functions/${GITSHA}/steps-carve-privatelink.json"
+        Key: !Sub "step-functions/${GITSHA}/steps-carve-privatelink-setup.json"
       DefinitionSubstitutions: 
         FunctionSfPrivateLinkCore:
           Fn::GetAtt: [FunctionSfPrivateLinkCore, Outputs.LambdaName]
@@ -409,8 +409,20 @@ Resources:
           Fn::GetAtt: [FunctionSfPrivateLinkRegions, Outputs.LambdaName]
         CarveDeployStacksStepFunction: !Ref CarveDeployStacksStepFunction
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
-      StateMachineName: !Sub "${Prefix}carve-privatelink-statemachine"
+      StateMachineName: !Sub "${Prefix}carve-privatelink-setup-statemachine"
       StateMachineType: STANDARD
+
+  # CarvePrivateLinkDeleteFunction:
+  #   Type: AWS::StepFunctions::StateMachine
+  #   Properties: 
+  #     DefinitionS3Location: 
+  #       Bucket: !Ref CodeBucket
+  #       Key: !Sub "step-functions/${GITSHA}/steps-carve-privatelink-delete.json"
+  #     DefinitionSubstitutions: 
+  #       CarveCleanupStepFunction: !Ref CarveCleanupStepFunction
+  #     RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
+  #     StateMachineName: !Sub "${Prefix}carve-privatelink-delete-statemachine"
+  #     StateMachineType: STANDARD
 
   CarveDeployBeaconsStepFunction:
     Type: AWS::StepFunctions::StateMachine
