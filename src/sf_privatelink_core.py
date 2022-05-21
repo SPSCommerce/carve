@@ -34,11 +34,11 @@ def lambda_handler(event, context):
     ''' build CFN templates for a carve private link deployment '''
     print(event)
 
-    if 'graph' in event:
+    if 'graph' in event['Input']:
         G = load_graph(event['graph'], local=False)
-        print(f"successfully loaded graph {event['graph']} named: {G.graph['name']}")
+        print(f"successfully loaded graph {event['Input']['graph']} named: {G.graph['name']}")
     else:
-        raise Exception('no graph provided in input')
+        raise Exception('no graph provided in input. input format: {"input": {"graph": "carve-privatelink-graph.json"}}')
     
     # get all regions and AZids in use in the carve deployment
     deploy_regions = sorted(unique_node_values(G, 'Region'))
@@ -94,6 +94,6 @@ def lambda_handler(event, context):
 
 
 if __name__ == '__main__':
-    event = {'graph': 'discovered/carve-discovered-1652883036.json'}
+    event = {'input': {'graph': 'discovered/carve-discovered-1652883036.json'}}
     lambda_handler(event, None)
    
