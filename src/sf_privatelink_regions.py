@@ -15,7 +15,7 @@ def lambda_handler(event, context):
         G = load_graph(event['Input']['graph'], local=False)
         print(f"successfully loaded graph: {event['Input']['graph']}")
     else:
-        raise Exception('no graph provided in input. input format: {\"input\": {\"graph\": \"carve-privatelink-graph.json\"}}')
+        raise Exception("no graph provided in input. input format: {'input': {'graph': 'carve-privatelink-graph.json'}}")
     
     print(f"building CFN templates for regional private link deployments")
 
@@ -30,7 +30,7 @@ def lambda_handler(event, context):
     # remove the current region since that was already deployed
     deploy_regions.remove(current_region)
 
-    if ['mode'] in event:
+    if 'mode' in event:
         if event['mode'] == 'test':
             deploy_regions = ['us-east-2']
             print(f"testing with only {len(deploy_regions)} additonal regions: {deploy_regions}")

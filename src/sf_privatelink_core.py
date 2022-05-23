@@ -37,7 +37,7 @@ def lambda_handler(event, context):
         G = load_graph(event['Input']['graph'], local=False)
         print(f"successfully loaded graph: {event['Input']['graph']}")
     else:
-        raise Exception('no graph provided in input. input format: {\"input\": {\"graph\": \"carve-privatelink-graph.json\"}}')
+        raise Exception("no graph provided in input. input format: {'input': {'graph': 'carve-privatelink-graph.json'}}")
     
     # get all regions and AZids in use in the carve deployment
     deploy_regions = sorted(unique_node_values(G, 'Region'))
@@ -53,7 +53,7 @@ def lambda_handler(event, context):
             peer_regions.append(region)
 
 
-    if ['mode'] in event:
+    if 'mode' in event:
         if event['mode'] == 'test':
             deploy_regions = ['us-east-1', 'us-east-2']
             print(f"testing with only {len(deploy_regions)} regions: {deploy_regions}")
