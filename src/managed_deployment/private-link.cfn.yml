@@ -4,7 +4,9 @@ Description: VPC Endpoint service stack.
 Parameters:
   ImageId:
     Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
-    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-minimal-hvm-arm64-ebs'
+    # Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-minimal-hvm-arm64-ebs'
+    # Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-ebs'
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-minimal-hvm-x86_64-ebs'
     Description: The source ImageId of Amazon AMI to use
   Prefix:
     Type: String
@@ -130,10 +132,10 @@ Resources:
   AutoScalingGroup:
     Condition: CoreRegion
     Type: AWS::AutoScaling::AutoScalingGroup
-    CreationPolicy:
-      ResourceSignal:
-        Timeout: PT5M
-        Count: !Ref MinSize
+    # CreationPolicy:
+    #   ResourceSignal:
+    #     Timeout: PT5M
+    #     Count: !Ref MaxSize
     Properties:
       MaxInstanceLifetime: 1209600 # 14 days
       AutoScalingGroupName: !Sub ${Prefix}carve-privatelink-asg
@@ -143,6 +145,7 @@ Resources:
       HealthCheckType: EC2
       MinSize: 0
       MaxSize: 3
+      DesiredCapacity: 3
       MetricsCollection:
         - Granularity: 1Minute
       TargetGroupARNs:
@@ -157,11 +160,11 @@ Resources:
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
       SecurityGroups:
-        - !Ref 'InstanceSecurityGroup'
+        - !Ref 'CarveSecurityGroup'
       IamInstanceProfile: !Ref 'InstanceProfile'
       ImageId: !Ref 'ImageId'
       InstanceMonitoring: 'false'
-      InstanceType: t4g.nano
+      InstanceType: t2.micro
       BlockDeviceMappings:
         - DeviceName: /dev/xvda
           Ebs:
@@ -193,22 +196,38 @@ Resources:
           }
           EOF
           systemctl start nginx
-          yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_arm64/amazon-ssm-agent.rpm
+          # yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_arm64/amazon-ssm-agent.rpm
+          yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
           systemctl enable amazon-ssm-agent
           systemctl start amazon-ssm-agent
 
-  InstanceSecurityGroup:
+  CarveSecurityGroup:
     Condition: CoreRegion
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId: !Ref PrivateLinkVPC
       GroupDescription: Carve EC2 ingress
-      SecurityGroupIngress:
-        - CidrIp: 0.0.0.0/0
-          FromPort: 80
-          IpProtocol: tcp
-          ToPort: 80
-          Description: Allow traffic from the NLB (which has no security group and is a pass-through)
+      GroupName: !Sub ${Prefix}carve-privatelink-sg
+
+  CarveSecurityGroupIngress80:
+    Condition: CoreRegion
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref CarveSecurityGroup
+      IpProtocol: tcp
+      FromPort: 80
+      ToPort: 80
+      SourceSecurityGroupId: !Ref CarveSecurityGroup
+
+  CarveSecurityGroupIngress443:
+    Condition: CoreRegion
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref CarveSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      SourceSecurityGroupId: !Ref CarveSecurityGroup
 
   InstanceProfile:
     Condition: CoreRegion
@@ -305,7 +324,8 @@ Resources:
       SubnetIds: 
         - !Ref PrivateSubnet
       SecurityGroupIds:
-        - !Ref InstanceSecurityGroup    
+        - !Ref CarveSecurityGroup   
+      PrivateDnsEnabled: true 
 
   SSMMessagesInterfaceEndpoint:
     Type: 'AWS::EC2::VPCEndpoint'
@@ -316,7 +336,8 @@ Resources:
       SubnetIds: 
         - !Ref PrivateSubnet
       SecurityGroupIds:
-        - !Ref InstanceSecurityGroup
+        - !Ref CarveSecurityGroup
+      PrivateDnsEnabled: true
 
   VPCPeeringConnection:
     Type: AWS::EC2::VPCPeeringConnection

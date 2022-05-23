@@ -30,8 +30,10 @@ def lambda_handler(event, context):
     # remove the current region since that was already deployed
     deploy_regions.remove(current_region)
 
-    deploy_regions = ['us-east-2']
-    print(f"testing with only {len(deploy_regions)} additonal regions: {deploy_regions}")
+    if ['mode'] in event:
+        if event['mode'] == 'test':
+            deploy_regions = ['us-east-2']
+            print(f"testing with only {len(deploy_regions)} additonal regions: {deploy_regions}")
 
     # get all azid's in use by region
     private_link_subnets = {}
@@ -68,6 +70,10 @@ def lambda_handler(event, context):
 
 
 if __name__ == '__main__':
-    event = {"Input": {"graph": "discovered/carve-discovered-1652883036.json"}}
-    lambda_handler(event, None)
-    pass
+    event = {"Input": {"graph": "discovered/carve-discovered-1652883036.json"}, "mode": "test"}
+    deploy = json.loads(lambda_handler(event, None))
+
+    if len(deploy) > 0:
+        import time
+        name = f"deploying-privatelink-{int(time.time())}"
+        aws_start_stepfunction(os.environ['DeployStacksStateMachine'], {'Input': deploy}, name)

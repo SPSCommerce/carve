@@ -53,8 +53,10 @@ def lambda_handler(event, context):
             peer_regions.append(region)
 
 
-    deploy_regions = ['us-east-1', 'us-east-2']
-    print(f"testing with only {len(deploy_regions)} regions: {deploy_regions}")
+    if ['mode'] in event:
+        if event['mode'] == 'test':
+            deploy_regions = ['us-east-1', 'us-east-2']
+            print(f"testing with only {len(deploy_regions)} regions: {deploy_regions}")
 
 
     # update any carve peering connection names in the current region
@@ -93,7 +95,7 @@ def lambda_handler(event, context):
 
 
 if __name__ == '__main__':
-    event = {"Input": {"graph": "discovered/carve-discovered-1652883036.json"}}
+    event = {"Input": {"graph": "discovered/carve-discovered-1652883036.json"}, "mode": "test"}
     deploy = json.loads(lambda_handler(event, None))
 
     if len(deploy) > 0:

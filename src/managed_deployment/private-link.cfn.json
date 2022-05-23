@@ -4,7 +4,7 @@
     "Parameters": {
         "ImageId": {
             "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
-            "Default": "/aws/service/ami-amazon-linux-latest/amzn2-ami-minimal-hvm-arm64-ebs",
+            "Default": "/aws/service/ami-amazon-linux-latest/amzn2-ami-minimal-hvm-x86_64-ebs",
             "Description": "The source ImageId of Amazon AMI to use"
         },
         "Prefix": {
@@ -201,14 +201,6 @@
         "AutoScalingGroup": {
             "Condition": "CoreRegion",
             "Type": "AWS::AutoScaling::AutoScalingGroup",
-            "CreationPolicy": {
-                "ResourceSignal": {
-                    "Timeout": "PT5M",
-                    "Count": {
-                        "Ref": "MinSize"
-                    }
-                }
-            },
             "Properties": {
                 "MaxInstanceLifetime": 1209600,
                 "AutoScalingGroupName": {
@@ -222,6 +214,7 @@
                 "HealthCheckType": "EC2",
                 "MinSize": 0,
                 "MaxSize": 3,
+                "DesiredCapacity": 3,
                 "MetricsCollection": [
                     {
                         "Granularity": "1Minute"
@@ -249,7 +242,7 @@
             "Properties": {
                 "SecurityGroups": [
                     {
-                        "Ref": "InstanceSecurityGroup"
+                        "Ref": "CarveSecurityGroup"
                     }
                 ],
                 "IamInstanceProfile": {
@@ -259,7 +252,7 @@
                     "Ref": "ImageId"
                 },
                 "InstanceMonitoring": "false",
-                "InstanceType": "t4g.nano",
+                "InstanceType": "t2.micro",
                 "BlockDeviceMappings": [
                     {
                         "DeviceName": "/dev/xvda",
@@ -273,12 +266,12 @@
                 ],
                 "UserData": {
                     "Fn::Base64": {
-                        "Fn::Sub": "#!/bin/bash\namazon-linux-extras install -y nginx1\nsystemctl enable nginx\nsystemctl start nginx\nsystemctl stop nginx\ncat <<EOF > /etc/nginx/nginx.conf\nevents {}\nhttp {\n    server {\n        listen       *:80;\n        server_name carve;\n        root    /dev/null;\n        location /up {\n            add_header Content-Type text/plain;\n            return 200 'OK';\n        }\n    }\n}\nEOF\nsystemctl start nginx\nyum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_arm64/amazon-ssm-agent.rpm\nsystemctl enable amazon-ssm-agent\nsystemctl start amazon-ssm-agent\n"
+                        "Fn::Sub": "#!/bin/bash\namazon-linux-extras install -y nginx1\nsystemctl enable nginx\nsystemctl start nginx\nsystemctl stop nginx\ncat <<EOF > /etc/nginx/nginx.conf\nevents {}\nhttp {\n    server {\n        listen       *:80;\n        server_name carve;\n        root    /dev/null;\n        location /up {\n            add_header Content-Type text/plain;\n            return 200 'OK';\n        }\n    }\n}\nEOF\nsystemctl start nginx\n# yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_arm64/amazon-ssm-agent.rpm\nyum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm\nsystemctl enable amazon-ssm-agent\nsystemctl start amazon-ssm-agent\n"
                     }
                 }
             }
         },
-        "InstanceSecurityGroup": {
+        "CarveSecurityGroup": {
             "Condition": "CoreRegion",
             "Type": "AWS::EC2::SecurityGroup",
             "Properties": {
@@ -286,15 +279,39 @@
                     "Ref": "PrivateLinkVPC"
                 },
                 "GroupDescription": "Carve EC2 ingress",
-                "SecurityGroupIngress": [
-                    {
-                        "CidrIp": "0.0.0.0/0",
-                        "FromPort": 80,
-                        "IpProtocol": "tcp",
-                        "ToPort": 80,
-                        "Description": "Allow traffic from the NLB (which has no security group and is a pass-through)"
-                    }
-                ]
+                "GroupName": {
+                    "Fn::Sub": "${Prefix}carve-privatelink-sg"
+                }
+            }
+        },
+        "CarveSecurityGroupIngress80": {
+            "Condition": "CoreRegion",
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "CarveSecurityGroup"
+                },
+                "IpProtocol": "tcp",
+                "FromPort": 80,
+                "ToPort": 80,
+                "SourceSecurityGroupId": {
+                    "Ref": "CarveSecurityGroup"
+                }
+            }
+        },
+        "CarveSecurityGroupIngress443": {
+            "Condition": "CoreRegion",
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "CarveSecurityGroup"
+                },
+                "IpProtocol": "tcp",
+                "FromPort": 443,
+                "ToPort": 443,
+                "SourceSecurityGroupId": {
+                    "Ref": "CarveSecurityGroup"
+                }
             }
         },
         "InstanceProfile": {
@@ -468,9 +485,10 @@
                 ],
                 "SecurityGroupIds": [
                     {
-                        "Ref": "InstanceSecurityGroup"
+                        "Ref": "CarveSecurityGroup"
                     }
-                ]
+                ],
+                "PrivateDnsEnabled": true
             }
         },
         "SSMMessagesInterfaceEndpoint": {
@@ -490,9 +508,10 @@
                 ],
                 "SecurityGroupIds": [
                     {
-                        "Ref": "InstanceSecurityGroup"
+                        "Ref": "CarveSecurityGroup"
                     }
-                ]
+                ],
+                "PrivateDnsEnabled": true
             }
         },
         "VPCPeeringConnection": {

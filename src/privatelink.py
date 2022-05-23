@@ -17,10 +17,10 @@ def private_link_deployment(deployments, account, regions, routing=False):
 
         stackname = f"{os.environ['Prefix']}carve-managed-privatelink"
         parameters = [
-            {
-                "ParameterKey": "InternetAccess",
-                "ParameterValue": internet
-            },
+            # {
+            #     "ParameterKey": "InternetAccess",
+            #     "ParameterValue": internet
+            # },
             {
                 "ParameterKey": "CoreRegion",
                 "ParameterValue": current_region
@@ -43,12 +43,6 @@ def private_link_deployment(deployments, account, regions, routing=False):
                     "ParameterKey": "PeerVpcId",
                     "ParameterValue": vpcid
                 })
-        # else:
-        #     parameters.append(
-        #         {
-        #             "ParameterKey": "MaxSize",
-        #             "ParameterValue": 'NONE'
-        #         })
         
         # if peeringupdate is true, pass in the peer region's VPC id for peering
         if routing:
@@ -87,7 +81,8 @@ def privatelink_template(region, second_octet, deploy_accounts, azs):
     print(f"{region} template: added CidrBlock 10.{second_octet}.0.0/28 to PublicNATSubnet")
 
     template['Resources']['AutoScalingGroup']['Properties']['MaxSize'] = len(azs)
-    print(f"{region} template: set MaxSize on AutoScalingGroup to {len(azs)}")
+    template['Resources']['AutoScalingGroup']['Properties']['DesiredCapacity'] = len(azs)
+    print(f"{region} template: set MaxSize and DesiredCapacity on AutoScalingGroup to {len(azs)}")
 
     az_count = 1
     for az, azid in azs.items():

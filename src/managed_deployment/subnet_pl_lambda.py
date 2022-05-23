@@ -57,3 +57,7 @@ def lambda_handler(event, context):
 
     return result
 
+if __name__ == '__main__':
+    beacon = 'https://www.google.com'
+    results = http_call(beacon)
+    print(results)
