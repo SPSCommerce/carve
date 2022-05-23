@@ -1,18 +1,10 @@
-import networkx as nx
-from networkx.readwrite import json_graph
 import json
 import os
 import sys
-from copy import deepcopy
-from carve import load_graph, save_graph, carve_role_arn
+from carve import load_graph, carve_role_arn
 from aws import *
-from deploy_beacons import deployment_list, deploy_regions, get_deploy_key
-from multiprocessing import Process, Pipe
-# from crhelper import CfnResource
-import time
-
+from deploy_beacons import deployment_list, get_deploy_key
 import concurrent.futures
-import threading
 
 
 def sf_DescribeDeleteStack(payload):
