@@ -73,7 +73,7 @@ def lambda_handler(event, context):
 
 
 if __name__ == '__main__':
-    event = {"Input": {"graph": "discovered/carve-discovered-1652883036.json"}, "mode": "test"}
+    event = {"Input": {"graph": "discovered/carve-discovered-1652883036.json"}}
     deploy = json.loads(lambda_handler(event, None))
 
     if len(deploy) > 0:

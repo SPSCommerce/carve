@@ -131,7 +131,6 @@
             }
         },
         "EndpointServiceNLBListener": {
-            "Condition": "CoreRegion",
             "Type": "AWS::ElasticLoadBalancingV2::Listener",
             "Properties": {
                 "DefaultActions": [
@@ -150,7 +149,6 @@
             }
         },
         "EndpointServiceNLBTargetGroup": {
-            "Condition": "CoreRegion",
             "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
             "Properties": {
                 "Name": {
@@ -165,31 +163,6 @@
                 "HealthCheckIntervalSeconds": 30,
                 "HealthyThresholdCount": 3,
                 "UnhealthyThresholdCount": 3,
-                "TargetGroupAttributes": [
-                    {
-                        "Key": "deregistration_delay.timeout_seconds",
-                        "Value": "90"
-                    }
-                ]
-            }
-        },
-        "NLBCrossRegionTargetGroup": {
-            "Condition": "NotCoreRegion",
-            "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
-            "Properties": {
-                "Name": {
-                    "Fn::Sub": "${Prefix}carve-nlb-tg"
-                },
-                "Port": 80,
-                "Protocol": "TCP",
-                "VpcId": {
-                    "Ref": "PrivateLinkVPC"
-                },
-                "HealthCheckProtocol": "HTTP",
-                "HealthCheckIntervalSeconds": 30,
-                "HealthyThresholdCount": 3,
-                "UnhealthyThresholdCount": 3,
-                "TargetType": "ip",
                 "TargetGroupAttributes": [
                     {
                         "Key": "deregistration_delay.timeout_seconds",
@@ -199,7 +172,6 @@
             }
         },
         "AutoScalingGroup": {
-            "Condition": "CoreRegion",
             "Type": "AWS::AutoScaling::AutoScalingGroup",
             "Properties": {
                 "MaxInstanceLifetime": 1209600,
@@ -237,7 +209,6 @@
             }
         },
         "LaunchConfig": {
-            "Condition": "CoreRegion",
             "Type": "AWS::AutoScaling::LaunchConfiguration",
             "Properties": {
                 "SecurityGroups": [
@@ -272,7 +243,6 @@
             }
         },
         "CarveSecurityGroup": {
-            "Condition": "CoreRegion",
             "Type": "AWS::EC2::SecurityGroup",
             "Properties": {
                 "VpcId": {
@@ -285,7 +255,6 @@
             }
         },
         "CarveSecurityGroupIngress80": {
-            "Condition": "CoreRegion",
             "Type": "AWS::EC2::SecurityGroupIngress",
             "Properties": {
                 "GroupId": {
@@ -300,7 +269,6 @@
             }
         },
         "CarveSecurityGroupIngress443": {
-            "Condition": "CoreRegion",
             "Type": "AWS::EC2::SecurityGroupIngress",
             "Properties": {
                 "GroupId": {
@@ -315,7 +283,6 @@
             }
         },
         "InstanceProfile": {
-            "Condition": "CoreRegion",
             "Type": "AWS::IAM::InstanceProfile",
             "Properties": {
                 "Path": "/",
@@ -327,8 +294,8 @@
             }
         },
         "InstanceRole": {
-            "Condition": "CoreRegion",
             "Type": "AWS::IAM::Role",
+            "Condition": "CoreRegion",
             "Properties": {
                 "RoleName": {
                     "Fn::Sub": "${Prefix}carve-privatelink-ec2-role"
@@ -727,12 +694,6 @@
             "Condition": "CoreRegion",
             "Value": {
                 "Ref": "EndpointServiceNLBTargetGroup"
-            }
-        },
-        "NLBCrossRegionTargetGroup": {
-            "Condition": "NotCoreRegion",
-            "Value": {
-                "Ref": "NLBCrossRegionTargetGroup"
             }
         },
         "VpcId": {

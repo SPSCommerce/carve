@@ -49,7 +49,6 @@ Conditions:
 Resources:
 
   EndpointService:
-    # Condition: CoreRegion
     Type: AWS::EC2::VPCEndpointService
     Properties:
       # acceptance not required as ONLY the carve role is allowed to connect to the endpoint
@@ -58,7 +57,6 @@ Resources:
         - !Ref EndpointServiceNLB
 
   EndpointServicePermissions:
-    # Condition: CoreRegion
     Type: AWS::EC2::VPCEndpointServicePermissions
     Properties:
       AllowedPrincipals:
@@ -66,7 +64,6 @@ Resources:
       ServiceId: !Ref EndpointService
 
   EndpointServiceNLB:
-    # Condition: CoreRegion
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
       Name: !Sub ${Prefix}carve-privatelink-nlb
@@ -86,7 +83,6 @@ Resources:
         #   Value: endpointservice-NLB
 
   EndpointServiceNLBListener:
-    Condition: CoreRegion
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
       DefaultActions:
@@ -97,7 +93,6 @@ Resources:
       Protocol: TCP
 
   EndpointServiceNLBTargetGroup:
-    Condition: CoreRegion
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
       Name: !Sub ${Prefix}carve-nlb-tg
@@ -112,25 +107,24 @@ Resources:
         - Key: deregistration_delay.timeout_seconds
           Value: "90"
 
-  NLBCrossRegionTargetGroup:
-    Condition: NotCoreRegion
-    Type: AWS::ElasticLoadBalancingV2::TargetGroup
-    Properties:
-      Name: !Sub ${Prefix}carve-nlb-tg
-      Port: 80
-      Protocol: TCP
-      VpcId: !Ref PrivateLinkVPC
-      HealthCheckProtocol : HTTP
-      HealthCheckIntervalSeconds: 30
-      HealthyThresholdCount: 3
-      UnhealthyThresholdCount: 3
-      TargetType: ip
-      TargetGroupAttributes:
-        - Key: deregistration_delay.timeout_seconds
-          Value: "90"
+  # NLBCrossRegionTargetGroup:
+  #   Condition: NotCoreRegion
+  #   Type: AWS::ElasticLoadBalancingV2::TargetGroup
+  #   Properties:
+  #     Name: !Sub ${Prefix}carve-nlb-tg
+  #     Port: 80
+  #     Protocol: TCP
+  #     VpcId: !Ref PrivateLinkVPC
+  #     HealthCheckProtocol : HTTP
+  #     HealthCheckIntervalSeconds: 30
+  #     HealthyThresholdCount: 3
+  #     UnhealthyThresholdCount: 3
+  #     TargetType: ip
+  #     TargetGroupAttributes:
+  #       - Key: deregistration_delay.timeout_seconds
+  #         Value: "90"
 
   AutoScalingGroup:
-    Condition: CoreRegion
     Type: AWS::AutoScaling::AutoScalingGroup
     # CreationPolicy:
     #   ResourceSignal:
@@ -156,7 +150,6 @@ Resources:
           PropagateAtLaunch: true
 
   LaunchConfig:
-    Condition: CoreRegion
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
       SecurityGroups:
@@ -202,7 +195,6 @@ Resources:
           systemctl start amazon-ssm-agent
 
   CarveSecurityGroup:
-    Condition: CoreRegion
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId: !Ref PrivateLinkVPC
@@ -210,7 +202,6 @@ Resources:
       GroupName: !Sub ${Prefix}carve-privatelink-sg
 
   CarveSecurityGroupIngress80:
-    Condition: CoreRegion
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       GroupId: !Ref CarveSecurityGroup
@@ -220,7 +211,6 @@ Resources:
       SourceSecurityGroupId: !Ref CarveSecurityGroup
 
   CarveSecurityGroupIngress443:
-    Condition: CoreRegion
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       GroupId: !Ref CarveSecurityGroup
@@ -230,7 +220,6 @@ Resources:
       SourceSecurityGroupId: !Ref CarveSecurityGroup
 
   InstanceProfile:
-    Condition: CoreRegion
     Type: AWS::IAM::InstanceProfile
     Properties:
       Path: /
@@ -238,8 +227,8 @@ Resources:
         - !Sub "${Prefix}carve-privatelink-ec2-role"
 
   InstanceRole:
-    Condition: CoreRegion
     Type: AWS::IAM::Role
+    Condition: CoreRegion
     Properties:
       RoleName: !Sub "${Prefix}carve-privatelink-ec2-role"
       Path: /
@@ -460,9 +449,9 @@ Outputs:
   EndpointServiceNLBTargetGroup:
     Condition: CoreRegion
     Value: !Ref EndpointServiceNLBTargetGroup
-  NLBCrossRegionTargetGroup:
-    Condition: NotCoreRegion
-    Value: !Ref NLBCrossRegionTargetGroup
+  # NLBCrossRegionTargetGroup:
+  #   Condition: NotCoreRegion
+  #   Value: !Ref NLBCrossRegionTargetGroup
   VpcId:
     Value: !Ref PrivateLinkVPC
   VPCCidrBlock:
