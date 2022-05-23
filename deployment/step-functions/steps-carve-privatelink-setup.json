@@ -47,7 +47,8 @@
       "Parameters": {
         "FunctionName": "${FunctionSfPrivateLinkRegions}",
         "Payload": {
-          "Input.$": "$"
+          "Input.$": "$",
+          "graph.$": "$$.Execution.Input.graph"
         }
       },
       "ResultSelector": {
@@ -86,7 +87,8 @@
       "Parameters": {
         "FunctionName": "${FunctionSfPrivateLinkCore}",
         "Payload": {
-          "Input.$": "$"
+          "Input.$": "$",
+          "graph.$": "$$.Execution.Input.graph"
         }
       },
       "ResultSelector": {

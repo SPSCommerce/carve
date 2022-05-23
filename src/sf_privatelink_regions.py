@@ -14,6 +14,9 @@ def lambda_handler(event, context):
     if 'graph' in event['Input']:
         G = load_graph(event['Input']['graph'], local=False)
         print(f"successfully loaded graph: {event['Input']['graph']}")
+    elif 'graph' in event['graph']:
+        G = load_graph(event['graph'], local=False)
+        print(f"successfully loaded graph: {event['graph']}")
     else:
         raise Exception("no graph provided in input. input format: {'input': {'graph': 'carve-privatelink-graph.json'}}")
     
