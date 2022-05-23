@@ -44,7 +44,7 @@ def private_link_deployment(deployments, account, regions, routing=False):
                     "ParameterValue": vpcid
                 })
         
-        # if peeringupdate is true, pass in the peer region's VPC id for peering
+        # if multiple regions, pass in the peer region's VPC id for peering
         if routing:
             parameters.append(
                 {
@@ -147,12 +147,14 @@ def add_peer_routes(template, deploy_regions):
         outputs = aws_get_stack_outputs_dict(stackname, region)
         if 'VpcPeeringConnectionId' in outputs:
             print(f"{current_region}: adding route to {current_region} template for peered region: {region}")
+
             # duplicate the VPCPeeringRoute resource and add the route
             VPCPeeringRoute = deepcopy(template['Resources']['VPCPeeringRoute'])
             VPCPeeringRoute['Properties']['VpcPeeringConnectionId'] = outputs['VpcPeeringConnectionId']
             VPCPeeringRoute['Properties']['DestinationCidrBlock'] = outputs['VPCCidrBlock']
             VPCPeeringRouteName = f"VPCPeeringRoute{aws_region_dict[region]}"
             template['Resources'][VPCPeeringRouteName] = VPCPeeringRoute
+
             print(f"{current_region}: added route to {region} vpc using {outputs['VpcPeeringConnectionId']} with Cidr {outputs['VPCCidrBlock']}")
         else:
             print(f"{current_region}: failed to add route to {region} vpc")

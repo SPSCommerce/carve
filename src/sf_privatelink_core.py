@@ -13,19 +13,18 @@ def update_peer_names(deploy_regions):
     routing = False
     stackname = f"{os.environ['Prefix']}carve-managed-privatelink"
     for region in deploy_regions:
-        stack = aws_describe_stack(stackname, region)
-        if stack is not None:
-            for output in stack['Outputs']:
-                if output['OutputKey'] == 'VpcPeeringConnectionId':
-                    routing = True
-                    aws_update_tags(
-                        resource=output['OutputValue'],
-                        tags = [
-                            {
-                                "Key": "Name",
-                                "Value": f"{os.environ['Prefix']}carve-privatelink-{region}"
-                            }])
-                    print(f"updated the name on VPC peering connection id {output['OutputValue']} in {region}")
+        # stack = aws_describe_stack(stackname, region)
+        outputs = aws_get_stack_outputs_dict(stackname, region)
+        if 'VpcPeeringConnectionId' in outputs:
+            routing = True
+            aws_update_tags(
+                resource=outputs['VpcPeeringConnectionId'],
+                tags = [
+                    {
+                        "Key": "Name",
+                        "Value": f"{os.environ['Prefix']}carve-privatelink-{region}"
+                    }])
+            print(f"updated the name on VPC peering connection id {outputs['VpcPeeringConnectionId']} in {region}")
     return routing
 
 
@@ -36,7 +35,7 @@ def lambda_handler(event, context):
     if 'graph' in event['Input']:
         G = load_graph(event['Input']['graph'], local=False)
         print(f"successfully loaded graph: {event['Input']['graph']}")
-    elif 'graph' in event['graph']:
+    elif 'graph' in event:
         G = load_graph(event['graph'], local=False)
         print(f"successfully loaded graph: {event['graph']}")
     else:
