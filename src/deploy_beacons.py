@@ -70,15 +70,15 @@ def start_carve_deployment(event, context, key=False, cleanup=True):
             "Template": key
         })
 
-    if len(list(G.nodes)) > 0:
-        name = f"deploy-{filename}-{int(time.time())}"
-        aws_start_stepfunction(os.environ['DeployBeaconsStateMachine'], deploy_buckets, name)
-    else:
-        # if nothing is being deployed, Run cleanup
-        name = f"NO-BEACONS-{filename}-{int(time.time())}"
-        aws_start_stepfunction(os.environ['CleanupStateMachine'], [], name)
-        # move the deployment file
-        sf_DeploymentComplete(None)
+    # if len(list(G.nodes)) > 0:
+    name = f"deploy-{filename}-{int(time.time())}"
+    aws_start_stepfunction(os.environ['DeployBeaconsStateMachine'], deploy_buckets, name)
+    # else:
+    #     # if nothing is being deployed, Run cleanup
+    #     name = f"NO-BEACONS-{filename}-{int(time.time())}"
+    #     aws_start_stepfunction(os.environ['CleanupStateMachine'], [], name)
+    #     # move the deployment file
+    #     sf_DeploymentComplete(None)
 
 
 def update_vpce_access(accounts):
