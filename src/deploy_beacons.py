@@ -81,39 +81,43 @@ def start_carve_deployment(event, context, key=False, cleanup=True):
     #     sf_DeploymentComplete(None)
 
 
-def update_vpce_access(accounts):
-    ''' update the carve private vpce access to allow all VPC accounts '''
+# def update_vpce_access(accounts):
+#     ''' update the carve private vpce access to allow all VPC accounts '''
 
-    # get service name from the stack output
-    stack_info = aws_describe_stack(
-        stackname=f"{os.environ['Prefix']}carve-managed-privatelink",
-        region=current_region,
-        )
+#     # get service name from the stack output
+#     stackname = f"{os.environ['Prefix']}carve-managed-privatelink"
+#     stack_info = aws_describe_stack(
+#         stackname=stackname,
+#         region=current_region,
+#         )
 
-    for output in stack_info['Outputs']:
-        if output['OutputKey'] == 'EndpointService':
-            endpoint_service = output['OutputValue']
-            break
+#     for output in stack_info['Outputs']:
+#         if output['OutputKey'] == 'EndpointService':
+#             endpoint_service = output['OutputValue']
+#             break
 
-    # get a list of all current principals (account roots) it's shared to
-    #   principals: ['arn:aws:iam::123456789012:root']
-    principals = aws_describe_vpc_endpoint_permissions(endpoint_service)
-    current_accounts = []
-    for p in principals:
-        current_accounts.append(p.split(':')[4])
+#     outputs = aws_get_stack_outputs_dict(stackname, current_region)
+#     endpoint_service = outputs['EndpointService']
 
-    # build lists of all accounts to add/remove
-    remove = []
-    add = []
-    for a in current_accounts:
-        if a not in accounts:
-            remove.append(f"arn:aws:iam::{a}:root")
-    for a in accounts:
-        if a not in current_accounts:
-            add.append(f"arn:aws:iam::{a}:root")
+#     # get a list of all current principals (account roots) it's shared to
+#     #   principals: ['arn:aws:iam::123456789012:root']
+#     principals = aws_describe_vpc_endpoint_permissions(endpoint_service)
+#     current_accounts = []
+#     for p in principals:
+#         current_accounts.append(p.split(':')[4])
 
-    # update carve private vpce access
-    aws_modify_vpc_endpoint_permissions(endpoint_service, add_principals=add, remove_principals=remove)
+#     # build lists of all accounts to add/remove
+#     remove = []
+#     add = []
+#     for a in current_accounts:
+#         if a not in accounts:
+#             remove.append(f"arn:aws:iam::{a}:root")
+#     for a in accounts:
+#         if a not in current_accounts:
+#             add.append(f"arn:aws:iam::{a}:root")
+
+#     # update carve private vpce access
+#     aws_modify_vpc_endpoint_permissions(endpoint_service, add_principals=add, remove_principals=remove)
 
 
 
@@ -121,14 +125,15 @@ def sf_DeployPrep():
     ''' if the carve ami in the current region is newer, update the regional copies '''
     G = load_graph(get_deploy_key(), local=False)
     
-    # update the carve vpce access with all accounts in the deployment
-    accounts = unique_node_values(G, 'Account')
-    update_vpce_access(accounts)
+    # # update the carve vpce access with all accounts in the deployment
+    # accounts = unique_node_values(G, 'Account')
+    # update_vpce_access(accounts)
 
     # # this is disabled now that carve does not use EC2 for beacons
     # regions = unique_node_values(G, 'Region')
     
     # distribute_regional_carve_amis(regions)
+    return
 
 
 def distribute_regional_carve_amis(regions):
@@ -280,7 +285,7 @@ def beacon_ec2_template(vpc, vpc_subnets, account, region):
 
     return vpc_template, stack
 
-def beacon_pl_template(vpc, vpc_subnets, account, region):
+def beacon_pl_template(vpc, vpc_subnets, account, vpce_service, region):
     # all subnets in the VPC
     with open("managed_deployment/carve-vpc-stack-pl.cfn.json") as f:
         vpc_template = json.load(f)
@@ -302,15 +307,15 @@ def beacon_pl_template(vpc, vpc_subnets, account, region):
     # remove orig templated function
     del vpc_template['Resources']['SubnetFunction']
 
-    # get service name
-    stack_info = aws_describe_stack(
-        stackname=f"{os.environ['Prefix']}carve-privatelink",
-        region=current_region,
-        )
+    # # get service name
+    # stack_info = aws_describe_stack(
+    #     stackname=f"{os.environ['Prefix']}carve-privatelink",
+    #     region=current_region,
+    #     )
 
-    for output in stack_info['Outputs']:
-        if output['OutputKey'] == 'EndpointService':
-            service_name = f"com.amazonaws.vpce.{current_region}.{output['OutputValue']}"
+    # for output in stack_info['Outputs']:
+    #     if output['OutputKey'] == 'EndpointService':
+    #         service_name = f"com.amazonaws.vpce.{current_region}.{output['OutputValue']}"
 
     stack = {}
     stack['StackName'] = f"{os.environ['Prefix']}carve-managed-{vpc}"
@@ -336,7 +341,7 @@ def beacon_pl_template(vpc, vpc_subnets, account, region):
         },
         {
             "ParameterKey": "ServiceName",
-            "ParameterValue": service_name
+            "ParameterValue": vpce_service
         }
     ]
 
@@ -357,10 +362,20 @@ def deployment_list(G, context):
 
     # determine all VPCs and their account and region
     vpcs = {}
+    regions = set()
     for subnet in list(G.nodes):
         a = G.nodes().data()[subnet]['Account']
         r = G.nodes().data()[subnet]['Region']
         vpcs[G.nodes().data()[subnet]['VpcId']] = (a, r)
+        regions.add(r)
+
+    region_map = {}
+    for region in regions:
+        # get carve private link stack outputs
+        stackname = f"{os.environ['Prefix']}carve-managed-privatelink"
+        outputs = aws_get_stack_outputs_dict(stackname, current_region)
+        region_map[region] = f"com.amazonaws.vpce.{current_region}.{outputs['EndpointService']}"
+
 
     # generate 1 CFN stack per VPC
     for vpc, ar in vpcs.items():
@@ -371,7 +386,7 @@ def deployment_list(G, context):
         vpc_subnets = [x for x,y in G.nodes(data=True) if y['VpcId'] == vpc]
 
         # vpc_template = beacon_ec2_template(vpc, vpc_subnets, account, region)
-        vpc_template, stack = beacon_pl_template(vpc, vpc_subnets, account, region)
+        vpc_template, stack = beacon_pl_template(vpc, vpc_subnets, account, region_map[region], region)
 
         # push template to s3
         key = f"managed_deployment/{vpc}.cfn.json"
