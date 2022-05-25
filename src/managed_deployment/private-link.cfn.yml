@@ -70,8 +70,6 @@ Resources:
       Type: network
       Scheme: internal
       Subnets: []
-      SecurityGroups:
-        - !Ref CarveSecurityGroup
       LoadBalancerAttributes:
         - Key: deletion_protection.enabled
           Value: "false"
@@ -156,7 +154,7 @@ Resources:
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
       SecurityGroups:
-        - !Ref 'CarveSecurityGroup'
+        - !Ref 'SecurityGroup'
       IamInstanceProfile: !Ref 'InstanceProfile'
       ImageId: !Ref 'ImageId'
       InstanceMonitoring: 'false'
@@ -197,30 +195,30 @@ Resources:
           systemctl enable amazon-ssm-agent
           systemctl start amazon-ssm-agent
 
-  CarveSecurityGroup:
+  SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId: !Ref PrivateLinkVPC
       GroupDescription: Carve EC2 ingress
-      GroupName: !Sub ${Prefix}carve-privatelink-sg
+      GroupName: !Sub ${Prefix}carve-privatelink
 
-  CarveSecurityGroupIngress80:
+  SecurityGroupIngress80:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
-      GroupId: !Ref CarveSecurityGroup
+      GroupId: !Ref SecurityGroup
       IpProtocol: tcp
       FromPort: 80
       ToPort: 80
-      SourceSecurityGroupId: !Ref CarveSecurityGroup
+      CidrIp: 10.0.0.0/8
 
-  CarveSecurityGroupIngress443:
+  SecurityGroupIngress443:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
-      GroupId: !Ref CarveSecurityGroup
+      GroupId: !Ref SecurityGroup
       IpProtocol: tcp
       FromPort: 443
       ToPort: 443
-      SourceSecurityGroupId: !Ref CarveSecurityGroup
+      CidrIp: 10.0.0.0/8
 
   InstanceProfile:
     Type: AWS::IAM::InstanceProfile
@@ -316,7 +314,7 @@ Resources:
       SubnetIds: 
         - !Ref PrivateSubnet
       SecurityGroupIds:
-        - !Ref CarveSecurityGroup   
+        - !Ref SecurityGroup   
       PrivateDnsEnabled: true 
 
   SSMMessagesInterfaceEndpoint:
@@ -328,7 +326,7 @@ Resources:
       SubnetIds: 
         - !Ref PrivateSubnet
       SecurityGroupIds:
-        - !Ref CarveSecurityGroup
+        - !Ref SecurityGroup
       PrivateDnsEnabled: true
 
   VPCPeeringConnection:

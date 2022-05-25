@@ -214,7 +214,7 @@
             "Properties": {
                 "SecurityGroups": [
                     {
-                        "Ref": "CarveSecurityGroup"
+                        "Ref": "SecurityGroup"
                     }
                 ],
                 "IamInstanceProfile": {
@@ -243,7 +243,7 @@
                 }
             }
         },
-        "CarveSecurityGroup": {
+        "SecurityGroup": {
             "Type": "AWS::EC2::SecurityGroup",
             "Properties": {
                 "VpcId": {
@@ -251,36 +251,32 @@
                 },
                 "GroupDescription": "Carve EC2 ingress",
                 "GroupName": {
-                    "Fn::Sub": "${Prefix}carve-privatelink-sg"
+                    "Fn::Sub": "${Prefix}carve-privatelink"
                 }
             }
         },
-        "CarveSecurityGroupIngress80": {
+        "SecurityGroupIngress80": {
             "Type": "AWS::EC2::SecurityGroupIngress",
             "Properties": {
                 "GroupId": {
-                    "Ref": "CarveSecurityGroup"
+                    "Ref": "SecurityGroup"
                 },
                 "IpProtocol": "tcp",
                 "FromPort": 80,
                 "ToPort": 80,
-                "SourceSecurityGroupId": {
-                    "Ref": "CarveSecurityGroup"
-                }
+                "CidrIp": "10.0.0.0/8"
             }
         },
-        "CarveSecurityGroupIngress443": {
+        "SecurityGroupIngress443": {
             "Type": "AWS::EC2::SecurityGroupIngress",
             "Properties": {
                 "GroupId": {
-                    "Ref": "CarveSecurityGroup"
+                    "Ref": "SecurityGroup"
                 },
                 "IpProtocol": "tcp",
                 "FromPort": 443,
                 "ToPort": 443,
-                "SourceSecurityGroupId": {
-                    "Ref": "CarveSecurityGroup"
-                }
+                "CidrIp": "10.0.0.0/8"
             }
         },
         "InstanceProfile": {
@@ -453,7 +449,7 @@
                 ],
                 "SecurityGroupIds": [
                     {
-                        "Ref": "CarveSecurityGroup"
+                        "Ref": "SecurityGroup"
                     }
                 ],
                 "PrivateDnsEnabled": true
@@ -476,7 +472,7 @@
                 ],
                 "SecurityGroupIds": [
                     {
-                        "Ref": "CarveSecurityGroup"
+                        "Ref": "SecurityGroup"
                     }
                 ],
                 "PrivateDnsEnabled": true
