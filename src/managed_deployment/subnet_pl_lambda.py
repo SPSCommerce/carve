@@ -20,13 +20,13 @@ def http_call(beacon):
             result = {'beacon': beacon, 'result': 'down'}
     except urllib3.exceptions.ConnectTimeoutError:
         print(f'ERROR: ConnectTimeoutError — {beacon}')
-        result = {'beacon': beacon, 'result': 'down'}
+        result = {'beacon': beacon, 'result': 'down', 'error': 'ConnectTimeoutError'}
     except urllib3.exceptions.MaxRetryError:
         print(f'ERROR: MaxRetryError — {beacon}')
-        result = {'beacon': beacon, 'result': 'down'}
+        result = {'beacon': beacon, 'result': 'down', 'error': 'MaxRetryError'}
     except urllib3.exceptions.HTTPError:
         print(f'ERROR: HTTPError — {beacon}')
-        result = {'beacon': beacon, 'result': 'down'}
+        result = {'beacon': beacon, 'result': 'down', 'error': 'HTTPError'}
 
     print(result)
     return result

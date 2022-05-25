@@ -160,6 +160,7 @@
                     "Ref": "PrivateLinkVPC"
                 },
                 "HealthCheckProtocol": "HTTP",
+                "HealthCheckPath": "/up",
                 "HealthCheckIntervalSeconds": 30,
                 "HealthyThresholdCount": 3,
                 "UnhealthyThresholdCount": 3,
