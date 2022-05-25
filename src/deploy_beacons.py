@@ -372,9 +372,12 @@ def deployment_list(G, context):
     region_map = {}
     for region in regions:
         # get carve private link stack outputs
-        stackname = f"{os.environ['Prefix']}carve-managed-privatelink"
+        stackname = f"{os.environ['Prefix']}carve-managed-privatelink-{region}"
         outputs = aws_get_stack_outputs_dict(stackname, current_region)
-        region_map[region] = f"com.amazonaws.vpce.{current_region}.{outputs['EndpointService']}"
+        try:
+            region_map[region] = f"com.amazonaws.vpce.{current_region}.{outputs['EndpointService']}"
+        except:
+            raise f"No private link service found in region {region}"
 
 
     # generate 1 CFN stack per VPC
