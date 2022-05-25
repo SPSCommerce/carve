@@ -70,6 +70,8 @@ Resources:
       Type: network
       Scheme: internal
       Subnets: []
+      SecurityGroups:
+        - !Ref CarveSecurityGroup
       LoadBalancerAttributes:
         - Key: deletion_protection.enabled
           Value: "false"
@@ -86,8 +88,8 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
       DefaultActions:
-          - Type: forward
-            TargetGroupArn: !Ref EndpointServiceNLBTargetGroup
+        - Type: forward
+          TargetGroupArn: !Ref EndpointServiceNLBTargetGroup
       LoadBalancerArn: !Ref EndpointServiceNLB
       Port: 80
       Protocol: TCP
