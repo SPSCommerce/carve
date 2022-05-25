@@ -4,6 +4,14 @@ from aws import *
 import time
 
 
+#
+# first seed just a small VPC stack template to the current region to create the VPC
+# can just be straight JSON
+# resource name must stay the same
+# then deploy the primary with the rest of the regions once you have the VPC id
+#
+
+
 def private_link_deployment(deployments, account, regions, routing=False):
     ''' deploy the private link CFN templates '''
     deploy = []
@@ -13,9 +21,9 @@ def private_link_deployment(deployments, account, regions, routing=False):
         # if region == current_region:
         #     internet = 'true'
         # else:
-        internet = 'false'
+        #     internet = 'false'
 
-        stackname = f"{os.environ['Prefix']}carve-managed-privatelink"
+        stackname = f"{os.environ['Prefix']}carve-managed-privatelink-{region}"
         parameters = [
             # {
             #     "ParameterKey": "InternetAccess",
@@ -140,7 +148,7 @@ def privatelink_template(region, second_octet, deploy_accounts, azs):
 
 def add_peer_routes(template, deploy_regions):
     ''' add routes to the peered regions in CFN '''
-    stackname = f"{os.environ['Prefix']}carve-managed-privatelink"
+    stackname = f"{os.environ['Prefix']}carve-managed-privatelink-{current_region}"
     for region in deploy_regions:
         if region == current_region:
             continue

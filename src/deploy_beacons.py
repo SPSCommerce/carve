@@ -86,7 +86,7 @@ def update_vpce_access(accounts):
 
     # get service name from the stack output
     stack_info = aws_describe_stack(
-        stackname=f"{os.environ['Prefix']}carve-privatelink",
+        stackname=f"{os.environ['Prefix']}carve-privatelink-{current_region}",
         region=current_region,
         )
 

@@ -5,7 +5,7 @@ import os
 
 from aws import *
 from carve import load_graph, unique_node_values
-from privatelink import (add_peer_routes, private_link_deployment,
+from sf_privatelink import (add_peer_routes, private_link_deployment,
                             privatelink_template)
 
 
