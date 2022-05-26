@@ -15,7 +15,14 @@ import time
 def private_link_deployment(deployments, account, regions, routing=False):
     ''' deploy the private link CFN templates '''
     deploy = []
-    vpcid = None
+
+    # get core region vpc id from stack output
+    stackname = f"{os.environ['Prefix']}carve-managed-privatelink-{current_region}"
+    try:
+        core_vpc_id = aws_get_stack_outputs_dict(stackname, current_region)['VpcId']
+    except:
+        core_vpc_id = None
+
     print(f"creating {len(deployments.items())} item deployment input list for deploy-stacks state machine")
     for region, template in deployments.items():
         # if region == current_region:
@@ -41,15 +48,10 @@ def private_link_deployment(deployments, account, regions, routing=False):
 
         # pass in the primary region's VPC id for peering
         if region != current_region:
-            if vpcid is None:
-                stack = aws_describe_stack(stackname, current_region)
-                for output in stack['Outputs']:
-                    if output['OutputKey'] == 'VpcId':
-                        vpcid = output['OutputValue']
             parameters.append(
                 {
                     "ParameterKey": "PeerVpcId",
-                    "ParameterValue": vpcid
+                    "ParameterValue": core_vpc_id
                 })
         
         # if multiple regions, pass in the peer region's VPC id for peering
