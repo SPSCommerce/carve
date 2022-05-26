@@ -51,7 +51,6 @@ Resources:
   EndpointService:
     Type: AWS::EC2::VPCEndpointService
     Properties:
-      # acceptance not required as ONLY the carve role is allowed to connect to the endpoint
       AcceptanceRequired: False
       NetworkLoadBalancerArns:
         - !Ref EndpointServiceNLB
@@ -77,10 +76,6 @@ Resources:
           Value: "true"
         - Key: access_logs.s3.enabled
           Value: "false"
-        # - Key: access_logs.s3.bucket
-        #   Value: !Ref LogBucketName
-        # - Key: access_logs.s3.prefix
-        #   Value: endpointservice-NLB
 
   EndpointServiceNLBListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
@@ -108,22 +103,6 @@ Resources:
         - Key: deregistration_delay.timeout_seconds
           Value: "90"
 
-  # NLBCrossRegionTargetGroup:
-  #   Condition: NotCoreRegion
-  #   Type: AWS::ElasticLoadBalancingV2::TargetGroup
-  #   Properties:
-  #     Name: !Sub ${Prefix}carve-nlb-tg
-  #     Port: 80
-  #     Protocol: TCP
-  #     VpcId: !Ref PrivateLinkVPC
-  #     HealthCheckProtocol : HTTP
-  #     HealthCheckIntervalSeconds: 30
-  #     HealthyThresholdCount: 3
-  #     UnhealthyThresholdCount: 3
-  #     TargetType: ip
-  #     TargetGroupAttributes:
-  #       - Key: deregistration_delay.timeout_seconds
-  #         Value: "90"
 
   AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup

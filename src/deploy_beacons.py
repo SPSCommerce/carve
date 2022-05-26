@@ -240,7 +240,7 @@ def beacon_ec2_template(vpc, vpc_subnets, account, region):
     image_id = aws_ssm_get_parameter(f"/{os.environ['Prefix']}carve-resources/carve-beacon-ami", region=region)
 
     stack = {}
-    stack['StackName'] = f"{os.environ['Prefix']}carve-managed-{vpc}"
+    stack['StackName'] = f"{os.environ['Prefix']}carve-managed-beacons-{vpc}"
     stack['Account'] = account
     stack['Region'] = region
     stack['Template'] = f"managed_deployment/{vpc}.cfn.json"
@@ -318,7 +318,7 @@ def beacon_pl_template(vpc, vpc_subnets, account, vpce_service, region):
     #         service_name = f"com.amazonaws.vpce.{current_region}.{output['OutputValue']}"
 
     stack = {}
-    stack['StackName'] = f"{os.environ['Prefix']}carve-managed-{vpc}"
+    stack['StackName'] = f"{os.environ['Prefix']}carve-managed-beacons-{vpc}"
     stack['Account'] = account
     stack['Region'] = region
     stack['Template'] = f"managed_deployment/{vpc}.cfn.json"

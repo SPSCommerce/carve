@@ -1,7 +1,7 @@
 import json
 import os
 import sys
-from carve import load_graph, carve_role_arn
+from carve import load_graph, carve_role_arn, unique_node_values
 from aws import *
 from deploy_beacons import deployment_list, get_deploy_key
 import concurrent.futures
@@ -92,6 +92,14 @@ def sf_CleanupDeployments(context):
             'Region': stack['Region']
             })
 
+    # add all private link stacks from the current account for all deploy regions
+    for region in sorted(unique_node_values(G, 'Region')):
+        safe_stacks.append({
+            'StackName': f"{os.environ['Prefix']}carve-managed-privatelink-{region}",
+            'Account': aws_current_account(),
+            'Region': region
+            })
+
     print(f'all safe stacks: {safe_stacks}')
 
     # create discovery list of all accounts for step function
@@ -153,7 +161,7 @@ def sf_DiscoverCarveStacks(payload):
     account = payload['Account']
     safe_stacks = payload['SafeStacks']
     credentials = aws_assume_role(carve_role_arn(account), f"carve-cleanup")
-    startswith = f"{os.environ['Prefix']}carve-managed-vpc-"
+    startswith = f"{os.environ['Prefix']}carve-managed-"
 
     futures = set()
     delete_stacks = []

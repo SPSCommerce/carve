@@ -100,7 +100,7 @@ Resources:
                   - "*"
                 Condition:
                   StringLike:
-                    "ec2:ResourceTag/aws:cloudformation:stack-name": !Sub "${Prefix}carve-managed-vpc-*"
+                    "ec2:ResourceTag/aws:cloudformation:stack-name": !Sub "${Prefix}carve-managed-*"
                     
               - Effect: Allow
                 Action:
