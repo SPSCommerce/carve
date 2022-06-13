@@ -5,7 +5,7 @@ from aws import aws_assume_role, aws_describe_change_set
 from carve import carve_role_arn
 
 
-def lambda_handler(event, status):
+def lambda_handler(event, context):
     '''
     Describes a cloudformation stack changeset in any account/region and return the response
 
@@ -38,23 +38,28 @@ def lambda_handler(event, status):
         credentials=credentials
         )
 
+    print(response)
+
     # create payload for next step in state machine
     result = deepcopy(payload)
     if 'StatusReason' in response.keys():
+        # CFN Transform will sometimes leave a failed change set for no changes, which isn't a failure
         if response['StatusReason'] == "No updates are to be performed.":
-            # CFN Transform will sometimes leave a failed change set for no changes
-            result[status] = "NO_CHANGES"
+            result["Status"] = "NO_CHANGES"
+            result["ExecutionStatus"] = "NO_CHANGES"
             result['StatusReason'] = response['StatusReason']
         elif "didn't contain changes" in response['StatusReason']: 
-            result[status] = "NO_CHANGES"
+            result["Status"] = "NO_CHANGES"
+            result["ExecutionStatus"] = "NO_CHANGES"
             result['StatusReason'] = response['StatusReason']
         else:
-            result[status] = response[status]
+            result["Status"] = response["Status"]
+            result["ExecutionStatus"] = response["ExecutionStatus"]
             result['StatusReason'] = response['StatusReason']
     else:
-        result[status] = response[status]
+        result["Status"] = response["Status"]
+        result["ExecutionStatus"] = response["ExecutionStatus"]
+        result['StatusReason'] = "None"
 
     # return json to step function
     return json.dumps(result, default=str)
-
-
