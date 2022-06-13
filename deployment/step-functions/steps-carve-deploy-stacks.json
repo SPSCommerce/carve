@@ -29,9 +29,8 @@
               "Payload.$": "States.StringToJson($.Payload)"
             },
             "Parameters": {
-              "FunctionName": "${CarveFunction}",
+              "FunctionName": "${FunctionSfStacksCreateStack}",
               "Payload": {
-                "DeployStack": "CreateStack",
                 "Input.$": "$"
               }
             },
@@ -57,9 +56,8 @@
               "Payload.$": "States.StringToJson($.Payload)"
             },
             "Parameters": {
-              "FunctionName": "${CarveFunction}",
+              "FunctionName": "${FunctionSfStacksDescribeStack}",
               "Payload": {
-                "DeployStack": "DescribeStack",
                 "Input.$": "$"
               }
             },
@@ -206,9 +204,8 @@
               "Payload.$": "States.StringToJson($.Payload)"
             },
             "Parameters": {
-              "FunctionName": "${CarveFunction}",
+              "FunctionName": "${FunctionSfStacksCreateChangeSet}",
               "Payload": {
-                "DeployStack": "CreateChangeSet",
                 "Input.$": "$"
               }
             },
@@ -234,9 +231,8 @@
               "Payload.$": "States.StringToJson($.Payload)"
             },
             "Parameters": {
-              "FunctionName": "${CarveFunction}",
+              "FunctionName": "${FunctionSfStacksDescribeChangeSet}",
               "Payload": {
-                "DeployStack": "DescribeChangeSet",
                 "Input.$": "$"
               }
             },
@@ -321,9 +317,8 @@
               "Payload.$": "States.StringToJson($.Payload)"
             },
             "Parameters": {
-              "FunctionName": "${CarveFunction}",
+              "FunctionName": "${FunctionSfStacksExecuteChangeSet}",
               "Payload": {
-                "DeployStack": "ExecuteChangeSet",
                 "Input.$": "$"
               }
             },
@@ -349,9 +344,8 @@
               "Payload.$": "States.StringToJson($.Payload)"
             },
             "Parameters": {
-              "FunctionName": "${CarveFunction}",
+              "FunctionName": "${FunctionSfStacksDescribeChangeSet}",
               "Payload": {
-                "DeployStack": "DescribeChangeSetExecution",
                 "Input.$": "$"
               }
             },
