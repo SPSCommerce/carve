@@ -6,7 +6,7 @@ from aws import (aws_assume_role, aws_create_stack, aws_describe_stack,
 from carve import carve_role_arn
 
 
-def lambda_hander(event, context):
+def lambda_handler(event, context):
     '''
     Create a new CFN stack if one does not exist
 

@@ -5,7 +5,7 @@ from aws import aws_assume_role, aws_execute_change_set
 from carve import carve_role_arn
 
 
-def sf_ExecuteChangeSet(event):
+def lambda_handler(event, context):
     '''
     Executes a cloudformation stack changeset in any account/region and passes the payload thru
 
