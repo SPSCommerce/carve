@@ -33,54 +33,22 @@ def lambda_handler(event, context):
             if cw_rule == 'carve-results':
                 from carve import carve_results
                 carve_results()
-            elif cw_rule == 'deploy-prep':
-                from deploy_beacons import deploy_prep_check
-                deploy_prep_check(event, context)
 
-        # # replaced with step function input
-        # if event['source'] == 'aws.ssm':
-        #     from carve import ssm_event
-
-        #     ssm_arn = event['resources'][0]
-        #     print(f'TRIGGERED by SSM: {ssm_arn}')
-        #     ssm_event(event, context)
 
     elif 'Records' in event:
 
         if 'Sns' in event['Records'][0]:
             print(f"TRIGGERED by SNS: {event['Records'][0]['EventSubscriptionArn']}")
-            message = event['Records'][0]['Sns']['Message']
+            message = json.loads(event['Records'][0]['Sns']['Message'])
+            if 'source' in message:
+                if message['source'] == 'aws.autoscaling':
+                    from carve import asg_event
+                    asg_event(event)
 
-            if event['Records'][0]['Sns']['Subject'] == 'AWS CloudFormation Notification':
-                from deploy_beacons import parse_cfn_sns
-                message = parse_cfn_sns(message)
-                print(f'CloudFormation SNS Message: {message}')
-            else:
-                message = json.loads(message)
-                if 'source' in message:
-                    if message['source'] == 'aws.autoscaling':
-                        from carve import asg_event
-                        asg_event(event)
-
-        elif 's3' in event['Records'][0]:
-            if event['Records'][0]['s3']['bucket']['name'] == os.environ['CarveS3Bucket']:
-                from deploy_beacons import start_carve_deployment
-                start_carve_deployment(event, context)
-
-    elif 'DeployStart' in event:
-        from deploy_beacons import start_carve_deployment
-        print('Starting deployment process')
-        return start_carve_deployment(event, context)
-
-    elif 'DeployAction' in event:
-        from deploy_beacons import deploy_steps_entrypoint
-        print('TRIGGERED by Beacons Deployment Step Function')
-        return deploy_steps_entrypoint(event, context)
-
-    # elif 'DeployStack' in event:
-    #     from deploy_stack import deploy_stack_entrypoint
-    #     print('TRIGGERED by Deploy Stack Step Function')
-    #     return deploy_stack_entrypoint(event, context)
+        # elif 's3' in event['Records'][0]:
+        #     if event['Records'][0]['s3']['bucket']['name'] == os.environ['CarveS3Bucket']:
+        #         from deploy_beacons import start_carve_deployment
+        #         start_carve_deployment(event, context)
 
     elif 'DiscoverRouting' in event:
         from disco import discover_routing
@@ -94,9 +62,9 @@ def lambda_handler(event, context):
             return cleanup_steps_entrypoint(event, context)
 
     elif 'CodePipeline.job' in event:
-        from deploy_beacons import codepipline_job
+        # from deploy_beacons import codepipline_job
         print('TRIGGERED by CodePipeline')
-        codepipline_job(event, context)
+        # codepipline_job(event, context)
 
     else:
         print(f'unrecognized event: {event}')
