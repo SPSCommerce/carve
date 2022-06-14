@@ -1,9 +1,9 @@
 import json
 import os
 import sys
-from carve import load_graph, carve_role_arn, unique_node_values
+from carve import load_graph, carve_role_arn, unique_node_values, get_deploy_key
 from aws import *
-from deploy_beacons import deployment_list, get_deploy_key
+from sf_deploy_graph_deployment_list import deployment_list
 import concurrent.futures
 
 
@@ -68,31 +68,34 @@ def sf_CleanupDeployments(context):
     print(f'cleaning up after graph deploy: {deploy_key}')
 
     accounts = aws_discover_org_accounts()
-    # regions = aws_all_regions()
 
     # create a list for carve stacks to not delete
     safe_stacks = []
 
-    # # do not delete the s3 stack in the current region
-    # deploy_region_list = set(deploy_regions(G))
-    # deploy_region_list.add(current_region)
-
-    # for region in aws_all_regions():
-    #     s3_stack = f"{os.environ['Prefix']}carve-managed-bucket-{region}"
-    #     safe_stacks.append({
-    #         'StackName': s3_stack,
-    #         'Account': context.invoked_function_arn.split(":")[4],
-    #         'Region': region
-    #         })
-
-    for stack in deployment_list(G, context):
+    # add the s3 bucket stacks for active regions to safe stacks
+    deploy_region_list = set(sorted(unique_node_values(G, 'Region')))
+    deploy_region_list.add(current_region)
+    for region in deploy_region_list:
+        s3_stack = f"{os.environ['Prefix']}carve-managed-bucket-{region}"
         safe_stacks.append({
-            'StackName': stack['StackName'],
-            'Account': stack['Account'],
-            'Region': stack['Region']
+            'StackName': s3_stack,
+            'Account': context.invoked_function_arn.split(":")[4],
+            'Region': region
             })
 
-    # add all private link stacks from the current account for all deploy regions
+    # add all VPC stacks in the graph to safe stacks
+    vpcs = []
+    for subnet in list(G.nodes):
+        vpc = G.nodes().data()[subnet]['VpcId']
+        if vpc not in vpcs:
+            vpcs.append(vpc)
+            safe_stacks.append({
+                'StackName': f"{os.environ['Prefix']}carve-managed-beacons-{vpc}",
+                'Account': G.nodes().data()[subnet]['Account'],
+                'Region': G.nodes().data()[subnet]['Region']
+                })
+
+    # add all private link stacks from the current account to safe stacks
     for region in sorted(unique_node_values(G, 'Region')):
         safe_stacks.append({
             'StackName': f"{os.environ['Prefix']}carve-managed-privatelink-{region}",

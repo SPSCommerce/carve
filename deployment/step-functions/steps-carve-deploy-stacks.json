@@ -11,9 +11,9 @@
             "Next":"CreateStackIterator"
          }
       ],
-      "Default":"End"
+      "Default":"NoInput"
     },
-    "End":{
+    "NoInput":{
       "Type":"Pass",
       "End":true
     },
