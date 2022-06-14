@@ -113,9 +113,6 @@
           "BackoffRate": 2
         }
       ],
-      "ResultSelector": {
-        "Payload.$": "States.StringToJson($.Payload)"
-      },
       "Parameters": {
         "FunctionName": "${FunctionSfDeployGraphFinalize}",
         "Payload": {

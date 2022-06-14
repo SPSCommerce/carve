@@ -665,10 +665,12 @@ def aws_copy_s3_object(key, target_key, source_bucket=os.environ['CarveS3Bucket'
     response = bucket.copy(src, target_key)
     return response
 
-def aws_delete_s3_object(key, region):
-    # get graph from S3
+def aws_delete_s3_object(key):
+    # delete object from S3
+    print(f"deleting from s3: {key}")
     resource = boto3.resource('s3', config=boto_config)
     response = resource.Object(os.environ['CarveS3Bucket'], key).delete()
+    print(response)
     return response
 
 def aws_get_carve_s3(key, file_path, bucket=None):
