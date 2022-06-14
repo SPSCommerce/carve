@@ -1,7 +1,22 @@
 {
   "Comment": "Deploy Carve CloudFormation Stacks",
-  "StartAt": "CreateStackIterator",
+  "StartAt": "CheckInput",
   "States": {
+    "CheckInput":{
+      "Type":"Choice",
+      "Choices":[
+         {
+            "Variable":"$.Input[0]",
+            "IsPresent":true,
+            "Next":"CreateStackIterator"
+         }
+      ],
+      "Default":"End"
+    },
+    "End":{
+      "Type":"Pass",
+      "End":true
+    },
     "CreateStackIterator": {
       "Type": "Map",
       "End": true,

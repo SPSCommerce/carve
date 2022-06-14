@@ -80,6 +80,8 @@ def lambda_handler(event, context):
         })
 
     # return deploy_buckets
+    print(f"creating buckets: {deploy_buckets}")
+
     return json.dumps(deploy_buckets, default=str)
 
 
