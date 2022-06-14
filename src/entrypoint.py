@@ -77,10 +77,10 @@ def lambda_handler(event, context):
         print('TRIGGERED by Beacons Deployment Step Function')
         return deploy_steps_entrypoint(event, context)
 
-    elif 'DeployStack' in event:
-        from deploy_stack import deploy_stack_entrypoint
-        print('TRIGGERED by Deploy Stack Step Function')
-        return deploy_stack_entrypoint(event, context)
+    # elif 'DeployStack' in event:
+    #     from deploy_stack import deploy_stack_entrypoint
+    #     print('TRIGGERED by Deploy Stack Step Function')
+    #     return deploy_stack_entrypoint(event, context)
 
     elif 'DiscoverRouting' in event:
         from disco import discover_routing
