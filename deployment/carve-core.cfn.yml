@@ -706,6 +706,8 @@ Resources:
       DefinitionSubstitutions: 
         FunctionSfCleanupInitialize:
           Fn::GetAtt: [FunctionSfCleanupInitialize, Outputs.LambdaName]
+        FunctionSfCleanupDiscover:
+          Fn::GetAtt: [FunctionSfCleanupDiscover, Outputs.LambdaName]
         FunctionSfCleanupOrganize:
           Fn::GetAtt: [FunctionSfCleanupOrganize, Outputs.LambdaName]
         FunctionSfCleanupDeleteStack:
