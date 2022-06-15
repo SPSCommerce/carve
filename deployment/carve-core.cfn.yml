@@ -105,81 +105,81 @@ Resources:
       TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
       TimeoutInMinutes: 5
 
-  FunctionSfScaleInitialize:
-    Type: AWS::CloudFormation::Stack
-    Properties: 
-      Parameters:
-        HandlerFile: sf_scale_initialize
-        # params below are the same for all nested lambda stacks
-        CarveVersion: !Ref CarveVersion
-        CodeBucket: !Ref CodeBucket
-        ECR: !Ref ECR
-        IMAGETAG: !Ref IMAGETAG
-        OrgId: !Ref OrgId
-        OrgSNSTopic: !Ref OrgSNSTopic
-        Prefix: !Ref Prefix
-        PropogateUpdates: !Ref PropogateUpdates
-        UniqueId: !Ref UniqueId
-        RoleArn: !GetAtt CarveCoreRole.Arn
-      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
-      TimeoutInMinutes: 5
+  # FunctionSfScaleInitialize:
+  #   Type: AWS::CloudFormation::Stack
+  #   Properties: 
+  #     Parameters:
+  #       HandlerFile: sf_scale_initialize
+  #       # params below are the same for all nested lambda stacks
+  #       CarveVersion: !Ref CarveVersion
+  #       CodeBucket: !Ref CodeBucket
+  #       ECR: !Ref ECR
+  #       IMAGETAG: !Ref IMAGETAG
+  #       OrgId: !Ref OrgId
+  #       OrgSNSTopic: !Ref OrgSNSTopic
+  #       Prefix: !Ref Prefix
+  #       PropogateUpdates: !Ref PropogateUpdates
+  #       UniqueId: !Ref UniqueId
+  #       RoleArn: !GetAtt CarveCoreRole.Arn
+  #     TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+  #     TimeoutInMinutes: 5
 
-  FunctionSfScaleUpdateAsg:
-    Type: AWS::CloudFormation::Stack
-    Properties: 
-      Parameters:
-        HandlerFile: sf_scale_update_asg
-        # params below are the same for all nested lambda stacks
-        CarveVersion: !Ref CarveVersion
-        CodeBucket: !Ref CodeBucket
-        ECR: !Ref ECR
-        IMAGETAG: !Ref IMAGETAG
-        OrgId: !Ref OrgId
-        OrgSNSTopic: !Ref OrgSNSTopic
-        Prefix: !Ref Prefix
-        PropogateUpdates: !Ref PropogateUpdates
-        UniqueId: !Ref UniqueId
-        RoleArn: !GetAtt CarveCoreRole.Arn
-      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
-      TimeoutInMinutes: 5
+  # FunctionSfScaleUpdateAsg:
+  #   Type: AWS::CloudFormation::Stack
+  #   Properties: 
+  #     Parameters:
+  #       HandlerFile: sf_scale_update_asg
+  #       # params below are the same for all nested lambda stacks
+  #       CarveVersion: !Ref CarveVersion
+  #       CodeBucket: !Ref CodeBucket
+  #       ECR: !Ref ECR
+  #       IMAGETAG: !Ref IMAGETAG
+  #       OrgId: !Ref OrgId
+  #       OrgSNSTopic: !Ref OrgSNSTopic
+  #       Prefix: !Ref Prefix
+  #       PropogateUpdates: !Ref PropogateUpdates
+  #       UniqueId: !Ref UniqueId
+  #       RoleArn: !GetAtt CarveCoreRole.Arn
+  #     TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+  #     TimeoutInMinutes: 5
 
-  FunctionSfScaleCheckAsg:
-    Type: AWS::CloudFormation::Stack
-    Properties: 
-      Parameters:
-        HandlerFile: sf_scale_check_asg
-        # params below are the same for all nested lambda stacks
-        CarveVersion: !Ref CarveVersion
-        CodeBucket: !Ref CodeBucket
-        ECR: !Ref ECR
-        IMAGETAG: !Ref IMAGETAG
-        OrgId: !Ref OrgId
-        OrgSNSTopic: !Ref OrgSNSTopic
-        Prefix: !Ref Prefix
-        PropogateUpdates: !Ref PropogateUpdates
-        UniqueId: !Ref UniqueId
-        RoleArn: !GetAtt CarveCoreRole.Arn
-      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
-      TimeoutInMinutes: 5
+  # FunctionSfScaleCheckAsg:
+  #   Type: AWS::CloudFormation::Stack
+  #   Properties: 
+  #     Parameters:
+  #       HandlerFile: sf_scale_check_asg
+  #       # params below are the same for all nested lambda stacks
+  #       CarveVersion: !Ref CarveVersion
+  #       CodeBucket: !Ref CodeBucket
+  #       ECR: !Ref ECR
+  #       IMAGETAG: !Ref IMAGETAG
+  #       OrgId: !Ref OrgId
+  #       OrgSNSTopic: !Ref OrgSNSTopic
+  #       Prefix: !Ref Prefix
+  #       PropogateUpdates: !Ref PropogateUpdates
+  #       UniqueId: !Ref UniqueId
+  #       RoleArn: !GetAtt CarveCoreRole.Arn
+  #     TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+  #     TimeoutInMinutes: 5
 
-  FunctionSfScaleFinalize:
-    Type: AWS::CloudFormation::Stack
-    Properties: 
-      Parameters:
-        HandlerFile: sf_scale_finalize
-        # params below are the same for all nested lambda stacks
-        CarveVersion: !Ref CarveVersion
-        CodeBucket: !Ref CodeBucket
-        ECR: !Ref ECR
-        IMAGETAG: !Ref IMAGETAG
-        OrgId: !Ref OrgId
-        OrgSNSTopic: !Ref OrgSNSTopic
-        Prefix: !Ref Prefix
-        PropogateUpdates: !Ref PropogateUpdates
-        UniqueId: !Ref UniqueId
-        RoleArn: !GetAtt CarveCoreRole.Arn
-      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
-      TimeoutInMinutes: 5
+  # FunctionSfScaleFinalize:
+  #   Type: AWS::CloudFormation::Stack
+  #   Properties: 
+  #     Parameters:
+  #       HandlerFile: sf_scale_finalize
+  #       # params below are the same for all nested lambda stacks
+  #       CarveVersion: !Ref CarveVersion
+  #       CodeBucket: !Ref CodeBucket
+  #       ECR: !Ref ECR
+  #       IMAGETAG: !Ref IMAGETAG
+  #       OrgId: !Ref OrgId
+  #       OrgSNSTopic: !Ref OrgSNSTopic
+  #       Prefix: !Ref Prefix
+  #       PropogateUpdates: !Ref PropogateUpdates
+  #       UniqueId: !Ref UniqueId
+  #       RoleArn: !GetAtt CarveCoreRole.Arn
+  #     TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+  #     TimeoutInMinutes: 5
 
   FunctionSfNetworkDiscoveryInitialize:
     Type: AWS::CloudFormation::Stack
@@ -409,6 +409,101 @@ Resources:
       TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
       TimeoutInMinutes: 5
 
+  FunctionSfCleanupInitialize:
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      Parameters:
+        HandlerFile: sf_cleanup_initialize
+        # params below are the same for all nested lambda stacks
+        CarveVersion: !Ref CarveVersion
+        CodeBucket: !Ref CodeBucket
+        ECR: !Ref ECR
+        IMAGETAG: !Ref IMAGETAG
+        OrgId: !Ref OrgId
+        OrgSNSTopic: !Ref OrgSNSTopic
+        Prefix: !Ref Prefix
+        PropogateUpdates: !Ref PropogateUpdates
+        UniqueId: !Ref UniqueId
+        RoleArn: !GetAtt CarveCoreRole.Arn
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TimeoutInMinutes: 5
+
+  FunctionSfCleanupDiscover:
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      Parameters:
+        HandlerFile: sf_cleanup_discover
+        # params below are the same for all nested lambda stacks
+        CarveVersion: !Ref CarveVersion
+        CodeBucket: !Ref CodeBucket
+        ECR: !Ref ECR
+        IMAGETAG: !Ref IMAGETAG
+        OrgId: !Ref OrgId
+        OrgSNSTopic: !Ref OrgSNSTopic
+        Prefix: !Ref Prefix
+        PropogateUpdates: !Ref PropogateUpdates
+        UniqueId: !Ref UniqueId
+        RoleArn: !GetAtt CarveCoreRole.Arn
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TimeoutInMinutes: 5
+
+  FunctionSfCleanupOrganize:
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      Parameters:
+        HandlerFile: sf_cleanup_organize
+        # params below are the same for all nested lambda stacks
+        CarveVersion: !Ref CarveVersion
+        CodeBucket: !Ref CodeBucket
+        ECR: !Ref ECR
+        IMAGETAG: !Ref IMAGETAG
+        OrgId: !Ref OrgId
+        OrgSNSTopic: !Ref OrgSNSTopic
+        Prefix: !Ref Prefix
+        PropogateUpdates: !Ref PropogateUpdates
+        UniqueId: !Ref UniqueId
+        RoleArn: !GetAtt CarveCoreRole.Arn
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TimeoutInMinutes: 5
+
+  FunctionSfCleanupDeleteStack:
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      Parameters:
+        HandlerFile: sf_cleanup_delete_stack
+        # params below are the same for all nested lambda stacks
+        CarveVersion: !Ref CarveVersion
+        CodeBucket: !Ref CodeBucket
+        ECR: !Ref ECR
+        IMAGETAG: !Ref IMAGETAG
+        OrgId: !Ref OrgId
+        OrgSNSTopic: !Ref OrgSNSTopic
+        Prefix: !Ref Prefix
+        PropogateUpdates: !Ref PropogateUpdates
+        UniqueId: !Ref UniqueId
+        RoleArn: !GetAtt CarveCoreRole.Arn
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TimeoutInMinutes: 5
+
+  FunctionSfCleanupDescribeStack:
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      Parameters:
+        HandlerFile: sf_cleanup_describe_stack
+        # params below are the same for all nested lambda stacks
+        CarveVersion: !Ref CarveVersion
+        CodeBucket: !Ref CodeBucket
+        ECR: !Ref ECR
+        IMAGETAG: !Ref IMAGETAG
+        OrgId: !Ref OrgId
+        OrgSNSTopic: !Ref OrgSNSTopic
+        Prefix: !Ref Prefix
+        PropogateUpdates: !Ref PropogateUpdates
+        UniqueId: !Ref UniqueId
+        RoleArn: !GetAtt CarveCoreRole.Arn
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TimeoutInMinutes: 5
+
   CarveCoreRole:
     Type: AWS::IAM::Role
     Properties:
@@ -609,10 +704,17 @@ Resources:
         Bucket: !Ref CodeBucket
         Key: !Sub "step-functions/${GITSHA}/steps-carve-cleanup.json"
       DefinitionSubstitutions: 
-        # CarveFunction: !GetAtt CarveFunction.Arn
-        CarveFunction: 
-          Fn::GetAtt: [FunctionEntrypoint, Outputs.LambdaArn]
-        CarveDeployStacksStepFunction: !Ref CarveDeployStacksStepFunction
+        FunctionSfCleanupInitialize:
+          Fn::GetAtt: [FunctionSfCleanupInitialize, Outputs.LambdaName]
+        FunctionSfCleanupOrganize:
+          Fn::GetAtt: [FunctionSfCleanupOrganize, Outputs.LambdaName]
+        FunctionSfCleanupDeleteStack:
+          Fn::GetAtt: [FunctionSfCleanupDeleteStack, Outputs.LambdaName]
+        FunctionSfCleanupDescribeStack:
+          Fn::GetAtt: [FunctionSfCleanupDescribeStack, Outputs.LambdaName]
+        # CarveFunction: 
+        #   Fn::GetAtt: [FunctionEntrypoint, Outputs.LambdaArn]
+        # CarveDeployStacksStepFunction: !Ref CarveDeployStacksStepFunction
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
       StateMachineName: !Sub "${Prefix}carve-cleanup-statemachine"
       StateMachineType: STANDARD
@@ -635,24 +737,24 @@ Resources:
       StateMachineName: !Sub "${Prefix}carve-network-discovery-statemachine"
       StateMachineType: STANDARD
 
-  CarveScaleStepFunction:
-    Type: AWS::StepFunctions::StateMachine
-    Properties: 
-      DefinitionS3Location: 
-        Bucket: !Ref CodeBucket
-        Key: !Sub "step-functions/${GITSHA}/steps-carve-scale.json"
-      DefinitionSubstitutions: 
-        FunctionSfScaleInitialize: 
-          Fn::GetAtt: [FunctionSfScaleInitialize, Outputs.LambdaName]
-        FunctionSfScaleUpdateAsg: 
-          Fn::GetAtt: [FunctionSfScaleUpdateAsg, Outputs.LambdaName]
-        FunctionSfScaleCheckAsg:
-          Fn::GetAtt: [FunctionSfScaleCheckAsg, Outputs.LambdaName]
-        FunctionSfScaleFinalize: 
-          Fn::GetAtt: [FunctionSfScaleFinalize, Outputs.LambdaName]
-      RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
-      StateMachineName: !Sub "${Prefix}carve-scale-statemachine"
-      StateMachineType: STANDARD
+  # CarveScaleStepFunction:
+  #   Type: AWS::StepFunctions::StateMachine
+  #   Properties: 
+  #     DefinitionS3Location: 
+  #       Bucket: !Ref CodeBucket
+  #       Key: !Sub "step-functions/${GITSHA}/steps-carve-scale.json"
+  #     DefinitionSubstitutions: 
+  #       FunctionSfScaleInitialize: 
+  #         Fn::GetAtt: [FunctionSfScaleInitialize, Outputs.LambdaName]
+  #       FunctionSfScaleUpdateAsg: 
+  #         Fn::GetAtt: [FunctionSfScaleUpdateAsg, Outputs.LambdaName]
+  #       FunctionSfScaleCheckAsg:
+  #         Fn::GetAtt: [FunctionSfScaleCheckAsg, Outputs.LambdaName]
+  #       FunctionSfScaleFinalize: 
+  #         Fn::GetAtt: [FunctionSfScaleFinalize, Outputs.LambdaName]
+  #     RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
+  #     StateMachineName: !Sub "${Prefix}carve-scale-statemachine"
+  #     StateMachineType: STANDARD
 
 
   StepFunctionRole:
@@ -795,13 +897,13 @@ Resources:
 
 
 
-  SSMParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: !Sub "/${Prefix}carve-resources/scale"
-      Description: "Valid Values: none, subnet, vpc"
-      Type: String
-      Value: subnet
+  # SSMParameter:
+  #   Type: AWS::SSM::Parameter
+  #   Properties:
+  #     Name: !Sub "/${Prefix}carve-resources/scale"
+  #     Description: "Valid Values: none, subnet, vpc"
+  #     Type: String
+  #     Value: subnet
 
   # SSMParameterChange:
   #   Type: AWS::Events::Rule

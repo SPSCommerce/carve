@@ -5,7 +5,14 @@ from aws import *
 
 
 def lambda_handler(event, context):
-    # discover AWS Organizations accounts/regions to pass to next step
+    '''
+    discovers AWS accounts/regions in use in an Org and returns the results as a dict
+    '''
+
+    # need to purge S3 discovery folder before starting new discovery
+    aws_purge_s3_path('discovery/')
+
+    # get list of accounts/regions in use in the Org
     accounts = aws_discover_org_accounts()
     regions = aws_all_regions()
     discovery_targets = []
@@ -16,9 +23,6 @@ def lambda_handler(event, context):
         })
     
     print(f"discovered {len(accounts)} accounts")
-
-    # need to purge S3 discovery folder before starting new discovery
-    aws_purge_s3_path('discovery/')
 
     # return discovery_targets
     result = {'accounts': discovery_targets, 'regions': regions}

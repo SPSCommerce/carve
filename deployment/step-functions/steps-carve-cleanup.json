@@ -1,10 +1,10 @@
 {
   "Comment": "Cleanup Carve Managed Stacks",
-  "StartAt": "CleanupDeployments",
+  "StartAt": "Initialize",
   "States": {
-    "CleanupDeployments": {
+    "Initialize": {
       "Type": "Task",
-      "Resource":"${CarveFunction}",
+      "Resource":"${FunctionSfCleanupInitialize}",
       "Retry": [
         {
           "ErrorEquals": [ 
@@ -22,23 +22,23 @@
       },
       "Parameters": {
         "Payload": {
-          "CleanupAction": "CleanupDeployments"
+          "Input.$": "$"
         }
       },
-      "Next": "DiscoverCarveStacksIterator",
+      "Next": "DiscoverCarveStacks",
       "TimeoutSeconds": 900
     },
-    "DiscoverCarveStacksIterator": {
+    "DiscoverCarveStacks": {
       "Type": "Map",
-      "Next": "OrganizeDeletions",
+      "Next": "OrganizeResults",
       "MaxConcurrency": 100,
       "ItemsPath": "$.Payload",
       "Iterator": {
-        "StartAt": "DiscoverCarveStacks",
+        "StartAt": "DiscoverAccountStacks",
         "States": {
-          "DiscoverCarveStacks": {
+          "DiscoverAccountStacks": {
             "Type": "Task",
-            "Resource":"${CarveFunction}",
+            "Resource":"${FunctionSfCleanupDiscover}",
             "Retry": [
               {
                 "ErrorEquals": [ 
@@ -56,7 +56,6 @@
             },
             "Parameters": {
               "Payload": {
-                "CleanupAction": "DiscoverCarveStacks",
                 "Input.$": "$"
               }
             },
@@ -66,9 +65,9 @@
         }
       }
     },
-    "OrganizeDeletions": {
+    "OrganizeResults": {
       "Type": "Task",
-      "Resource":"${CarveFunction}",
+      "Resource":"${FunctionSfCleanupOrganize}",
       "Retry": [
         {
           "ErrorEquals": [ 
@@ -86,7 +85,6 @@
       },
       "Parameters": {
         "Payload": {
-          "CleanupAction": "OrganizeDeletions",
           "Input.$": "$"
         }
       },
@@ -103,7 +101,7 @@
         "States": {
           "DeleteStack": {
             "Type": "Task",
-            "Resource":"${CarveFunction}",
+            "Resource":"${FunctionSfCleanupDeleteStack}",
             "Retry": [
               {
                 "ErrorEquals": [ 
@@ -121,7 +119,6 @@
             },
             "Parameters": {
               "Payload": {
-                "CleanupAction": "DeleteStack",
                 "Input.$": "$"
               }
             },
@@ -130,7 +127,7 @@
           },
           "DescribeDeleteStack": {
             "Type": "Task",
-            "Resource":"${CarveFunction}",
+            "Resource":"${FunctionSfCleanupDescribeStack}",
             "Retry": [
               {
                 "ErrorEquals": [ 
@@ -148,7 +145,6 @@
             },
             "Parameters": {
               "Payload": {
-                "CleanupAction": "DescribeDeleteStack",
                 "Input.$": "$"
               }
             },

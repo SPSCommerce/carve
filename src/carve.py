@@ -226,17 +226,6 @@ def update_beacon_list(all_beacons):
 
 
 
-def update_carve_beacons():
-    # This will re-run the last execution of the scaling step function
-    # Doing this will update the beacons with the latest beacon list
-    executions = aws_states_list_executions(arn=os.environ['ScaleStateMachine'], results=100)
-    last_exec = aws_states_describe_execution(executions[0])
-    scale = json.loads(last_exec['input'])['scale']
-    name = f"scale-{scale}-{int(time.time())}"
-    aws_start_stepfunction(os.environ['ScaleStateMachine'], last_exec['input'], name)
-
-
-
 def asg_event(event):
 
     # should only be one item, but treat as a list

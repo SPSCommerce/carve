@@ -15,17 +15,10 @@ def lambda_handler(event, context):
         - beacon deployment
         - cloudformation custom resources
 
-    # lambda needs to log its info at startup
-
     '''
 
 
-    if 'update-beacons' in event:
-        from carve import update_carve_beacons
-        response = update_carve_beacons()
-        return response
-
-    elif 'detail-type' in event:
+    if 'detail-type' in event:
 
         if event['source'] == 'aws.events':
             cw_rule = event['resources'][0].split('rule/')[-1]
@@ -53,13 +46,6 @@ def lambda_handler(event, context):
     elif 'DiscoverRouting' in event:
         from disco import discover_routing
         return discover_routing()
-
-
-    elif 'Payload' in event:
-        if 'CleanupAction' in event['Payload']:
-            from cleanup import cleanup_steps_entrypoint
-            print('TRIGGERED by Cleanup Step Function')
-            return cleanup_steps_entrypoint(event, context)
 
     elif 'CodePipeline.job' in event:
         # from deploy_beacons import codepipline_job
