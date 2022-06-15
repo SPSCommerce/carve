@@ -69,4 +69,5 @@ def lambda_handler(event, context):
         discover_stacks.append(cleanup)
 
     # returns to a step function iterator
-    return json.dumps(discover_stacks, default=str)
+    # return json.dumps(discover_stacks, default=str)
+    return discover_stacks
