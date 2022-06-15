@@ -7,7 +7,7 @@ def lambda_handler(event, context):
     and return the list
     '''
     print(event)
-    input = event['Payload']['Input']
+    input = event['Input']
     results = []
     for item in input:
         for each in item['Payload']:

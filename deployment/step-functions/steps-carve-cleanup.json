@@ -31,7 +31,6 @@
       "Next": "OrganizeResults",
       "MaxConcurrency": 100,
       "ItemsPath": "$.Payload",
-      "OutputPath": "$.Payload",
       "Iterator": {
         "StartAt": "DiscoverAccountStacks",
         "States": {
@@ -55,6 +54,9 @@
               "Payload": {
                 "Input.$": "$"
               }
+            },
+            "ResultSelector": {
+              "Payload.$": "$.Payload"
             },
             "End": true,
             "TimeoutSeconds": 60
