@@ -9,6 +9,7 @@ def lambda_handler(event, context):
     Send delete stack command to account/region for the CFN stack in the event
     - will also empty the S3 bucket if the stack is a bucket stack
     '''
+    print(event)
     payload = event['Payload']['Input']
     account = payload['Account']
     region = payload['Region']
@@ -35,7 +36,7 @@ def lambda_handler(event, context):
     print(f"WILL DELETE STACK: {payload['StackName']} from {account} in {region}")
 
     # return json to step function
-    return json.dumps(payload, default=str)
+    return payload
 
 
 

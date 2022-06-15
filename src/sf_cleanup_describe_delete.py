@@ -8,6 +8,7 @@ def lambda_handler(event, context):
     Describe a CFN stack in an account/region and return the status
     '''
     # payload comes in differently from the step function if it's a choise state
+    print(event)
     try:
         payload = event['Payload']['Input']
     except:
@@ -23,7 +24,7 @@ def lambda_handler(event, context):
 
     payload['StackStatus'] = response['StackStatus']
 
-    return json.dumps(payload, default=str)
+    return payload
 
 
 

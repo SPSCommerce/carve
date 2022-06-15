@@ -17,9 +17,6 @@
           "BackoffRate": 2
         }
       ],
-      "ResultSelector": {
-        "Payload.$": "States.StringToJson($)"
-      },
       "Parameters": {
         "FunctionName": "${FunctionSfCleanupInitialize}",
         "Payload": {
@@ -52,9 +49,6 @@
                 "BackoffRate": 2
               }
             ],      
-            "ResultSelector": {
-              "Payload.$": "States.StringToJson($)"
-            },
             "Parameters": {
               "FunctionName": "${FunctionSfCleanupDiscover}",
               "Payload": {
@@ -82,9 +76,6 @@
           "BackoffRate": 2
         }
       ],
-      "ResultSelector": {
-        "Payload.$": "States.StringToJson($)"
-      },
       "Parameters": {
         "FunctionName": "${FunctionSfCleanupOrganize}",
         "Payload": {
@@ -117,9 +108,6 @@
                 "BackoffRate": 2
               }
             ],      
-            "ResultSelector": {
-              "Payload.$": "States.StringToJson($)"
-            },
             "Parameters": {
               "FunctionName": "${FunctionSfCleanupDeleteStack}",
               "Payload": {
@@ -144,9 +132,6 @@
                 "BackoffRate": 2
               }
             ],      
-            "ResultSelector": {
-              "Payload.$": "States.StringToJson($)"
-            },
             "Parameters": {
               "FunctionName": "${FunctionSfCleanupDescribeStack}",
               "Payload": {

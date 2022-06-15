@@ -11,11 +11,14 @@ def lambda_handler(event, context):
     discover all deployments of carve named stacks and determine if they should exist
     by checking against the safe_stacks list
     - returns a list of stacks to be deleted
+
+    event = {'Input': {'Account': '123456789012', 'SafeStacks': []}}
+
     '''
     print(event)
 
-    account = event['Payload']['Input']['Account']
-    safe_stacks = event['Payload']['Input']['SafeStacks']
+    account = event['Input']['Account']
+    safe_stacks = event['Input']['SafeStacks']
 
     credentials = aws_assume_role(carve_role_arn(account), f"carve-cleanup")
     startswith = f"{os.environ['Prefix']}carve-managed-"
@@ -37,7 +40,7 @@ def lambda_handler(event, context):
                 delete_stacks.append(stack)
 
     # return json to step function
-    return json.dumps(delete_stacks, default=str)
+    return delete_stacks
 
 
 def threaded_find_stacks(account, region, safe_stacks, startswith, credentials):
