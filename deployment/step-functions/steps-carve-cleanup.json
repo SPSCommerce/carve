@@ -4,7 +4,7 @@
   "States": {
     "Initialize": {
       "Type": "Task",
-      "Resource":"${FunctionSfCleanupInitialize}",
+      "Resource":"arn:aws:states:::lambda:invoke",
       "Retry": [
         {
           "ErrorEquals": [ 
@@ -21,6 +21,7 @@
         "Payload.$": "States.StringToJson($)"
       },
       "Parameters": {
+        "FunctionName": "${FunctionSfCleanupInitialize}",
         "Payload": {
           "Input.$": "$"
         }
@@ -38,7 +39,7 @@
         "States": {
           "DiscoverAccountStacks": {
             "Type": "Task",
-            "Resource":"${FunctionSfCleanupDiscover}",
+            "Resource":"arn:aws:states:::lambda:invoke",
             "Retry": [
               {
                 "ErrorEquals": [ 
@@ -55,6 +56,7 @@
               "Payload.$": "States.StringToJson($)"
             },
             "Parameters": {
+              "FunctionName": "${FunctionSfCleanupDiscover}",
               "Payload": {
                 "Input.$": "$"
               }
@@ -67,7 +69,7 @@
     },
     "OrganizeResults": {
       "Type": "Task",
-      "Resource":"${FunctionSfCleanupOrganize}",
+      "Resource":"arn:aws:states:::lambda:invoke",
       "Retry": [
         {
           "ErrorEquals": [ 
@@ -84,6 +86,7 @@
         "Payload.$": "States.StringToJson($)"
       },
       "Parameters": {
+        "FunctionName": "${FunctionSfCleanupOrganize}",
         "Payload": {
           "Input.$": "$"
         }
@@ -101,7 +104,7 @@
         "States": {
           "DeleteStack": {
             "Type": "Task",
-            "Resource":"${FunctionSfCleanupDeleteStack}",
+            "Resource":"arn:aws:states:::lambda:invoke",
             "Retry": [
               {
                 "ErrorEquals": [ 
@@ -118,6 +121,7 @@
               "Payload.$": "States.StringToJson($)"
             },
             "Parameters": {
+              "FunctionName": "${FunctionSfCleanupDeleteStack}",
               "Payload": {
                 "Input.$": "$"
               }
@@ -127,7 +131,7 @@
           },
           "DescribeDeleteStack": {
             "Type": "Task",
-            "Resource":"${FunctionSfCleanupDescribeStack}",
+            "Resource":"arn:aws:states:::lambda:invoke",
             "Retry": [
               {
                 "ErrorEquals": [ 
@@ -144,6 +148,7 @@
               "Payload.$": "States.StringToJson($)"
             },
             "Parameters": {
+              "FunctionName": "${FunctionSfCleanupDescribeStack}",
               "Payload": {
                 "Input.$": "$"
               }
