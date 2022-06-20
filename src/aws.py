@@ -1162,7 +1162,7 @@ def aws_put_bucket_notification(path, function_arn, notification_id="CarveDeploy
         )
         return response
     except ClientError as e:
-        print(f'error creating bucket notification: {e}')
+        raise(f'error creating bucket notification: {e}')
 
 
 def aws_upload_file_s3(key, file_path):
