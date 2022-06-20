@@ -10,15 +10,15 @@ def lambda_handler(event, context):
     - will also empty the S3 bucket if the stack is a bucket stack
     '''
     print(event)
-    payload = event['Payload']['Input']
-    account = payload['Account']
-    region = payload['Region']
+    input = event['Input']
+    account = input['Account']
+    region = input['Region']
 
     credentials = aws_assume_role(carve_role_arn(account), f"carve-cleanup-{region}")
 
     # if this is a regional S3 bucket stack, empty the bucket before deleting the stack
     s3_stack = f"{os.environ['Prefix']}carve-managed-bucket-{region}"
-    if payload['StackName'] == s3_stack:
+    if input['StackName'] == s3_stack:
 
         if os.environ['UniqueId'] == "":
             unique = os.environ['OrgId']
@@ -29,14 +29,14 @@ def lambda_handler(event, context):
         aws_purge_s3_bucket(bucket)
 
     aws_delete_stack(
-        stackname=payload['StackName'],
-        region=payload['Region'],
+        stackname=input['StackName'],
+        region=input['Region'],
         credentials=credentials)
 
-    print(f"WILL DELETE STACK: {payload['StackName']} from {account} in {region}")
+    print(f"WILL DELETE STACK: {input['StackName']} from {account} in {region}")
 
     # return json to step function
-    return payload
+    return input
 
 
 
