@@ -136,7 +136,7 @@
               }
             ],      
             "Parameters": {
-              "FunctionName": "${FunctionSfCleanupDescribeStack}",
+              "FunctionName": "${FunctionSfStacksDescribeStack}",
               "Payload": {
                 "Input.$": "$"
               }

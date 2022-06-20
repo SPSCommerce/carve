@@ -201,6 +201,7 @@ Resources:
 
   InstanceProfile:
     Type: AWS::IAM::InstanceProfile
+    DependsOn: InstanceRole
     Properties:
       Path: /
       Roles: 
