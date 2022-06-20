@@ -23,22 +23,6 @@ Parameters:
     Type: String
     Description: A unique id may be used instead of OrgId on buckets
     Default: ""
-  ImageBuilderExistingSubnetId:
-    Type: String
-    Default: ""
-    Description: Must have Internet Access, will create if not provided
-  ImageBuilderExistingVpcId:
-    Type: String
-    Default: ""
-    Description: Must have Internet Access, will create if not provided
-  ImageBuilderVpcCIDR:
-    Description: IP range (CIDR notation) for new VPC if needed
-    Type: String
-    Default: "10.0.0.0/24"
-  ImageBuilderPublicSubnetCIDR:
-    Description: IP range (CIDR notation) for subnet in new VPC if needed
-    Type: String
-    Default: "10.0.0.0/28"
 
 Resources:
   DeployBucket:
@@ -290,11 +274,7 @@ Resources:
                     "OrgId": "${OrgId}", 
                     "RootOU": "${RootOU}", 
                     "Prefix": "${Prefix}", 
-                    "UniqueId": "${UniqueId}", 
-                    "ImageBuilderExistingSubnetId": "${ImageBuilderExistingSubnetId}", 
-                    "ImageBuilderExistingVpcId": "${ImageBuilderExistingVpcId}", 
-                    "ImageBuilderVpcCIDR": "${ImageBuilderVpcCIDR}", 
-                    "ImageBuilderPublicSubnetCIDR": "${ImageBuilderPublicSubnetCIDR}"
+                    "UniqueId": "${UniqueId}"
                   }
               OutputArtifacts: []
               InputArtifacts:
@@ -365,36 +345,6 @@ Resources:
                                 
         - Name: PrepManagedDeployments
           Actions:
-            # - Name: ec2-image-builder-pipeline
-            #   RunOrder: 1
-            #   ActionTypeId:
-            #     Category: Deploy
-            #     Owner: AWS
-            #     Provider: CloudFormation
-            #     Version: 1
-            #   Configuration:
-            #     ChangeSetName: pipeline-changeset
-            #     ActionMode: CREATE_UPDATE
-            #     Capabilities: CAPABILITY_NAMED_IAM
-            #     RoleArn: !GetAtt 'CarvePipelineRole.Arn'
-            #     StackName: !Sub '${Prefix}carve-image-builder-pipeline'
-            #     TemplatePath: GithubRepo::deployment/codepipeline/carve-image-builder-pipeline.cfn.yml
-            #     TemplateConfiguration: GithubRepo::deployment/codepipeline/tags-template.json
-            #     ParameterOverrides: !Sub |
-            #       {
-            #         "ExistingSubnetId":"${ImageBuilderExistingSubnetId}",
-            #         "ExistingVpcId":"${ImageBuilderExistingVpcId}",
-            #         "VpcCIDR":"${ImageBuilderVpcCIDR}",
-            #         "PublicSubnetCIDR":"${ImageBuilderPublicSubnetCIDR}",
-            #         "Prefix":"${Prefix}",
-            #         "OrgId":"${OrgId}",
-            #         "UniqueId":"${UniqueId}",
-            #         "DeployBucket":"${DeployBucket}",
-            #         "GitHubOAUTHTokenASMPath":"${GitHubOAUTHTokenASMPath}"
-            #       }
-            #   OutputArtifacts: []
-            #   InputArtifacts:
-            #     - Name: GithubRepo
 
             - Name: update-s3-notification
               ActionTypeId:
@@ -404,7 +354,7 @@ Resources:
                 Version: '1'
               RunOrder: 1
               Configuration:
-                FunctionName: !Sub "${Prefix}carve-core-entrypoint"
+                FunctionName: !Sub "${Prefix}carve-core-deploy_trigger"
                 UserParameters: BucketNotification
               OutputArtifacts: []
               InputArtifacts: []
