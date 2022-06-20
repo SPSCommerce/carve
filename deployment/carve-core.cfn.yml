@@ -485,24 +485,24 @@ Resources:
       TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
       TimeoutInMinutes: 5
 
-  FunctionSfCleanupDescribeStack:
-    Type: AWS::CloudFormation::Stack
-    Properties: 
-      Parameters:
-        HandlerFile: sf_cleanup_describe_stack
-        # params below are the same for all nested lambda stacks
-        CarveVersion: !Ref CarveVersion
-        CodeBucket: !Ref CodeBucket
-        ECR: !Ref ECR
-        IMAGETAG: !Ref IMAGETAG
-        OrgId: !Ref OrgId
-        OrgSNSTopic: !Ref OrgSNSTopic
-        Prefix: !Ref Prefix
-        PropogateUpdates: !Ref PropogateUpdates
-        UniqueId: !Ref UniqueId
-        RoleArn: !GetAtt CarveCoreRole.Arn
-      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
-      TimeoutInMinutes: 5
+  # FunctionSfCleanupDescribeStack:
+  #   Type: AWS::CloudFormation::Stack
+  #   Properties: 
+  #     Parameters:
+  #       HandlerFile: sf_cleanup_describe_stack
+  #       # params below are the same for all nested lambda stacks
+  #       CarveVersion: !Ref CarveVersion
+  #       CodeBucket: !Ref CodeBucket
+  #       ECR: !Ref ECR
+  #       IMAGETAG: !Ref IMAGETAG
+  #       OrgId: !Ref OrgId
+  #       OrgSNSTopic: !Ref OrgSNSTopic
+  #       Prefix: !Ref Prefix
+  #       PropogateUpdates: !Ref PropogateUpdates
+  #       UniqueId: !Ref UniqueId
+  #       RoleArn: !GetAtt CarveCoreRole.Arn
+  #     TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+  #     TimeoutInMinutes: 5
 
   CarveCoreRole:
     Type: AWS::IAM::Role
@@ -712,8 +712,8 @@ Resources:
           Fn::GetAtt: [FunctionSfCleanupOrganize, Outputs.LambdaName]
         FunctionSfCleanupDeleteStack:
           Fn::GetAtt: [FunctionSfCleanupDeleteStack, Outputs.LambdaName]
-        FunctionSfCleanupDescribeStack:
-          Fn::GetAtt: [FunctionSfCleanupDescribeStack, Outputs.LambdaName]
+        FunctionSfStacksDescribeStack:
+          Fn::GetAtt: [FunctionSfStacksDescribeStack, Outputs.LambdaName]
         # CarveFunction: 
         #   Fn::GetAtt: [FunctionEntrypoint, Outputs.LambdaArn]
         # CarveDeployStacksStepFunction: !Ref CarveDeployStacksStepFunction
