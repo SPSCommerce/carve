@@ -16,7 +16,7 @@ def lambda_handler(event, context):
         if event['Records'][0]['s3']['bucket']['name'] == os.environ['CarveS3Bucket']:
             key = event['Records'][0]['s3']['object']['key']
             input = {'graph': key}
-            name = f'bucket-trigger-{key}-{int(time.time())}'
+            name = f's3-bucket-trigger-{int(time.time())}'
             aws_start_stepfunction(os.environ['DeployBeaconsStateMachine'], input, name)
 
 
