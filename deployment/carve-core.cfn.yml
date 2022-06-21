@@ -710,6 +710,7 @@ Resources:
           Fn::GetAtt: [FunctionSfDeployGraphDeploymentList, Outputs.LambdaName]
         FunctionSfDeployGraphFinalize:
           Fn::GetAtt: [FunctionSfDeployGraphFinalize, Outputs.LambdaName]
+        CarvePrivateLinkStepFunction: !Ref CarvePrivateLinkStepFunction
         CarveDeployStacksStepFunction: !Ref CarveDeployStacksStepFunction
         CarveCleanupStepFunction: !Ref CarveCleanupStepFunction
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"

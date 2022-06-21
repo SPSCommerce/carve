@@ -23,6 +23,6 @@ if 'AWS_REGION' not in os.environ:
     # create lambda context object
     os.environ['AWS_LAMBDA_FUNCTION_ARN'] = config['FunctionArn']
 
-    global context
-    context = LambdaContext()
+    global lambda_context
+    lambda_context = LambdaContext()
 
