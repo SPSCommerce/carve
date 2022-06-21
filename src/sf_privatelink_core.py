@@ -4,7 +4,7 @@ import json
 import os
 
 from aws import *
-from carve import load_graph, unique_node_values, get_deploy_key
+from carve import load_graph, unique_node_values
 from privatelink import (add_peer_routes, private_link_deployment,
                             privatelink_template)
 
@@ -39,8 +39,7 @@ def lambda_handler(event, context):
         G = load_graph(event['graph'], local=False)
         print(f"successfully loaded graph: {event['graph']}")
     else:
-        print("no graph provided in input, using deploy key")
-        G = load_graph(get_deploy_key(), local=False)
+        raise Exception("no graph provided in input. input format: {'input': {'graph': 'carve-privatelink-graph.json'}}")
     
     # get all regions and AZids in use in the carve deployment
     deploy_regions = sorted(unique_node_values(G, 'Region'))

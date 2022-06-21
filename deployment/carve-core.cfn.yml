@@ -571,7 +571,7 @@ Resources:
                   - states:List*
                   - states:SendTaskSuccess
                 Resource:
-                  - !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-*-statemachine"
+                  - !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-*"
 
               - Effect: Allow
                 Action:
@@ -666,7 +666,7 @@ Resources:
         FunctionSfStacksExecuteChangeSet: 
           Fn::GetAtt: [FunctionSfStacksExecuteChangeSet, Outputs.LambdaName]
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
-      StateMachineName: !Sub "${Prefix}carve-deploy-stacks-statemachine"
+      StateMachineName: !Sub "${Prefix}carve-deploy-stacks"
       StateMachineType: STANDARD
 
   CarvePrivateLinkStepFunction:
@@ -682,7 +682,7 @@ Resources:
           Fn::GetAtt: [FunctionSfPrivateLinkRegions, Outputs.LambdaName]
         CarveDeployStacksStepFunction: !Ref CarveDeployStacksStepFunction
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
-      StateMachineName: !Sub "${Prefix}carve-privatelink-setup-statemachine"
+      StateMachineName: !Sub "${Prefix}carve-privatelink-setup"
       StateMachineType: STANDARD
 
   # CarvePrivateLinkDeleteFunction:
@@ -694,7 +694,7 @@ Resources:
   #     DefinitionSubstitutions: 
   #       CarveCleanupStepFunction: !Ref CarveCleanupStepFunction
   #     RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
-  #     StateMachineName: !Sub "${Prefix}carve-privatelink-delete-statemachine"
+  #     StateMachineName: !Sub "${Prefix}carve-privatelink-delete"
   #     StateMachineType: STANDARD
 
   CarveDeployGraphStepFunction:
@@ -714,7 +714,7 @@ Resources:
         CarveDeployStacksStepFunction: !Ref CarveDeployStacksStepFunction
         CarveCleanupStepFunction: !Ref CarveCleanupStepFunction
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
-      StateMachineName: !Sub "${Prefix}carve-deploy-beacons-statemachine"
+      StateMachineName: !Sub "${Prefix}carve-deploy-graph"
       StateMachineType: STANDARD
 
   CarveCleanupStepFunction:
@@ -738,7 +738,7 @@ Resources:
         #   Fn::GetAtt: [FunctionEntrypoint, Outputs.LambdaArn]
         # CarveDeployStacksStepFunction: !Ref CarveDeployStacksStepFunction
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
-      StateMachineName: !Sub "${Prefix}carve-cleanup-statemachine"
+      StateMachineName: !Sub "${Prefix}carve-cleanup"
       StateMachineType: STANDARD
 
   CarveNetworkDiscoveryStepFunction:
@@ -756,7 +756,7 @@ Resources:
         FunctionSfNetworkDiscoveryFinalize:
           Fn::GetAtt: [FunctionSfNetworkDiscoveryFinalize, Outputs.LambdaName]
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
-      StateMachineName: !Sub "${Prefix}carve-network-discovery-statemachine"
+      StateMachineName: !Sub "${Prefix}carve-network-discovery"
       StateMachineType: STANDARD
 
   # CarveScaleStepFunction:
@@ -775,7 +775,7 @@ Resources:
   #       FunctionSfScaleFinalize: 
   #         Fn::GetAtt: [FunctionSfScaleFinalize, Outputs.LambdaName]
   #     RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
-  #     StateMachineName: !Sub "${Prefix}carve-scale-statemachine"
+  #     StateMachineName: !Sub "${Prefix}carve-scale"
   #     StateMachineType: STANDARD
 
 
@@ -815,7 +815,7 @@ Resources:
                   - states:Get*
                   - states:List*
                 Resource:
-                  - !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-*-statemachine"
+                  - !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-*"
 
   OrgSNSTopic:
     Type: AWS::SNS::Topic

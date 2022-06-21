@@ -17,7 +17,7 @@ def lambda_handler(event, context):
             key = event['Records'][0]['s3']['object']['key']
             input = {'graph': key}
             name = f's3-bucket-trigger-{int(time.time())}'
-            aws_start_stepfunction(os.environ['DeployBeaconsStateMachine'], input, name)
+            aws_start_stepfunction(os.environ['DeployBeaconsGraphMachine'], input, name)
 
 
 def code_pipeline(event, context):

@@ -76,11 +76,11 @@ Resources:
             - !Sub "${Prefix}carve-managed-bucket-${UniqueId}-${AWS::Region}"
           CarveSNSTopicArn: !Ref OrgSNSTopic
           CarveVersion: !Ref CarveVersion
-          CleanupStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-cleanup-statemachine
-          DeployBeaconsStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-deploy-beacons-statemachine
-          DeployStacksStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-deploy-stacks-statemachine
-          NetworkDiscoveryStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-network-discovery-statemachine
-          ScaleStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-scale-statemachine
+          CleanupStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-cleanup
+          DeployBeaconsGraphMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-deploy-graph
+          DeployStacksStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-deploy-stacks
+          NetworkDiscoveryStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-network-discovery
+          ScaleStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-scale
           MPLCONFIGDIR: /tmp/matplotlib
           OrgId: !Ref OrgId
           UniqueId: !Ref UniqueId
