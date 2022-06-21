@@ -1,3 +1,4 @@
+import lambdavars
 import os
 import time
 
@@ -8,6 +9,7 @@ from carve import get_deploy_key
 
 
 def lambda_handler(event, context):
+    print(event)
     if 'CodePipeline.job' in event:
         code_pipeline(event, context)
     elif 's3' in event['Records'][0]:
@@ -40,3 +42,7 @@ def code_pipeline(event, context):
 
         # let the pipeline continue
         aws_codepipeline_success(event['CodePipeline.job']['id'])
+
+# main function
+if __name__ == '__main__':
+    lambda_handler(None, None)
