@@ -1,4 +1,5 @@
 # import pylab as plt
+import lambdavars
 import os
 import time
 
@@ -7,12 +8,19 @@ from botocore.exceptions import ClientError
 from networkx.readwrite import json_graph
 
 from aws import *
-from carve import (carve_results, carve_role_arn, get_subnet_beacons,
-                   load_graph, save_graph, update_carve_beacons)
+from carve import (carve_results, get_subnet_beacons,
+                   load_graph, save_graph, carve_role_arn)
 
 
 
-def discover_routing():
+def lambda_handler(event, context):
+    print(event)
+
+    credentials = aws_assume_role(carve_role_arn('094619684579'), f"carve-cleanup")
+    response = aws_describe_endpoint_service("com.amazonaws.vpce.us-east-1.vpce-svc-048a86ff69aa124d6", credentials, region=current_region)
+
+    print(response)
+
     # make sure all beacons are accounted for
     # update_carve_beacons()
 
@@ -64,8 +72,15 @@ def discover_routing():
     G.graph['Name'] = name
 
     save_graph(G, f"/tmp/{name}.json")
-
+    
     file = aws_upload_file_s3(f'discovered/{name}.json', f"/tmp/{name}.json")
 
     return {'discovery': f"s3://{os.environ['CarveS3Bucket']}/discovered/{name}.json"}
- 
+
+
+
+
+
+# if main run lambda handler
+if __name__ == '__main__':
+    lambda_handler(None, None)

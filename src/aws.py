@@ -191,6 +191,23 @@ def aws_describe_vpc_endpoint_service_configuration(service, region):
         raise(e)
 
 
+def aws_describe_endpoint_service(service_name, credentials, region=current_region):
+    client = boto3.client(
+        'ec2',
+        config=boto_config,
+        region_name=region,
+        aws_access_key_id = credentials['AccessKeyId'],
+        aws_secret_access_key = credentials['SecretAccessKey'],
+        aws_session_token = credentials['SessionToken']
+        )
+    response = client.describe_vpc_endpoint_services(
+        ServiceNames=[
+            service_name
+        ],
+    )
+    return response
+
+
 def aws_get_template(stackname, region, credentials=None):
     ''' return the template for a stack '''
     if credentials is None:
