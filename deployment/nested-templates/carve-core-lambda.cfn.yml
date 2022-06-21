@@ -53,7 +53,7 @@ Parameters:
 
 Conditions:
   UseOrgId: !Equals [ !Ref "UniqueId", "" ]
-  Core: !Equals [ !Ref "HandlerFile", "entrypoint" ]
+  Trigger: !Equals [ !Ref "HandlerFile", "deploy_trigger" ]
   SNS: !Equals [ !Ref "HandlerFile", "sns_event" ]
 
 Resources:
@@ -93,7 +93,7 @@ Resources:
       # ReservedConcurrentExecutions: 20
 
   S3InvokeCarvePermission:
-    Condition: Core
+    Condition: Trigger
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
