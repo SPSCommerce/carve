@@ -109,5 +109,4 @@ Resources:
 Outputs:
   NetworkInterfaceIds:
     Description: all network interfaces for the endpoint
-    # Value: !GetAtt CarvePrivateEndpoint.NetworkInterfaceIds
-    Value: Fn::Join: [ ",", !GetAtt CarvePrivateEndpoint.NetworkInterfaceIds ]
+    Value: !Join [ ",", !GetAtt CarvePrivateEndpoint.NetworkInterfaceIds ]
