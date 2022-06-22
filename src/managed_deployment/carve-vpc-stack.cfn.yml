@@ -106,3 +106,6 @@ Resources:
           ToPort: 80
           CidrIp: "0.0.0.0/0"
 
+Outputs:
+  EndpointService:
+    Value: !GetAtt CarvePrivateEndpoint.NetworkInterfaceIds

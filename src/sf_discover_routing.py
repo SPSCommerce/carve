@@ -17,10 +17,12 @@ def lambda_handler(event, context):
     print(event)
 
     credentials = aws_assume_role(carve_role_arn('094619684579'), f"carve-cleanup")
-    response = aws_describe_endpoint_service("com.amazonaws.vpce.us-east-1.vpce-svc-048a86ff69aa124d6", credentials, region=current_region)
+    credentials = aws_assume_role('arn:aws:iam::094619684579:role/admin/cloudops', f"carve-cleanup")
+    response = aws_describe_network_interfaces(["eni-0580e7539f7b53c85"], credentials, region=current_region)
 
-    print(response)
-
+    from pprint import pprint
+    pprint(response)
+    sys.exit()
     # make sure all beacons are accounted for
     # update_carve_beacons()
 
