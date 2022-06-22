@@ -294,10 +294,10 @@ def carve_role_arn(account):
 
 def get_deploy_key(last=False):
     # get either the current or last deployment graph key from s3
-    if not last:
-        path = 'deploy_active/'
-    else:
+    if last:
         path = 'deployed_graph/'
+    else:
+        path = 'deploy_active/'
     return aws_newest_s3(path)
 
 

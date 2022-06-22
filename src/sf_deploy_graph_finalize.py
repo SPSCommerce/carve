@@ -32,8 +32,9 @@ def inventory_beacons(account_dict):
 
 
 def stack_outputs_thread(credentials, region, stackname):
-    # this function will search for stacks containing the stackname
-    # and return a dict of the stack outputs
+    ''' 
+    this function is used as a thread and will return a dict of the stack outputs for the provided stack
+    '''
     outputs = aws_get_stack_outputs_dict(stackname, region, credentials=credentials)
     try:
         return json.loads(outputs['Beacons'])
@@ -42,10 +43,11 @@ def stack_outputs_thread(credentials, region, stackname):
     
 
 def stacks_by_account(G):
-    # determine all deployed stacks for VPCs in the graph, and their account and region
-    # need to generate an account dictionary of stacks:
-    #     account_dict = {account_id: [{stackname: stackname1, region: region}, {stackname: stackname2, region: region}], ...}
-
+    '''
+    determine all deployed stacks for all VPCs in the graph G, with their account and region
+    Using that, generate an account dictionary of stacks:
+       account_dict = {account_id: [{stackname: stackname1, region: region}, {stackname: stackname2, region: region}], ...}
+    '''
     account_dict = {}
     vpcs = []
     for subnet in list(G.nodes):
@@ -62,7 +64,7 @@ def stacks_by_account(G):
 
 def lambda_handler(event, context):
     # copy deployment object
-    deploy_key = get_deploy_key(last=True)
+    deploy_key = get_deploy_key()
     if not deploy_key:
         raise Exception('No deployment key found')
 
@@ -71,6 +73,8 @@ def lambda_handler(event, context):
     account_dict = stacks_by_account(G)
     beacons = inventory_beacons(account_dict)
     print("beacons:", beacons)
+
+    # push inventory to S3
     data = json.dumps(beacons, ensure_ascii=True, indent=2, sort_keys=True)
     aws_put_direct(data, "managed_deployment/beacon_inventory.json")
 
@@ -79,6 +83,7 @@ def lambda_handler(event, context):
     aws_copy_s3_object(deploy_key, f'deployed_graph/{key_name}')
     aws_delete_s3_object(deploy_key)
 
-# main handler
+
+# main handler for local testing
 if __name__ == '__main__':
     lambda_handler(None, None)
