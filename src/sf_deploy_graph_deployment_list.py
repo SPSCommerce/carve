@@ -6,7 +6,7 @@ from carve import load_graph, get_deploy_key
 from aws import *
 
 
-def deployment_list(G):
+def deployment_list(G, upload_template=True):
     ''' 
     return a list of stacks to deploy, formatted for the deploy stacks step function
     '''
@@ -47,10 +47,11 @@ def deployment_list(G):
         vpc_template, stack = generate_template(vpc, vpc_subnets, account, region_map[region], region)
 
         # push template to s3
-        key = f"managed_deployment/{vpc}.cfn.json"
-        data = json.dumps(vpc_template, ensure_ascii=True, indent=2, sort_keys=True)
-        aws_put_direct(data, key)
-    
+        if upload_template:
+            key = f"managed_deployment/{vpc}.cfn.json"
+            data = json.dumps(vpc_template, ensure_ascii=True, indent=2, sort_keys=True)
+            aws_put_direct(data, key)
+        
         # add stack to list of stacks to deploy
         deploy_beacons.append(stack)
 

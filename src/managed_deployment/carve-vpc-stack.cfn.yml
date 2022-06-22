@@ -68,6 +68,10 @@ Resources:
                 Action:
                   - "sns:Publish"
                 Resource: !Ref CarveSNSTopicArn
+              - Effect: Allow
+                Action:
+                  - "ec2:DescribeNetworkInterfaces"
+                Resource: "*"
 
   LambdaSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -106,7 +110,51 @@ Resources:
           ToPort: 80
           CidrIp: "0.0.0.0/0"
 
+  CarveENIAddressesLambda:
+    Type: 'AWS::Lambda::Function'
+    DeletionPolicy: 'Delete'
+    Properties:
+      Code:
+        ZipFile: !Sub |
+          import cfnresponse
+          import json
+          import boto3
+          def lambda_handler(event, context):
+              print('REQUEST RECEIVED:\n' + json.dumps(event))
+              responseData = {}
+              if event['RequestType'] == 'Delete':
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+                  return
+              if event['RequestType'] == 'Create':
+                  try:
+                      ips = {}
+                      ec2 = boto3.resource('ec2')
+                      enis = event['ResourceProperties']['NetworkInterfaceIds']
+                      for eni in enis:
+                          network_interface = ec2.NetworkInterface(eni)
+                          ips[eni] = network_interface.private_ip_address
+                      responseData['PrivateIPs'] = json.dumps(ips)
+                      print(f"PrivateLink IPs for ${VpcId}: {responseData['PrivateIPs']}")
+                    except Exception as e:
+                        responseData = {'error': str(e)}
+                        cfnresponse.send(event, context, cfnresponse.FAILED, responseData)
+                        return
+                    cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: python3.9
+      Timeout: 10
+
+  GetPrivateIPs:
+    Type: Custom::GetPrivateIPs
+    DependsOn:
+      - CarvePrivateEndpoint
+    Properties:
+      ServiceToken: !GetAtt ENIAddressesLambda.Arn
+      NetworkInterfaceIds: !GetAtt CarvePrivateEndpoint.NetworkInterfaceIds
+
 Outputs:
   NetworkInterfaceIds:
-    Description: all network interfaces for the endpoint
-    Value: !Join [ ",", !GetAtt CarvePrivateEndpoint.NetworkInterfaceIds ]
+    Description: all private IPs for the endpoint
+    # Value: !Join [ ",", !GetAtt CarvePrivateEndpoint.NetworkInterfaceIds ]
+    Value: !GetAtt GetPrivateIPs.PrivateIPs
