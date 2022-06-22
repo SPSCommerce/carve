@@ -5,45 +5,51 @@ from aws import *
 import concurrent.futures
 
 
-def inventory_beacons():
-    """
-    Inventory beacons from the deployed graph
-    """
-    pass
 
-
-def create_account_threads(account_dict):
+def inventory_beacons(account_dict):
     '''
-    run the account_thread() function in parallel in all accounts in the list
+    run the stack_outputs_thread() function in parallel for all stacks in the account_dict
+    account_dict = {account_id: [{stackname: stackname1, region: region}, {stackname: stackname2, region: region}], ...}
     '''
     futures = set()
+    beacons = {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=300) as executor:
             # create threads
             for account_id, stacks in account_dict.items():
-                futures.add(executor.submit(
-                    account_thread,
-                    account_id=account_id,
-                    stacks=stacks
-                    ))
+                credentials = aws_assume_role(carve_role_arn(account_id), f"endpoint-inventory")
+                for stack in stacks:
+                    futures.add(executor.submit(
+                        stack_outputs_thread,
+                        credentials=credentials,
+                        region=stack['region'],
+                        stackname=stack['stackname']
+                        ))
             # collect thread results
             for future in concurrent.futures.as_completed(futures):
                 result = future.result()
                 for each in result:
-                    print(each)
+                    beacons.update(each)
+    return beacons
 
 
-def account_thread(account_id, stacks):
+def stack_outputs_thread(credentials, region, stackname):
     # this function will search for stacks containing the stackname
     # and return a dict of the stack outputs
-    credentials = aws_assume_role(carve_role_arn(account_id), f"carve-inventory")
     outputs = aws_get_stack_outputs_dict(stackname, region, credentials=credentials)
-
-    return outputs
+    try:
+        beacons = json.loads(outputs['Beacons'])
+    except KeyError:
+        raise Exception(f"No Beacons stack output found in {stackname} in account {credentials['Account']}")
+    print(beacons)
+    return beacons
     
 
-def deployed_stacks(G):
+def stacks_by_account(G):
     # determine all deployed stacks for VPCs in the graph, and their account and region
-    account_stacks = {}
+    # need to generate an account dictionary of stacks:
+    #     account_dict = {account_id: [{stackname: stackname1, region: region}, {stackname: stackname2, region: region}], ...}
+
+    account_dict = {}
     vpcs = []
     for subnet in list(G.nodes):
         vpc = G.nodes().data()[subnet]['VpcId']
@@ -51,11 +57,10 @@ def deployed_stacks(G):
             account = G.nodes().data()[subnet]['Account']
             region = G.nodes().data()[subnet]['Region']
             stackname = f"{os.environ['Prefix']}carve-managed-beacons-{vpc}"
-            if account not in account_stacks:
-                account_stacks[account] = {}
-            account_stacks[account][stackname] = 
-
-    return vpcs
+            if account not in account_dict:
+                account_dict[account] = []
+            account_dict[account].append({'stackname': stackname, 'region': region}) 
+    return account_dict
 
 
 def lambda_handler(event, context):
@@ -64,15 +69,18 @@ def lambda_handler(event, context):
     if not deploy_key:
         raise Exception('No deployment key found')
 
+    # get inventory of all beacons (endpoint private IP addresses)
     G = load_graph(deploy_key, local=False)
-    # stack_deployments = deployment_list(G, upload_template=False)
+    account_dict = stacks_by_account(G)
+    beacons = inventory_beacons(account_dict)
+    print("beacons:", beacons)
+    data = json.dumps(beacons, ensure_ascii=True, indent=2, sort_keys=True)
+    aws_put_direct(data, "/managed_deployment/beacon_inventory.json")
 
-    # print(stack_deployments)
-
-    # # move deployment key to deployed_graph
-    # key_name = deploy_key.split('/')[-1]
-    # aws_copy_s3_object(deploy_key, f'deployed_graph/{key_name}')
-    # aws_delete_s3_object(deploy_key)
+    # move deployment key to deployed_graph
+    key_name = deploy_key.split('/')[-1]
+    aws_copy_s3_object(deploy_key, f'deployed_graph/{key_name}')
+    aws_delete_s3_object(deploy_key)
 
 # main handler
 if __name__ == '__main__':

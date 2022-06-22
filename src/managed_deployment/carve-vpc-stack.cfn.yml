@@ -110,7 +110,7 @@ Resources:
           ToPort: 80
           CidrIp: "0.0.0.0/0"
 
-  CarveENIAddressesLambda:
+  ENIAddressesLambda:
     Type: 'AWS::Lambda::Function'
     DeletionPolicy: 'Delete'
     Properties:
@@ -132,14 +132,14 @@ Resources:
                       enis = event['ResourceProperties']['NetworkInterfaceIds']
                       for eni in enis:
                           network_interface = ec2.NetworkInterface(eni)
-                          ips[eni] = network_interface.private_ip_address
+                          ips[network_interface.subnet_id] = network_interface.private_ip_address
                       responseData['PrivateIPs'] = json.dumps(ips)
                       print(f"PrivateLink IPs for ${VpcId}: {responseData['PrivateIPs']}")
-                    except Exception as e:
-                        responseData = {'error': str(e)}
-                        cfnresponse.send(event, context, cfnresponse.FAILED, responseData)
-                        return
-                    cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
+                  except Exception as e:
+                      responseData = {'error': str(e)}
+                      cfnresponse.send(event, context, cfnresponse.FAILED, responseData)
+                      return
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
       Handler: index.lambda_handler
       Role: !GetAtt LambdaRole.Arn
       Runtime: python3.9
@@ -154,7 +154,7 @@ Resources:
       NetworkInterfaceIds: !GetAtt CarvePrivateEndpoint.NetworkInterfaceIds
 
 Outputs:
-  NetworkInterfaceIds:
-    Description: all private IPs for the endpoint
+  Beacons:
+    Description: Private IPs for each subnet endpoint
     # Value: !Join [ ",", !GetAtt CarvePrivateEndpoint.NetworkInterfaceIds ]
     Value: !GetAtt GetPrivateIPs.PrivateIPs
