@@ -26,9 +26,8 @@ def inventory_beacons(account_dict):
                         ))
             # collect thread results
             for future in concurrent.futures.as_completed(futures):
-                result = future.result()
-                for each in result:
-                    beacons.update(each)
+                beacons.update(future.result())
+
     return beacons
 
 
@@ -37,11 +36,9 @@ def stack_outputs_thread(credentials, region, stackname):
     # and return a dict of the stack outputs
     outputs = aws_get_stack_outputs_dict(stackname, region, credentials=credentials)
     try:
-        beacons = json.loads(outputs['Beacons'])
+        return json.loads(outputs['Beacons'])
     except KeyError:
         raise Exception(f"No Beacons stack output found in {stackname} in account {credentials['Account']}")
-    print(beacons)
-    return beacons
     
 
 def stacks_by_account(G):
@@ -75,7 +72,7 @@ def lambda_handler(event, context):
     beacons = inventory_beacons(account_dict)
     print("beacons:", beacons)
     data = json.dumps(beacons, ensure_ascii=True, indent=2, sort_keys=True)
-    aws_put_direct(data, "/managed_deployment/beacon_inventory.json")
+    aws_put_direct(data, "managed_deployment/beacon_inventory.json")
 
     # move deployment key to deployed_graph
     key_name = deploy_key.split('/')[-1]

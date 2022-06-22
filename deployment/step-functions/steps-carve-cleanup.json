@@ -42,7 +42,8 @@
                 "ErrorEquals": [ 
                   "Lambda.ServiceException",
                   "Lambda.AWSLambdaException",
-                  "Lambda.SdkClientException"
+                  "Lambda.SdkClientException",
+                  "States.Timeout"
                 ],
                 "IntervalSeconds": 1,
                 "MaxAttempts": 7,
