@@ -107,5 +107,7 @@ Resources:
           CidrIp: "0.0.0.0/0"
 
 Outputs:
-  EndpointService:
-    Value: !GetAtt CarvePrivateEndpoint.NetworkInterfaceIds
+  NetworkInterfaceIds:
+    Description: all network interfaces for the endpoint
+    # Value: !GetAtt CarvePrivateEndpoint.NetworkInterfaceIds
+    Value: Fn::Join: [ ",", !GetAtt CarvePrivateEndpoint.NetworkInterfaceIds ]
