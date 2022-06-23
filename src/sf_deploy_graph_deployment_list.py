@@ -42,7 +42,11 @@ def deployment_list(G, upload_template=True):
         account = ar[0]
         region = ar[1]
 
-        vpc_subnets = [x for x,y in G.nodes(data=True) if y['VpcId'] == vpc and y['Type'] == 'managed']
+        # remove external beacons from the graph
+        external = [node for node in G.nodes() if G.nodes().data()[node]['Type'] == 'external']
+        G.remove_nodes_from(external)
+
+        vpc_subnets = [x for x,y in G.nodes(data=True) if y['VpcId'] == vpc]
 
         # generate the CFN template for this VPC
         vpc_template, stack = generate_template(vpc, vpc_subnets, account, region_map[region], region)
