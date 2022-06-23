@@ -16,6 +16,10 @@ def lambda_handler(event, context):
     deploy_key = get_deploy_key()
     G = load_graph(deploy_key, local=False)
 
+    # remove external beacons from the graph
+    external = [node for node in G.nodes() if G.nodes().data()[node]['Type'] == 'external']
+    G.remove_nodes_from(external)
+
     print(f'cleaning up after graph deploy: {deploy_key}')
 
     accounts = aws_discover_org_accounts()

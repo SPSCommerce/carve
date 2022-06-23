@@ -14,15 +14,18 @@ def deployment_list(G, upload_template=True):
     # create a list for deployments
     deploy_beacons = []
 
+    # remove external beacons from the graph
+    external = [node for node in G.nodes() if G.nodes().data()[node]['Type'] == 'external']
+    G.remove_nodes_from(external)
+
     # determine all VPCs in the graph and their account and region
     vpcs = {}
     regions = set()
     for subnet in list(G.nodes):
-        if G.nodes().data()[subnet]['Type'] == 'managed':
-            a = G.nodes().data()[subnet]['Account']
-            r = G.nodes().data()[subnet]['Region']
-            vpcs[G.nodes().data()[subnet]['VpcId']] = (a, r)
-            regions.add(r)
+        a = G.nodes().data()[subnet]['Account']
+        r = G.nodes().data()[subnet]['Region']
+        vpcs[G.nodes().data()[subnet]['VpcId']] = (a, r)
+        regions.add(r)
 
     # create a region map of private link endpoints
     region_map = {}
@@ -41,10 +44,6 @@ def deployment_list(G, upload_template=True):
 
         account = ar[0]
         region = ar[1]
-
-        # remove external beacons from the graph
-        external = [node for node in G.nodes() if G.nodes().data()[node]['Type'] == 'external']
-        G.remove_nodes_from(external)
 
         vpc_subnets = [x for x,y in G.nodes(data=True) if y['VpcId'] == vpc]
 
