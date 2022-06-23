@@ -11,7 +11,6 @@ Carve can be deployed into its own isolated account in your AWS Organization, or
 Pipeline Prerequisites:
 
 * If you are deploying the IAM stackset into an AWS account that is not your Organization root account, you will need to enable the account as a [Cloudformation Delegated Administrator](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/stacksets-orgs-enable-trusted-access.html)
-* The Carve pipline requires an S3 bucket. Including a bucket resource in the pipeline stack will make the stack unable to be deleted until the bucket is emptied. Because of this, a CloudFormation template is provided here to deploy a bucket first:  [Carve-deploy-bucket.cfn.yml](deployment/codepipeline/Carve-deploy-bucket.cfn.yml)
 * CodePipeline requires a GitHub OAuth token to pull from the repository. If you don't already have one, you will need to create an OAuth token on GitHub for CodePipeline and put it in AWS Secrets Manager for CodePipeline to access. A template to create the secret resource is provided here: [Carve-secret-github.yml](deployment/codepipeline/Carve-secret-github.yml)
 
 To get started with Carve, deploy the either the CodePipeline stack template [Carve-pipeline-root.cfn.yml](deployment/codepipeline/Carve-pipeline-root.cfn.yml) in your AWS Organization root account, or deploy the CloudFormation template [Carve-pipeline-delegate.cfn.yml](deployment/codepipeline/Carve-pipeline-delegate.cfn.yml) for delegate accounts into its own account. 
