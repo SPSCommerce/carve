@@ -58,7 +58,8 @@ def discover_subnets(region, account_id, account_name, credentials):
             AvailabilityZone=subnet['AvailabilityZone'],
             AvailabilityZoneId=subnet['AvailabilityZoneId'],
             CidrBlock=vpc['CidrBlock'],
-            VpcId=subnet['VpcId']
+            VpcId=subnet['VpcId'],
+            Type='managed'
             )
 
     # return graph of all subnets in this region

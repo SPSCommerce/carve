@@ -5,11 +5,8 @@ import concurrent.futures
 from networkx.readwrite import json_graph
 import json
 import os
-import sys
-from copy import deepcopy
-from carve import load_graph, get_deploy_key, unique_node_values
+from carve import load_graph, unique_node_values
 from aws import *
-from multiprocessing import Process, Pipe
 import time
 
 

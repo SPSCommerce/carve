@@ -37,7 +37,16 @@ def stack_outputs_thread(credentials, region, stackname):
     '''
     outputs = aws_get_stack_outputs_dict(stackname, region, credentials=credentials)
     try:
-        return json.loads(outputs['Beacons'])
+        beacons = {}
+        stack_outputs = json.loads(outputs['Beacons'])
+        for subnet, ip in stack_outputs.items():
+            beacons[subnet] = {
+                'type': 'managed',
+                'region': region,
+                'account': credentials['Account'],
+                'address': f"http://{ip}/up"
+            }
+        return beacons
     except KeyError:
         raise Exception(f"No Beacons stack output found in {stackname} in account {credentials['Account']}")
     
@@ -51,15 +60,41 @@ def stacks_by_account(G):
     account_dict = {}
     vpcs = []
     for subnet in list(G.nodes):
-        vpc = G.nodes().data()[subnet]['VpcId']
-        if vpc not in vpcs:
-            account = G.nodes().data()[subnet]['Account']
-            region = G.nodes().data()[subnet]['Region']
-            stackname = f"{os.environ['Prefix']}carve-managed-beacons-{vpc}"
-            if account not in account_dict:
-                account_dict[account] = []
-            account_dict[account].append({'stackname': stackname, 'region': region}) 
+        if G.nodes[subnet]['Type'] == 'managed':
+            vpc = G.nodes().data()[subnet]['VpcId']
+            if vpc not in vpcs:
+                account = G.nodes().data()[subnet]['Account']
+                region = G.nodes().data()[subnet]['Region']
+                stackname = f"{os.environ['Prefix']}carve-managed-beacons-{vpc}"
+                if account not in account_dict:
+                    account_dict[account] = []
+                account_dict[account].append({'stackname': stackname, 'region': region}) 
     return account_dict
+
+
+def update_beacon_inventory(G):
+    '''
+    update the inventory of beacons in the graph G
+    '''
+    # get all stacks by account
+    account_dict = stacks_by_account(G)
+    # add managed beacons to inventory
+    beacons = inventory_beacons(account_dict)
+
+    # add external targets
+    for node in list(G.nodes):
+        if G.nodes[node]['Type'] == 'external':
+            beacons[node] = {
+                'type': 'external',
+                'address': G.nodes[node]['Address']
+            }
+
+    print("beacons:", beacons)
+
+    # push inventory to S3
+    data = json.dumps(beacons, ensure_ascii=True, indent=2, sort_keys=True)
+    aws_put_direct(data, "managed_deployment/beacon-inventory.json")
+
 
 
 def lambda_handler(event, context):
@@ -68,15 +103,10 @@ def lambda_handler(event, context):
     if not deploy_key:
         raise Exception('No deployment key found')
 
-    # get inventory of all beacons (endpoint private IP addresses)
     G = load_graph(deploy_key, local=False)
-    account_dict = stacks_by_account(G)
-    beacons = inventory_beacons(account_dict)
-    print("beacons:", beacons)
 
-    # push inventory to S3
-    data = json.dumps(beacons, ensure_ascii=True, indent=2, sort_keys=True)
-    aws_put_direct(data, "managed_deployment/beacon_inventory.json")
+    # get inventory of all beacons (endpoint private IP addresses)
+    update_beacon_inventory(G)
 
     # move deployment key to deployed_graph
     key_name = deploy_key.split('/')[-1]
@@ -86,4 +116,10 @@ def lambda_handler(event, context):
 
 # main handler for local testing
 if __name__ == '__main__':
-    lambda_handler(None, None)
+    # lambda_handler(None, None)
+    # G = load_graph("deployed_graph/carve-test-pl-subnets.json", local=False)
+
+    deploy_key = "ignore/carve-test-pl-subnets.json"
+    G = load_graph(deploy_key, local=True)
+
+    update_beacon_inventory(G)

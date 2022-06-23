@@ -3,86 +3,122 @@ import lambdavars
 import os
 import time
 
-import networkx as nx
-from botocore.exceptions import ClientError
-from networkx.readwrite import json_graph
+import concurrent.futures
 
 from aws import *
-from carve import (carve_results, get_subnet_beacons,
-                   load_graph, save_graph, carve_role_arn)
+from carve import (load_graph, save_graph, carve_role_arn,
+                   get_deploy_key)
 
+
+def verify_current_routes(G):
+    '''
+    run a verification of current routes, invoking every subnet lamabda function in a thread
+    then process the results and add verified routes to the graph
+    '''
+    # pull beacon inventory from s3
+    inventory = json.loads(aws_read_s3_direct('managed_deployment/beacon-inventory.json'))
+    
+    # get all addresses from beacons
+    beacons = [beacon['address'] for beacon in inventory.values()]
+
+    cred_cache = {}
+    verified_routes = {}
+    futures = set()
+    with concurrent.futures.ThreadPoolExecutor(max_workers=300) as executor:
+            for target, data in inventory.items():
+                # only create threads for carve managed subnet lambdas
+                if data['type'] == 'managed':
+
+                    # reuse account creds in threads
+                    if data['account'] not in cred_cache:
+                        credentials = aws_assume_role(carve_role_arn(data['account']), f"verification")
+                        cred_cache[data['account']] = credentials
+                    else:
+                        credentials = cred_cache[data['account']]
+
+                    # add a thread for each subnet lambda
+                    futures.add(executor.submit(
+                        verify_subnet_routes,
+                        subnet_id=target,
+                        credentials=credentials,
+                        region=data['region'],
+                        beacons=beacons
+                        ))
+
+            # collect thread results
+            for future in concurrent.futures.as_completed(futures):
+                for subnet, results in future.result().items():
+                    verified_routes[subnet] = results
+
+    # add verified routes to graph
+    R = create_graph_links(G, verified_routes, inventory)
+    return R
+
+
+def create_graph_links(G, verified_routes, inventory):
+    '''
+    create new graph with links by adding routes to the currently deployed graph
+    '''
+    # make new dict from inventory with address as key and subnet/name for easy lookup
+    beacons_dict = {}
+    for beacon, data in inventory.items():
+        beacons_dict[data['address']] = beacon
+
+    # add route links to managed subnets in graph
+    for subnet in list(G.nodes):
+        if G.nodes[subnet]['Type'] == 'managed':
+            for result in verified_routes[subnet]:
+                if result['result'] == 'up':
+                    beacon = result['beacon']
+                    edge = beacons_dict[beacon]
+                    if subnet != edge:
+                        G.add_edge(subnet, edge)
+    return G
+
+
+def verify_subnet_routes(subnet_id, credentials, region, beacons):
+    '''
+    pass a payload of beacon targets to verify and return the results
+    '''
+    lambda_arn = f"arn:aws:lambda:{region}:{credentials['Account']}:function:{os.environ['Prefix']}carve-{subnet_id}"
+    payload = {'action': 'verify', 'beacons': beacons}
+    result = aws_invoke_lambda(lambda_arn, payload, region, credentials)
+    verified = {subnet_id: result}
+    return verified
 
 
 def lambda_handler(event, context):
-    print(event)
+    # load current graph from s3
+    deploy_key = get_deploy_key()
+    if not deploy_key:
+        raise Exception('No deployment key found')
+    G = load_graph(deploy_key, local=False)
 
-    credentials = aws_assume_role(carve_role_arn('094619684579'), f"carve-cleanup")
-    credentials = aws_assume_role('arn:aws:iam::094619684579:role/admin/cloudops', f"carve-cleanup")
-    response = aws_describe_network_interfaces(["eni-0580e7539f7b53c85"], credentials, region=current_region)
+    # create a new graph with verified routes from graph G
+    R = verify_current_routes(G)
 
-    from pprint import pprint
-    pprint(response)
-    sys.exit()
-    # make sure all beacons are accounted for
-    # update_carve_beacons()
-
-    #  [{'subnet-0d310df8338186b7f': {
-    #      'beacon': '10.0.22.112'
-    #      'fping': {
-    #          '10.0.22.112': 0.046,
-    #          '10.0.43.87': 0.634,
-    #          '10.1.9.32': 0.142,
-    #          '10.2.10.235': 0.0,
-    #          '10.3.5.235': 0.0,
-    #          '10.4.3.255': 0.0
-    #          },
-    #     'health': 'up',
-    #     'status': 200,
-    #     'ts': '1620791060'
-    #     }, ...]
-    results = carve_results()
-
-    # {'0.0.0.0': {
-    #     'subnet': 'subnet-0d310df8338186b7f',
-    #     'account': data['Account'],
-    #     'region': data['Region']
-    # }}
-    subnet_beacons = get_subnet_beacons()
-
-    # G.add_node(
-    #     subnet['SubnetId'],
-    #     Name=name,
-    #     Account=account_id,
-    #     AccountName=account_name,
-    #     Region=region,
-    #     CidrBlock=vpc['CidrBlock'],
-    #     VpcId=subnet['VpcId']
-    #     )
-    G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
-
-    for ip, data in subnet_beacons.items():
-        print(f'results: {results}')
-        print(f'data: {data}')
-        result = results[data['subnet']]
-        if result['status'] == 200:
-            for target, ms in result['fping'].items():
-                if ms > 0:
-                    G.add_edge(subnet_beacons[target]['subnet'], data['subnet'])
-
+    # set a name for the new graph and save to s3
     name = f"routes_verified-{int(time.time())}"
-
     G.graph['Name'] = name
-
     save_graph(G, f"/tmp/{name}.json")
-    
-    file = aws_upload_file_s3(f'discovered/{name}.json', f"/tmp/{name}.json")
+    aws_upload_file_s3(f'discovered/{name}.json', f"/tmp/{name}.json")
 
     return {'discovery': f"s3://{os.environ['CarveS3Bucket']}/discovered/{name}.json"}
 
 
 
 
-
-# if main run lambda handler
 if __name__ == '__main__':
-    lambda_handler(None, None)
+    # lambda_handler(None, None)
+
+    # deploy_key = get_deploy_key()
+    # if not deploy_key:
+    #     raise Exception('No deployment key found')
+
+    deploy_key = "ignore/carve-test-pl-subnets.json"
+
+    # get inventory of all beacons (endpoint private IP addresses)
+    G = load_graph(deploy_key, local=True)
+    R = verify_current_routes(G)
+    file_path = f"{R.graph['Name']}.json"
+    save_graph(R, file_path)

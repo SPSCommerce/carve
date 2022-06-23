@@ -644,7 +644,7 @@ def aws_newest_s3(path, bucket=os.environ['CarveS3Bucket']):
         return None
 
 
-def aws_read_s3_direct(key, region):
+def aws_read_s3_direct(key):
     # get graph from S3
     resource = boto3.resource('s3', config=boto_config)
     try:

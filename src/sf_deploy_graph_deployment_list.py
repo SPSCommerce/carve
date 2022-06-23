@@ -18,10 +18,11 @@ def deployment_list(G, upload_template=True):
     vpcs = {}
     regions = set()
     for subnet in list(G.nodes):
-        a = G.nodes().data()[subnet]['Account']
-        r = G.nodes().data()[subnet]['Region']
-        vpcs[G.nodes().data()[subnet]['VpcId']] = (a, r)
-        regions.add(r)
+        if G.nodes().data()[subnet]['Type'] == 'managed':
+            a = G.nodes().data()[subnet]['Account']
+            r = G.nodes().data()[subnet]['Region']
+            vpcs[G.nodes().data()[subnet]['VpcId']] = (a, r)
+            regions.add(r)
 
     # create a region map of private link endpoints
     region_map = {}
@@ -41,7 +42,7 @@ def deployment_list(G, upload_template=True):
         account = ar[0]
         region = ar[1]
 
-        vpc_subnets = [x for x,y in G.nodes(data=True) if y['VpcId'] == vpc]
+        vpc_subnets = [x for x,y in G.nodes(data=True) if y['VpcId'] == vpc and y['Type'] == 'managed']
 
         # generate the CFN template for this VPC
         vpc_template, stack = generate_template(vpc, vpc_subnets, account, region_map[region], region)
@@ -65,7 +66,7 @@ def generate_template(vpc, vpc_subnets, account, vpce_service, region):
         vpc_template = json.load(f)
 
     # open lambda code to insert into template
-    with open("managed_deployment/subnet_pl_lambda.py") as f:
+    with open("managed_deployment/subnet_lambda.py") as f:
         lambda_code = f.read()
 
     # update the VPC CFN template to contain 1 lambda function per subnet

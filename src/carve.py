@@ -104,7 +104,7 @@ def get_subnet_beacons(include_targets=False):
     # load latest graph
     G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
 
-    beacon_targets = json.loads(aws_read_s3_direct('managed_deployment/beacon-targets.json', current_region))
+    beacon_targets = json.loads(aws_read_s3_direct('managed_deployment/beacon-inventory.json'))
 
     beacons = {}
     for subnet, data in G.nodes().data():
@@ -305,7 +305,10 @@ def unique_node_values(G, key):
     # from graph G, get all unique values of key
     values = set()
     for node in list(G.nodes):
-        values.add(G.nodes().data()[node][key])
+        try:
+            values.add(G.nodes().data()[node][key])
+        except:
+            pass
     return values
 
 
@@ -425,7 +428,7 @@ def load_graph(graph, local=True):
                 G.graph['Name'] = graph.split('/')[-1].split('.')[0]
                 return G
         else:
-            graph_data = aws_read_s3_direct(graph, current_region)
+            graph_data = aws_read_s3_direct(graph)
             G = json_graph.node_link_graph(json.loads(graph_data))
             return G
     except Exception as e:

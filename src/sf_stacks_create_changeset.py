@@ -32,7 +32,7 @@ def lambda_handler(event, context):
     region = payload['Region']
     parameters = payload['Parameters']
 
-    template = aws_read_s3_direct(payload['Template'], current_region)
+    template = aws_read_s3_direct(payload['Template'])
 
     credentials = aws_assume_role(carve_role_arn(account), f"carve-changeset-{region}")
 

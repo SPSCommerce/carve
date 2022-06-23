@@ -1,8 +1,6 @@
 import concurrent.futures
 import urllib3
 
-# import json
-
 '''
 this subnet lambda code file is kept separate from the VPC stack CFN template for easier 
 editing/testing and is injected into the CFN template at deploy time by carve-core lambda
@@ -47,15 +45,9 @@ def test_beacons(beacons):
 
 def lambda_handler(event, context):
     print(event)
-    if event['action'] == 'beacons':
+    if event['action'] == 'verify':
         return test_beacons(event['beacons'])
 
-    elif event['action'] == 'results':
-        result = None
-    elif event['action'] == 'update':
-        result = None
-
-    return result
 
 if __name__ == '__main__':
     beacon = 'https://www.google.com'
