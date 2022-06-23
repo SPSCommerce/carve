@@ -120,5 +120,5 @@ if __name__ == '__main__':
     # get inventory of all beacons (endpoint private IP addresses)
     G = load_graph(deploy_key, local=True)
     R = verify_current_routes(G)
-    file_path = f"{R.graph['Name']}.json"
+    file_path = f"ignore/{R.graph['Name']}-routing.json"
     save_graph(R, file_path)
