@@ -360,19 +360,6 @@ Resources:
               InputArtifacts: []
               Region: !Ref 'AWS::Region'
 
-            # - Name: update-carve-managed-resources
-            #   ActionTypeId:
-            #     Category: Invoke
-            #     Owner: AWS
-            #     Provider: Lambda
-            #     Version: '1'
-            #   RunOrder: 2
-            #   Configuration:
-            #     FunctionName: !Sub "${Prefix}carve-core-entrypoint"
-            #     UserParameters: UpdateManagedStacks
-            #   OutputArtifacts: []
-            #   InputArtifacts: []
-            #   Region: !Ref 'AWS::Region'
 
   CarveCodeBuild:
     Type: AWS::CodeBuild::Project

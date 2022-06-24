@@ -8,13 +8,7 @@ logger.setLevel(logging.INFO)
 
 def lambda_handler(event, context):
     '''
-    entrypoint for invoke events:
-        - step function executing route test
-        - diff 2 json graphs (s3 or payload)
-        - discovery process
-        - beacon deployment
-        - cloudformation custom resources
-
+    entrypoint for invoke events
     '''
 
 
@@ -37,20 +31,6 @@ def lambda_handler(event, context):
                 if message['source'] == 'aws.autoscaling':
                     from carve import asg_event
                     asg_event(event)
-
-        # elif 's3' in event['Records'][0]:
-        #     if event['Records'][0]['s3']['bucket']['name'] == os.environ['CarveS3Bucket']:
-        #         from deploy_beacons import start_carve_deployment
-        #         start_carve_deployment(event, context)
-
-    elif 'DiscoverRouting' in event:
-        from disco import discover_routing
-        return discover_routing()
-
-    elif 'CodePipeline.job' in event:
-        # from deploy_beacons import codepipline_job
-        print('TRIGGERED by CodePipeline')
-        # codepipline_job(event, context)
 
     else:
         print(f'unrecognized event: {event}')
