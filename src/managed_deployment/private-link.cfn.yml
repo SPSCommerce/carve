@@ -1,0 +1,445 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: VPC Endpoint service stack.
+
+Parameters:
+  ImageId:
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    # Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-minimal-hvm-arm64-ebs'
+    # Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-ebs'
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-minimal-hvm-x86_64-ebs'
+    Description: The source ImageId of Amazon AMI to use
+  Prefix:
+    Type: String
+    Description: "Prefix carve AWS resources and stacknames with this"
+    Default: "test-"
+  InternetAccess:
+    Type: String
+    Description: "true|false Allow internet access to the instances"
+    Default: "false"
+  CoreRegion:
+    Type: String
+    Description: "Region where carve core is deployed"
+    Default: "us-east-1"
+  CoreRegionPeering:
+    Type: String
+    Description: "true|false deploy peering routes in core region"
+    Default: "false"
+  PeerVpcId:
+    Default: ''
+    Description: VPC with which you are creating the VPC peering connection
+    Type: String
+  PrivateLinkRegions:
+    Type: String
+    Description: "List of regions PrivateLink will be deployed to"
+    Default: "us-east-1"
+
+
+Conditions:
+  CoreRegion:
+    !Equals [!Ref CoreRegion, !Ref AWS::Region]
+  NotCoreRegion:
+    !Not [Condition: CoreRegion]
+  InternetAccess:
+    !Equals [!Ref InternetAccess, "true"]
+  NoInternetAccess:
+    !Not [Condition: InternetAccess]
+  CoreRegionPeering:
+    !Equals [!Ref CoreRegionPeering, "true"]
+
+Resources:
+
+  EndpointService:
+    Type: AWS::EC2::VPCEndpointService
+    Properties:
+      AcceptanceRequired: False
+      NetworkLoadBalancerArns:
+        - !Ref EndpointServiceNLB
+
+  EndpointServicePermissions:
+    Type: AWS::EC2::VPCEndpointServicePermissions
+    Properties:
+      AllowedPrincipals:
+        - !Sub arn:aws:iam::${AWS::AccountId}:root
+      ServiceId: !Ref EndpointService
+
+  EndpointServiceNLB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub ${Prefix}carve-privatelink-nlb
+      Type: network
+      Scheme: internal
+      Subnets: []
+      LoadBalancerAttributes:
+        - Key: deletion_protection.enabled
+          Value: "false"
+        - Key: load_balancing.cross_zone.enabled
+          Value: "true"
+        - Key: access_logs.s3.enabled
+          Value: "false"
+
+  EndpointServiceNLBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref EndpointServiceNLBTargetGroup
+      LoadBalancerArn: !Ref EndpointServiceNLB
+      Port: 80
+      Protocol: TCP
+
+  EndpointServiceNLBTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub ${Prefix}carve-nlb-tg
+      Port: 80
+      Protocol: TCP
+      VpcId: !Ref PrivateLinkVPC
+      HealthCheckProtocol : HTTP
+      HealthCheckPath: /up
+      HealthCheckIntervalSeconds: 30
+      HealthyThresholdCount: 3
+      UnhealthyThresholdCount: 3
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: "90"
+
+
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    # CreationPolicy:
+    #   ResourceSignal:
+    #     Timeout: PT5M
+    #     Count: !Ref MaxSize
+    Properties:
+      MaxInstanceLifetime: 1209600 # 14 days
+      AutoScalingGroupName: !Sub ${Prefix}carve-privatelink-asg
+      LaunchConfigurationName: !Ref LaunchConfig
+      VPCZoneIdentifier: []
+      HealthCheckGracePeriod: '60'
+      HealthCheckType: EC2
+      MinSize: 0
+      MaxSize: 3
+      DesiredCapacity: 3
+      MetricsCollection:
+        - Granularity: 1Minute
+      TargetGroupARNs:
+        - !Ref EndpointServiceNLBTargetGroup
+      Tags:
+        - Key: Name
+          Value: !Sub ${Prefix}carve-privatelink-asg
+          PropagateAtLaunch: true
+
+  LaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      SecurityGroups:
+        - !Ref 'SecurityGroup'
+      IamInstanceProfile: !Ref 'InstanceProfile'
+      ImageId: !Ref 'ImageId'
+      InstanceMonitoring: 'false'
+      InstanceType: t2.micro
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            # gp3 = $.64/subnet/month
+            # st1 = $.36/subnet/month but slow
+            VolumeType: gp3
+            VolumeSize: '2'
+            DeleteOnTermination: 'true'
+            Encrypted: 'true'
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          amazon-linux-extras install -y nginx1
+          systemctl enable nginx
+          systemctl start nginx
+          systemctl stop nginx
+          cat <<EOF > /etc/nginx/nginx.conf
+          events {}
+          http {
+              server {
+                  listen       *:80;
+                  server_name carve;
+                  root    /dev/null;
+                  location /up {
+                      add_header Content-Type text/plain;
+                      return 200 'OK';
+                  }
+              }
+          }
+          EOF
+          systemctl start nginx
+          # yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_arm64/amazon-ssm-agent.rpm
+          yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
+          systemctl enable amazon-ssm-agent
+          systemctl start amazon-ssm-agent
+
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref PrivateLinkVPC
+      GroupDescription: Carve EC2 ingress
+      GroupName: !Sub ${Prefix}carve-privatelink
+
+  SecurityGroupIngress80:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref SecurityGroup
+      IpProtocol: tcp
+      FromPort: 80
+      ToPort: 80
+      CidrIp: 10.0.0.0/8
+
+  SecurityGroupIngress443:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref SecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      CidrIp: 10.0.0.0/8
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    DependsOn: InstanceRole
+    Properties:
+      Path: /
+      Roles: 
+        - !Sub "${Prefix}carve-privatelink-ec2-role"
+
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Condition: CoreRegion
+    Properties:
+      RoleName: !Sub "${Prefix}carve-privatelink-ec2-role"
+      Path: /
+      ManagedPolicyArns:
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonSSMManagedInstanceCore
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: "Allow"
+          Principal:
+            Service:
+              - "ec2.amazonaws.com"
+          Action:
+            - "sts:AssumeRole"
+
+###################################
+## Below here are resources to create a small private VPC to host the carve
+## PrivateLink stack
+
+  PrivateLinkVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/24
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${Prefix}carve-privatelink-${AWS::Region}
+
+  PrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref PrivateLinkVPC
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      CidrBlock: 10.0.0.0/28
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${Prefix}carve-privatelink-a
+
+  PrivateRoutingTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref PrivateLinkVPC
+      Tags:
+      - Key: Name
+        Value: !Sub ${Prefix}carve-privatelink-private-routing
+
+  RoutingTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref 'PrivateSubnet'
+      RouteTableId: !Ref 'PrivateRoutingTable'
+
+  S3GatewayEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.s3'
+      VpcId: !Ref PrivateLinkVPC
+      RouteTableIds:
+        - !Ref PrivateRoutingTable
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action:
+              - 's3:GetObject'
+            Resource:
+              # allow access to amazon-linux-extras packages
+              - !Sub "arn:aws:s3:::amazonlinux.${AWS::Region}.amazonaws.com/*"
+              - !Sub "arn:aws:s3:::amazonlinux-2-repos-${AWS::Region}/*"
+              - !Sub "arn:aws:s3:::amazonlinux-2-repos-hvm.${AWS::Region}.amazonaws.com/*"
+              - !Sub "arn:aws:s3:::ec2-downloads-windows/*"
+
+  SSMInterfaceEndpoint:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      VpcEndpointType: Interface
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ssm'
+      VpcId: !Ref PrivateLinkVPC
+      SubnetIds: 
+        - !Ref PrivateSubnet
+      SecurityGroupIds:
+        - !Ref SecurityGroup   
+      PrivateDnsEnabled: true 
+
+  SSMMessagesInterfaceEndpoint:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      VpcEndpointType: Interface
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ssmmessages'
+      VpcId: !Ref PrivateLinkVPC
+      SubnetIds: 
+        - !Ref PrivateSubnet
+      SecurityGroupIds:
+        - !Ref SecurityGroup
+      PrivateDnsEnabled: true
+
+  VPCPeeringConnection:
+    Type: AWS::EC2::VPCPeeringConnection
+    Condition: NotCoreRegion
+    Properties:
+      VpcId: !Ref PrivateLinkVPC
+      PeerVpcId: !Ref PeerVpcId
+      PeerRegion: !Ref CoreRegion
+      Tags:
+        - Key: Name
+          Value: !Sub "${Prefix}carve-privatelink-peering"
+
+  VPCPeerRoute:
+    DependsOn:
+    - VPCPeeringConnection
+    - EndpointService
+    Type: AWS::EC2::Route
+    Condition: NotCoreRegion
+    Properties:
+      RouteTableId: !Ref PrivateRoutingTable
+      DestinationCidrBlock: 10.0.0.0/24
+      VpcPeeringConnectionId: !Ref VPCPeeringConnection
+
+  VPCPeeringRoute:
+    Type: AWS::EC2::Route
+    Condition: CoreRegionPeering
+    Properties:
+      RouteTableId: !Ref PrivateRoutingTable
+      DestinationCidrBlock: 10.0.0.0/24
+      VpcPeeringConnectionId: false
+
+# Resources below here enable internet access in the private link VPC if configured
+
+  InternetGateway:
+    Condition: InternetAccess
+    Type: AWS::EC2::InternetGateway
+    DependsOn: PrivateLinkVPC
+    Properties:
+      Tags:
+      - Key: Name
+        Value: !Sub ${Prefix}carve-privatelink-igw
+
+  AttachGateway:
+    Condition: InternetAccess
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref PrivateLinkVPC
+      InternetGatewayId: !Ref 'InternetGateway'
+
+  PublicNATSubnet:
+    Condition: InternetAccess
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref PrivateLinkVPC
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      CidrBlock: 10.0.0.96/27
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${Prefix}carve-privatelink-subnet-public-nat
+
+  NatPublicIP:
+    Condition: InternetAccess
+    Type: AWS::EC2::EIP
+    DependsOn: PrivateLinkVPC
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${Prefix}carve-privatelink-nat-ip
+      
+  NatGateway:
+    Condition: InternetAccess
+    Type: AWS::EC2::NatGateway
+    DependsOn: NatPublicIP
+    Properties: 
+      SubnetId: !Ref PublicNATSubnet
+      AllocationId: !GetAtt NatPublicIP.AllocationId
+      Tags:
+        - Key: Name
+          Value: !Sub ${Prefix}carve-privatelink-nat-gateway
+
+  PublicRoutingTable:
+    Condition: InternetAccess
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref PrivateLinkVPC
+      Tags:
+      - Key: Name
+        Value: !Sub ${Prefix}carve-privatelink-public-routing
+
+  PublicRoute:
+    Condition: InternetAccess
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      GatewayId: !Ref 'InternetGateway'
+      DestinationCidrBlock: '0.0.0.0/0'
+      RouteTableId: !Ref 'PublicRoutingTable'
+
+  PrivateRoute:
+    Condition: InternetAccess
+    Type: AWS::EC2::Route
+    DependsOn: NatGateway
+    Properties:
+      NatGatewayId: !Ref NatGateway
+      DestinationCidrBlock: '0.0.0.0/0'
+      RouteTableId: !Ref 'PrivateRoutingTable'
+
+  RoutingTableAssociationPublicNAT:
+    Condition: InternetAccess
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref 'PublicNATSubnet'
+      RouteTableId: !Ref 'PublicRoutingTable'
+
+Outputs:
+  EndpointService:
+    Value: !Ref 'EndpointService'
+  EndpointServiceNLBTargetGroup:
+    Condition: CoreRegion
+    Value: !Ref EndpointServiceNLBTargetGroup
+  # NLBCrossRegionTargetGroup:
+  #   Condition: NotCoreRegion
+  #   Value: !Ref NLBCrossRegionTargetGroup
+  VpcId:
+    Value: !Ref PrivateLinkVPC
+  VPCCidrBlock:
+    Value: !GetAtt PrivateLinkVPC.CidrBlock
+  VpcPeeringConnectionId:
+    Condition: NotCoreRegion
+    Value: !Ref VPCPeeringConnection
+  PrivateLinkRegions:
+    Condition: CoreRegion
+    Value: !Ref PrivateLinkRegions

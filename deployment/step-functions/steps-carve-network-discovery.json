@@ -1,0 +1,90 @@
+{
+  "Comment": "Carve Network Discovery",
+  "StartAt": "Initialize",
+  "States": {
+    "Initialize": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Retry": [
+        {
+          "ErrorEquals": [ 
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 7,
+          "BackoffRate": 2
+        }
+      ],  
+      "Parameters": {
+        "FunctionName": "${FunctionSfNetworkDiscoveryInitialize}",
+        "Payload": {
+          "Input.$": "$"
+        }
+      },
+      "Next": "ConcurrentAccountDiscovery",
+      "TimeoutSeconds": 30
+    },
+    "ConcurrentAccountDiscovery": {
+      "Type": "Map",
+      "Next": "FinalizeDiscovery",
+
+      "MaxConcurrency": 100,
+      "ItemsPath": "$.Payload.accounts",
+      "InputPath": "$",
+      "Parameters": {
+        "regions.$": "$.Payload.regions",
+        "account.$": "$$.Map.Item.Value"
+      },
+      "Iterator": {
+        "StartAt": "DiscoverAccount",
+        "States": {
+          "DiscoverAccount": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::lambda:invoke",
+            "Retry": [
+              {
+                "ErrorEquals": [ 
+                  "Lambda.ServiceException",
+                  "Lambda.AWSLambdaException",
+                  "Lambda.SdkClientException"
+                ],
+                "IntervalSeconds": 1,
+                "MaxAttempts": 7,
+                "BackoffRate": 2
+              }
+            ],  
+            "Parameters": {
+              "FunctionName": "${FunctionSfNetworkDiscoveryAccount}",
+              "Payload.$": "$"
+            },
+            "End": true,
+            "TimeoutSeconds": 60
+          }
+        }
+      }
+    },
+    "FinalizeDiscovery": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Retry": [
+        {
+          "ErrorEquals": [ 
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 7,
+          "BackoffRate": 2
+        }
+      ],  
+      "Parameters": {
+        "FunctionName": "${FunctionSfNetworkDiscoveryFinalize}"
+      },
+      "End": true,
+      "TimeoutSeconds": 300
+    }
+  }
+}

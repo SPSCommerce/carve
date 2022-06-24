@@ -14,69 +14,23 @@ Parameters:
     Type: String
     Description: "Prefix carve AWS resources and stacknames with this"
     Default: ""
-  ImageId:
+  ServiceName:
     Type: String
-    Description: The ImageId from the Carve imagebuilder
-    Default: ''
+    Description: "Name of the service"
+    Default: ""
   CarveSNSTopicArn:
     Type: String
     Description: Carve SNS Topic
-  CarveCoreRegion:
-    Type: String
-    Description: Region where Carve Core is running
-  MinSize:
-    Description: Minimum number of instances in the ASG
-    Type: Number
-    Default: '0'
-  MaxSize:
-    Description: Maximum number of instances in the ASG
-    Type: Number
-    Default: '1'
-  DesiredSize:
-    Description: Desored number of instances in the ASG
-    Type: Number
-    Default: '1'
-  PublicIPs:
-    Description: Assign Public IPs to Instances
-    Default: 'false'
-    Type: 'String'
-
-# Conditions:
-#   UseOrgId: !Equals 
-#     - !Ref "UniqueId"
-#     - !Ref ""
 
 Resources:
-  BridgeFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      FunctionName: !Sub '${Prefix}carve-bridge-${VpcId}'
-      Description: Bridge ASG events to go across accounts and regions with SNS
-      Handler: index.lambda_handler
-      Role: !GetAtt CarveLambdaRole.Arn
-      Runtime: python3.8
-      Timeout: 20
-      MemorySize: 128
-      Code: 
-        ZipFile: !Sub |
-          import boto3, os, json
-          def lambda_handler(event, context):
-              print(event)
-              if 'source' in event:
-                  if event['source'] == 'aws.autoscaling':
-                      client = boto3.client('sns', region_name="${CarveCoreRegion}")
-                      response = client.publish(
-                          TopicArn="${CarveSNSTopicArn}",
-                          Message=json.dumps(event))
-
   SubnetFunction:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: CarveSubnetFunction
       Description: Continuous AWS Route Verification Engine
       Handler: index.lambda_handler
-      Role: !GetAtt CarveLambdaRole.Arn
-      Runtime: python3.8
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: python3.9
       Timeout: 20
       MemorySize: 128
       Environment:
@@ -90,7 +44,7 @@ Resources:
       Code: 
         ZipFile: "print('error injecting code at deploy time')"
 
-  CarveLambdaRole:
+  LambdaRole:
     Type: AWS::IAM::Role
     Properties:
       Path: /
@@ -114,7 +68,10 @@ Resources:
                 Action:
                   - "sns:Publish"
                 Resource: !Ref CarveSNSTopicArn
-
+              - Effect: Allow
+                Action:
+                  - "ec2:DescribeNetworkInterfaces"
+                Resource: "*"
 
   LambdaSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -122,120 +79,82 @@ Resources:
       VpcId: !Ref VpcId
       GroupDescription: Carve Lambda Egress
 
-  AutoScalingGroup:
-    Type: AWS::AutoScaling::AutoScalingGroup
-    CreationPolicy:
-      ResourceSignal:
-        Timeout: PT5M
-        Count: !Ref MinSize
+  CarvePrivateEndpoint:
+    Type: AWS::EC2::VPCEndpoint
     Properties:
-      AutoScalingGroupName: !Sub ${Prefix}carve-beacon-asg-${VpcId}
-      LaunchConfigurationName: !Ref LaunchConfig
-      VPCZoneIdentifier: !Split [ ",", !Ref VpcSubnetIds ]
-      HealthCheckGracePeriod: '60'
-      HealthCheckType: EC2
-      MinSize: !Ref MinSize
-      MaxSize: !Ref MaxSize
-      MetricsCollection:
-        - Granularity: 1Minute
-      Tags:
-        - Key: Name
-          Value: !Sub ${Prefix}carve-beacon-${VpcId}
-          PropagateAtLaunch: true
+      VpcId:
+        Ref: VpcId
+      ServiceName: !Ref ServiceName
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: false
+      SubnetIds: !Split [ ",", !Ref VpcSubnetIds ]
+      SecurityGroupIds:
+        -
+          !Ref EndpointSecurityGroup
 
-  LaunchConfig:
-    Type: AWS::AutoScaling::LaunchConfiguration
-    Properties:
-      AssociatePublicIpAddress: !Ref PublicIPs
-      SecurityGroups:
-        - !Ref 'InstanceSecurityGroup'
-      IamInstanceProfile: !Ref 'InstanceProfile'
-      ImageId: !Ref 'ImageId'
-      InstanceMonitoring: 'false'
-      InstanceType: t4g.nano
-      KeyName: carve
-      BlockDeviceMappings:
-        - DeviceName: /dev/xvda
-          Ebs:
-            VolumeType: gp2
-            VolumeSize: '8'
-            DeleteOnTermination: 'true'
-            Encrypted: 'true'
-
-  InstanceSecurityGroup:
+  EndpointSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId: !Ref VpcId
-      GroupDescription: Carve EC2 ingress
+      GroupName: !Sub '${Prefix}carve-endponit-${VpcId}'
+      GroupDescription: Carve Endpoint SecurityGroup
       SecurityGroupIngress:
-          # ingress to update beacon only from the Lambda SG
-        - IpProtocol: "tcp"
-          FromPort: 8008
-          ToPort: 8008
-          SourceSecurityGroupId: !Ref LambdaSecurityGroup
-          # ingress for beacon reults only from Lambda SG
-        - IpProtocol: "tcp"
+        -
+          IpProtocol: "tcp"
+          FromPort: 443
+          ToPort: 443
+          CidrIp: "0.0.0.0/0"
+        -
+          IpProtocol: "tcp"
           FromPort: 80
           ToPort: 80
-          SourceSecurityGroupId: !Ref LambdaSecurityGroup
-          # ICMP from everywhere else
-        - IpProtocol: icmp
-          FromPort: -1
-          ToPort: -1
-          CidrIp: 0.0.0.0/0
+          CidrIp: "0.0.0.0/0"
 
-  InstanceProfile:
-    Type: AWS::IAM::InstanceProfile
+  ENIAddressesLambda:
+    Type: 'AWS::Lambda::Function'
+    DeletionPolicy: 'Delete'
     Properties:
-      Path: /
-      Roles:
-        - !Ref 'InstanceRole'
+      Code:
+        ZipFile: !Sub |
+          import cfnresponse
+          import json
+          import boto3
+          def lambda_handler(event, context):
+              print('REQUEST RECEIVED:\n' + json.dumps(event))
+              responseData = {}
+              if event['RequestType'] == 'Delete':
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+                  return
+              if event['RequestType'] == 'Create':
+                  try:
+                      ips = {}
+                      ec2 = boto3.resource('ec2')
+                      enis = event['ResourceProperties']['NetworkInterfaceIds']
+                      for eni in enis:
+                          network_interface = ec2.NetworkInterface(eni)
+                          ips[network_interface.subnet_id] = network_interface.private_ip_address
+                      responseData['PrivateIPs'] = json.dumps(ips)
+                      print(f"PrivateLink IPs for ${VpcId}: {responseData['PrivateIPs']}")
+                  except Exception as e:
+                      responseData = {'error': str(e)}
+                      cfnresponse.send(event, context, cfnresponse.FAILED, responseData)
+                      return
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: python3.9
+      Timeout: 10
 
-  InstanceRole:
-    Type: AWS::IAM::Role
+  GetPrivateIPs:
+    Type: Custom::GetPrivateIPs
+    DependsOn:
+      - CarvePrivateEndpoint
     Properties:
-      RoleName: !Sub "${Prefix}carve-beacon-${VpcId}"
-      Path: /
-      ManagedPolicyArns:
-        - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonSSMManagedInstanceCore
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-        - Effect: "Allow"
-          Principal:
-            Service:
-              - "ec2.amazonaws.com"
-          Action:
-            - "sts:AssumeRole"
-
-  EventInvokeLambda:
-     Type: AWS::Lambda::Permission
-     Properties:
-       FunctionName: !Ref BridgeFunction
-       Action: "lambda:InvokeFunction"
-       Principal: "events.amazonaws.com"
-       SourceArn: !GetAtt AsgEventRule.Arn
-
-  AsgEventRule:
-    Type: AWS::Events::Rule
-    Properties:
-      Description: "ASG notifications to BridgeFunction"
-      EventPattern: 
-        source:
-          - "aws.autoscaling"
-        detail-type:
-          - "EC2 Instance Terminate Successful"
-          - "EC2 Instance Launch Successful"
-        detail:
-          AutoScalingGroupName:
-            - !Ref 'AutoScalingGroup'
-      State: "ENABLED"
-      Targets:
-        - Id: "InvokeBridge"
-          Arn: !GetAtt BridgeFunction.Arn
+      ServiceToken: !GetAtt ENIAddressesLambda.Arn
+      NetworkInterfaceIds: !GetAtt CarvePrivateEndpoint.NetworkInterfaceIds
 
 Outputs:
-  AutoScalingGroup:
-    Description: The name of the AutoScaling Group
-    Value: !Ref 'AutoScalingGroup'
-
+  Beacons:
+    Description: Private IPs for each subnet endpoint
+    # Value: !Join [ ",", !GetAtt CarvePrivateEndpoint.NetworkInterfaceIds ]
+    Value: !GetAtt GetPrivateIPs.PrivateIPs

@@ -1,0 +1,13 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Carve managed stack",
+    "Conditions" : {
+        "HasNot": { "Fn::Equals" : [ "a", "b" ] }
+    },
+    "Resources": {
+        "NullResource": {
+            "Type": "Custom::NullResource",
+            "Condition": "HasNot"
+        }
+    }
+}

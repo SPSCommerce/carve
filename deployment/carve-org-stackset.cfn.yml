@@ -10,7 +10,7 @@ Parameters:
 
   CarveCoreAccount:
     Type: String
-    Description: AWS Organizations Root AccountId
+    Description: Account ID where carve core is deployed
     Default: ""
 
   Prefix:
@@ -23,7 +23,7 @@ Resources:
   CarveCoreRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub "${Prefix}carve-core"
+      RoleName: !Sub "${Prefix}carve-org-role"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -31,7 +31,7 @@ Resources:
           Action:
             - sts:AssumeRole
           Principal:
-            AWS: [!Sub "arn:aws:iam::${CarveCoreAccount}:assumed-role/${Prefix}carve-core/carve-core"]
+            AWS: !Sub "arn:aws:iam::${CarveCoreAccount}:root"
       Policies:
         - PolicyName: CarvePolicy
           PolicyDocument:
@@ -39,14 +39,78 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
+                  - lambda:Invoke*
+                  - lambda:ListTags
+                  - lambda:GetFunction
+                Resource:
+                  - !Sub "arn:aws:lambda:*:${AWS::AccountId}:function:${Prefix}carve-subnet-*"
+              - Effect: Allow
+                Action:
+                  - iam:PassRole
+                  - iam:GetRole
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - organizations:ListAccounts
+                Resource: "*"
+              - Effect: "Allow"
+                Action:
+                  - "sns:*"
+                Resource: 
+                  - !Sub "arn:aws:sns:${AWS::Region}:${CarveCoreAccount}:${Prefix}carve-org-events"
+              - Effect: Allow
+                Action:
+                  - cloudformation:List*
+                Resource: 
+                  - '*'
+              - Effect: Allow
+                Action:
+                  - cloudformation:*
+                Resource: 
+                  - !Sub "arn:aws:cloudformation:*:${AWS::AccountId}:stack/${Prefix}carve-managed-*"
+              - Effect: Allow
+                Action:
                   - "*"
                 Resource:
                   - "*"
-                # Condition:
-                #   ForAnyValue:StringEquals:
-                #     aws:CalledVia:
-                #       - cloudformation.amazonaws.com               
-
-
-
-
+                Condition:
+                  ForAnyValue:StringEquals:
+                    aws:CalledVia:
+                      - cloudformation.amazonaws.com               
+              - Effect: Allow
+                Action:
+                  - ec2:DescribeInstances
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:DescribeVpcs
+                  - ec2:DescribeVpcPeeringConnections
+                  - ec2:DescribeRegions
+                  - ec2:DescribeSubnets
+                  - ec2:DescribeTags
+                  - ec2:AttachNetworkInterface
+                  - ec2:DetachNetworkInterface
+                  - ec2:CreateNetworkInterface
+                  - ec2:DeleteNetworkInterface
+                  - ec2:DescribeVpcEndpointServices
+                  # - autoscaling:DescribeAutoScalingGroups
+                Resource:
+                  - "*"
+              - Effect: Allow
+                Action:
+                  - ec2:CreateTags
+                Resource:
+                  - "*"
+                Condition:
+                  StringLike:
+                    "ec2:ResourceTag/aws:cloudformation:stack-name": !Sub "${Prefix}carve-managed-*"
+                    
+              - Effect: Allow
+                Action:
+                  - s3:*
+                Resource:
+                  - !Sub "arn:aws:s3:::${Prefix}carve-managed-bucket-${OrgId}-${AWS::Region}"
+                  - !Sub "arn:aws:s3:::${Prefix}carve-managed-bucket-${OrgId}-${AWS::Region}/*"
+              - Effect: Allow
+                Action:
+                  - autoscaling:UpdateAutoScalingGroup
+                Resource:
+                  - !Sub "arn:aws:autoscaling:*:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${Prefix}carve-beacon-asg-vpc-*"

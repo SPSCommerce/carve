@@ -1,0 +1,129 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Core Organization Resources for Carve
+
+Parameters:
+  
+  OrgId:
+    Type: String
+    Description: AWS Organizations Id
+    Default: ""
+  UniqueId:
+    Type: String
+    Description: A unique id may be used instead of OrgId on buckets
+    Default: ""
+  CodeBucket:
+    Type: String
+    Default: ""
+    Description: S3 Bucket with Carve lambda zip package
+  # GITSHA:
+  #   Type: String
+  #   Default: ""
+  #   Description: latest Git commit SHA determines S3 artifact paths
+  Prefix:
+    Type: String
+    Description: "Prefix carve AWS resources and stacknames with this"
+    Default: ""
+  CarveVersion:
+    Type: String
+    Default: "0"
+  PropogateUpdates:
+    Type: String
+    Default: 'True'
+    Description: Automatically propogate version updates to managed resources 
+  IMAGETAG: 
+    Type: 'String'
+    Default: '0'
+    Description: Version of carve image in ECR
+  ECR:
+    Type: 'String'
+    Default: carve-repository
+    Description: ECR Repo Name
+  OrgSNSTopic:
+    Type: 'String'
+    Default: ''
+    Description: Carve Org SNS Topic Arn
+  HandlerFile:
+    Type: 'String'
+    Default: entrypoint
+    Description: Container's code handler
+  RoleArn:
+    Type: 'String'
+    Default: entrypoint
+    Description: lambda role ARN  
+
+Conditions:
+  UseOrgId: !Equals [ !Ref "UniqueId", "" ]
+  Trigger: !Equals [ !Ref "HandlerFile", "deploy_trigger" ]
+  SNS: !Equals [ !Ref "HandlerFile", "sns_event" ]
+
+Resources:
+  CarveFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${Prefix}carve-core-${HandlerFile}"
+      Description: Continuous AWS Route Verification Engine
+      PackageType: Image
+      Code:
+        ImageUri: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECR}:${IMAGETAG}"
+      ImageConfig:
+        Command: [ !Sub "${HandlerFile}.lambda_handler" ]
+      Environment:
+        Variables:
+          CodeBucket: !Ref CodeBucket
+          CarveS3Bucket: !If
+            - UseOrgId
+            - !Sub "${Prefix}carve-managed-bucket-${OrgId}-${AWS::Region}"
+            - !Sub "${Prefix}carve-managed-bucket-${UniqueId}-${AWS::Region}"
+          CarveSNSTopicArn: !Ref OrgSNSTopic
+          CarveVersion: !Ref CarveVersion
+          CleanupStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-cleanup
+          DeployBeaconsGraphMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-deploy-graph
+          DeployStacksStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-deploy-stacks
+          NetworkDiscoveryStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-network-discovery
+          ScaleStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-scale
+          MPLCONFIGDIR: /tmp/matplotlib
+          OrgId: !Ref OrgId
+          UniqueId: !Ref UniqueId
+          PropogateUpdates: !Ref PropogateUpdates
+          Prefix: !Ref Prefix
+          OrgRoleName: !Sub ${Prefix}carve-org-role
+      MemorySize: 1024
+      Timeout: 120
+      Role: !Ref RoleArn
+      # ReservedConcurrentExecutions: 20
+
+  S3InvokeCarvePermission:
+    Condition: Trigger
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt CarveFunction.Arn  
+      Principal: s3.amazonaws.com
+      SourceArn: !If
+        - UseOrgId
+        - !Sub "arn:aws:s3:::${Prefix}carve-managed-bucket-${OrgId}-${AWS::Region}"
+        - !Sub "arn:aws:s3:::${Prefix}carve-managed-bucket-${UniqueId}-${AWS::Region}"
+
+  OrgSNSSubscription:
+    Condition: SNS
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: !GetAtt CarveFunction.Arn  
+      Protocol: Lambda
+      TopicArn: !Ref OrgSNSTopic
+
+  OrgSNSInvoke:
+    Condition: SNS
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      Principal: sns.amazonaws.com
+      SourceArn: !Ref OrgSNSTopic
+      FunctionName: !GetAtt CarveFunction.Arn  
+
+
+Outputs:
+  LambdaName:
+    Value: !Ref CarveFunction       
+  LambdaArn:
+    Value: !GetAtt CarveFunction.Arn    

@@ -1,0 +1,137 @@
+{
+  "Comment": "Create Carve Graph",
+  "StartAt": "Initialize",
+  "States": {
+    "Initialize": {
+      "Type": "Task",
+      "Resource":"arn:aws:states:::lambda:invoke",
+      "Retry": [
+        {
+          "ErrorEquals": [ 
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 7,
+          "BackoffRate": 2
+        }
+      ],  
+      "ResultSelector": {
+        "Payload.$": "States.StringToJson($.Payload)"
+      },
+      "Parameters": {
+        "FunctionName": "${FunctionSfDeployGraphInitialize}",
+        "Payload": {
+          "Input.$": "$"
+        }
+      },
+      "Next": "DeployS3BucketStacks",
+      "TimeoutSeconds": 900
+    },
+    "DeployS3BucketStacks": {
+      "Comment": "Create S3 Buckets in each region to support deployments",
+      "Type": "Task",
+      "Next": "DeployPrivateLink",
+      "ResultSelector": {
+        "Payload.$": "States.StringToJson($.Input)"
+      },
+      "Resource": "arn:aws:states:::states:startExecution.sync",
+      "Parameters": {
+        "StateMachineArn": "${CarveDeployStacksStepFunction}",
+        "Input": {
+          "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id",
+          "Input.$": "$"
+        }
+      }
+    },
+    "DeployPrivateLink": {
+      "Comment": "Create Carve Private Link",
+      "Type": "Task",
+      "Next": "BuildDeploymentList",
+      "Resource": "arn:aws:states:::states:startExecution.sync",
+      "Parameters": {
+        "StateMachineArn": "${CarvePrivateLinkStepFunction}",
+        "Input": {
+          "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id",
+          "Input.$": "$",
+          "graph.$": "$$.Execution.Input.graph"
+        }
+      }
+    },
+    "BuildDeploymentList": {
+      "Type": "Task",
+      "Resource":"arn:aws:states:::lambda:invoke",
+      "Retry": [
+        {
+          "ErrorEquals": [ 
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 7,
+          "BackoffRate": 2
+        }
+      ],  
+      "ResultSelector": {
+        "Payload.$": "States.StringToJson($.Payload)"
+      },
+      "Parameters": {
+        "FunctionName": "${FunctionSfDeployGraphDeploymentList}"
+      },
+      "Next": "DeployCarveStacks",
+      "TimeoutSeconds": 900
+    },
+    "DeployCarveStacks": {
+      "Comment": "Create one Carve stack per VPC",
+      "Type": "Task",
+      "Next": "CleanupResources",
+      "Resource": "arn:aws:states:::states:startExecution.sync",
+      "Parameters": {
+        "StateMachineArn": "${CarveDeployStacksStepFunction}",
+        "Input": {
+          "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id",
+          "Input.$": "$.Payload"
+        }
+      }
+    },
+    "CleanupResources": {
+      "Comment": "Cleanup Carve resources",
+      "Type": "Task",
+      "Next": "Finalize",
+      "Resource": "arn:aws:states:::states:startExecution.sync",
+      "Parameters": {
+        "StateMachineArn": "${CarveCleanupStepFunction}",
+        "Input": {
+          "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id"
+        }
+      }
+    },
+    "Finalize": {
+      "Comment": "Perform final tasks",
+      "Type": "Task",
+      "Resource":"arn:aws:states:::lambda:invoke",
+      "Retry": [
+        {
+          "ErrorEquals": [ 
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 7,
+          "BackoffRate": 2
+        }
+      ],
+      "Parameters": {
+        "FunctionName": "${FunctionSfDeployGraphFinalize}",
+        "Payload": {
+          "Input.$": "$"
+        }
+      },
+      "End": true,
+      "TimeoutSeconds": 900
+    }
+  }
+}

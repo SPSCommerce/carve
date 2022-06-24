@@ -1,0 +1,43 @@
+version: 0.2
+
+# env:
+#   variables: 
+#     GIT_SSH_COMMAND: 'ssh -o UserKnownHostsFile=known_hosts -i id_rsa'
+
+env:
+  exported-variables:
+    - TAG
+
+phases:
+  install:
+    commands:
+      - yum update --skip-broken -y
+      - yum install -y docker
+      - pip install cfn_flip
+  build:
+    commands:
+      # upload state machine defintions to s3
+      - aws s3 sync "deployment/step-functions" s3://$DEPLOYMENT_BUCKET/step-functions/${CODEBUILD_RESOLVED_SOURCE_VERSION}/
+      # upload nested templates to s3
+      - aws s3 sync "deployment/templates" s3://$DEPLOYMENT_BUCKET/templates/${CODEBUILD_RESOLVED_SOURCE_VERSION}/
+      # upload beacon image code to S3
+      - aws s3 sync "deployment/beacon-image" s3://$DEPLOYMENT_BUCKET/beacon-image/
+      # convert the VPC template to JSON for python import (CFN yaml is not valid yaml)
+      - cfn-flip "src/managed_deployment/carve-vpc-stack-ec2.cfn.yml" "src/managed_deployment/carve-vpc-stack-ec2.cfn.json"
+      - cfn-flip "src/managed_deployment/carve-vpc-stack.cfn.yml" "src/managed_deployment/carve-vpc-stack.cfn.json"
+      - cfn-flip "src/managed_deployment/private-link.cfn.yml" "src/managed_deployment/private-link.cfn.json"
+      # build lambda container
+      - docker build -t carve .
+      # log into ECR 
+      - aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com
+      # commands to get the latest ECR tag in SSM, then increment the minor version by 1
+      - OLDTAG=`aws ssm get-parameter --name ${IMAGETAG} --output text --query Parameter.Value`
+      - MAJOR=`echo $OLDTAG | awk -F. '{print $1}'`
+      - MINOR=`echo $OLDTAG | awk -F. '{print $2}'`
+      - TAG="${MAJOR}.$((MINOR + 1))"
+      # tag image with repository so it can be pushed to ECR
+      - docker tag carve ${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR}:${TAG}
+      # push image to ECR
+      - docker push  ${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR}:${TAG}
+      # update SSM ECR tag
+      - aws ssm put-parameter --name ${IMAGETAG} --value ${TAG} --type String --overwrite
