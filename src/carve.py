@@ -27,7 +27,7 @@ def carve_results(event, context):
     respond to cloudwatch events and execute carve verifications
     '''
     current_account = context.invoked_function_arn.split(':')[4]
-    lambda_arn = f"arn:aws:lambda:{current_region}:{current_account}:function:{os.environ['Prefix']}carve-verify_routing"
+    lambda_arn = f"arn:aws:lambda:{current_region}:{current_account}:function:{os.environ['Prefix']}carve-core-verify_routing"
     payload = {}
     result = aws_invoke_lambda(lambda_arn, payload)
     print(result)
