@@ -49,6 +49,7 @@ Conditions:
 Resources:
 
   EndpointService:
+    DependsOn: EndpointServiceNLB
     Type: AWS::EC2::VPCEndpointService
     Properties:
       AcceptanceRequired: False
@@ -226,8 +227,8 @@ Resources:
             - "sts:AssumeRole"
 
 ###################################
-## Below here are resources to create a small private VPC to host the carve
-## PrivateLink stack
+## Below here are resources to create an isolated VPC to host the carve
+## PrivateLink stack resources
 
   PrivateLinkVPC:
     Type: AWS::EC2::VPC
