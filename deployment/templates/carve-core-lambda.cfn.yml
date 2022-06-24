@@ -97,7 +97,7 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !GetAtt CarveFunction.Arn  
       Principal: s3.amazonaws.com
-      SourceArn: !Ref CarveS3Bucket
+      SourceArn: !Sub "arn:aws:s3:::${CarveS3Bucket}"
 
   # OrgSNSSubscription:
   #   Condition: SNS

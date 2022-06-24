@@ -54,7 +54,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
-        CarveS3Bucket: !GetAtt CarveS3Bucket.Arn
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -74,7 +74,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
-        CarveS3Bucket: !GetAtt CarveS3Bucket.Arn
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -94,7 +94,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
-        CarveS3Bucket: !GetAtt CarveS3Bucket.Arn
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -114,7 +114,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
-        CarveS3Bucket: !GetAtt CarveS3Bucket.Arn
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -134,7 +134,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
-        CarveS3Bucket: !GetAtt CarveS3Bucket.Arn
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -154,7 +154,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
-        CarveS3Bucket: !GetAtt CarveS3Bucket.Arn
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -174,7 +174,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
-        CarveS3Bucket: !GetAtt CarveS3Bucket.Arn
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -194,7 +194,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
-        CarveS3Bucket: !GetAtt CarveS3Bucket.Arn
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -214,7 +214,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
-        CarveS3Bucket: !GetAtt CarveS3Bucket.Arn
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -234,7 +234,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
-        CarveS3Bucket: !GetAtt CarveS3Bucket.Arn
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -254,7 +254,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
-        CarveS3Bucket: !GetAtt CarveS3Bucket.Arn
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -274,7 +274,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
-        CarveS3Bucket: !GetAtt CarveS3Bucket.Arn
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -294,7 +294,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
-        CarveS3Bucket: !GetAtt CarveS3Bucket.Arn
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -314,7 +314,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
-        CarveS3Bucket: !GetAtt CarveS3Bucket.Arn
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -334,7 +334,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
-        CarveS3Bucket: !GetAtt CarveS3Bucket.Arn
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -354,7 +354,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
-        CarveS3Bucket: !GetAtt CarveS3Bucket.Arn
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -374,7 +374,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
-        CarveS3Bucket: !GetAtt CarveS3Bucket.Arn
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -394,7 +394,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
-        CarveS3Bucket: !GetAtt CarveS3Bucket.Arn
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -414,7 +414,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
-        CarveS3Bucket: !GetAtt CarveS3Bucket.Arn
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -434,7 +434,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
-        CarveS3Bucket: !GetAtt CarveS3Bucket.Arn
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -454,7 +454,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
-        CarveS3Bucket: !GetAtt CarveS3Bucket.Arn
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -474,7 +474,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
-        CarveS3Bucket: !GetAtt CarveS3Bucket.Arn
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
