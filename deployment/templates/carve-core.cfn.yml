@@ -64,7 +64,7 @@ Resources:
         PropogateUpdates: !Ref PropogateUpdates
         UniqueId: !Ref UniqueId
         RoleArn: !GetAtt CarveCoreRole.Arn
-      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
       TimeoutInMinutes: 5
 
   FunctionDeployTrigger:
@@ -83,7 +83,7 @@ Resources:
         PropogateUpdates: !Ref PropogateUpdates
         UniqueId: !Ref UniqueId
         RoleArn: !GetAtt CarveCoreRole.Arn
-      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
       TimeoutInMinutes: 5
 
   FunctionSfPrivateLinkCore:
@@ -102,7 +102,7 @@ Resources:
         PropogateUpdates: !Ref PropogateUpdates
         UniqueId: !Ref UniqueId
         RoleArn: !GetAtt CarveCoreRole.Arn
-      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
       TimeoutInMinutes: 5
 
   FunctionSfPrivateLinkRegions:
@@ -121,7 +121,7 @@ Resources:
         PropogateUpdates: !Ref PropogateUpdates
         UniqueId: !Ref UniqueId
         RoleArn: !GetAtt CarveCoreRole.Arn
-      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
       TimeoutInMinutes: 5
 
   # FunctionSfScaleInitialize:
@@ -140,7 +140,7 @@ Resources:
   #       PropogateUpdates: !Ref PropogateUpdates
   #       UniqueId: !Ref UniqueId
   #       RoleArn: !GetAtt CarveCoreRole.Arn
-  #     TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+  #     TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
   #     TimeoutInMinutes: 5
 
   # FunctionSfScaleUpdateAsg:
@@ -159,7 +159,7 @@ Resources:
   #       PropogateUpdates: !Ref PropogateUpdates
   #       UniqueId: !Ref UniqueId
   #       RoleArn: !GetAtt CarveCoreRole.Arn
-  #     TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+  #     TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
   #     TimeoutInMinutes: 5
 
   # FunctionSfScaleCheckAsg:
@@ -178,7 +178,7 @@ Resources:
   #       PropogateUpdates: !Ref PropogateUpdates
   #       UniqueId: !Ref UniqueId
   #       RoleArn: !GetAtt CarveCoreRole.Arn
-  #     TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+  #     TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
   #     TimeoutInMinutes: 5
 
   # FunctionSfScaleFinalize:
@@ -197,7 +197,7 @@ Resources:
   #       PropogateUpdates: !Ref PropogateUpdates
   #       UniqueId: !Ref UniqueId
   #       RoleArn: !GetAtt CarveCoreRole.Arn
-  #     TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+  #     TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
   #     TimeoutInMinutes: 5
 
   FunctionSfNetworkDiscoveryInitialize:
@@ -216,7 +216,7 @@ Resources:
         PropogateUpdates: !Ref PropogateUpdates
         UniqueId: !Ref UniqueId
         RoleArn: !GetAtt CarveCoreRole.Arn
-      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
       TimeoutInMinutes: 5
 
   FunctionSfNetworkDiscoveryAccount:
@@ -235,7 +235,7 @@ Resources:
         PropogateUpdates: !Ref PropogateUpdates
         UniqueId: !Ref UniqueId
         RoleArn: !GetAtt CarveCoreRole.Arn
-      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
       TimeoutInMinutes: 5
 
   FunctionSfNetworkDiscoveryFinalize:
@@ -254,7 +254,7 @@ Resources:
         PropogateUpdates: !Ref PropogateUpdates
         UniqueId: !Ref UniqueId
         RoleArn: !GetAtt CarveCoreRole.Arn
-      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
       TimeoutInMinutes: 5
 
   FunctionSnsEvent:
@@ -273,7 +273,7 @@ Resources:
         PropogateUpdates: !Ref PropogateUpdates
         UniqueId: !Ref UniqueId
         RoleArn: !GetAtt CarveCoreRole.Arn
-      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
       TimeoutInMinutes: 5
 
   FunctionSfStacksCreateStack:
@@ -292,7 +292,7 @@ Resources:
         PropogateUpdates: !Ref PropogateUpdates
         UniqueId: !Ref UniqueId
         RoleArn: !GetAtt CarveCoreRole.Arn
-      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
       TimeoutInMinutes: 5
 
   FunctionSfStacksCreateChangeSet:
@@ -311,7 +311,7 @@ Resources:
         PropogateUpdates: !Ref PropogateUpdates
         UniqueId: !Ref UniqueId
         RoleArn: !GetAtt CarveCoreRole.Arn
-      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
       TimeoutInMinutes: 5
 
   FunctionSfStacksDescribeStack:
@@ -330,7 +330,7 @@ Resources:
         PropogateUpdates: !Ref PropogateUpdates
         UniqueId: !Ref UniqueId
         RoleArn: !GetAtt CarveCoreRole.Arn
-      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
       TimeoutInMinutes: 5
 
   FunctionSfStacksDescribeChangeSet:
@@ -349,7 +349,7 @@ Resources:
         PropogateUpdates: !Ref PropogateUpdates
         UniqueId: !Ref UniqueId
         RoleArn: !GetAtt CarveCoreRole.Arn
-      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
       TimeoutInMinutes: 5
 
   FunctionSfStacksExecuteChangeSet:
@@ -368,7 +368,7 @@ Resources:
         PropogateUpdates: !Ref PropogateUpdates
         UniqueId: !Ref UniqueId
         RoleArn: !GetAtt CarveCoreRole.Arn
-      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
       TimeoutInMinutes: 5
 
   FunctionSfDeployGraphInitialize:
@@ -387,7 +387,7 @@ Resources:
         PropogateUpdates: !Ref PropogateUpdates
         UniqueId: !Ref UniqueId
         RoleArn: !GetAtt CarveCoreRole.Arn
-      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
       TimeoutInMinutes: 5
 
   FunctionSfDeployGraphDeploymentList:
@@ -406,7 +406,7 @@ Resources:
         PropogateUpdates: !Ref PropogateUpdates
         UniqueId: !Ref UniqueId
         RoleArn: !GetAtt CarveCoreRole.Arn
-      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
       TimeoutInMinutes: 5
 
   FunctionSfDeployGraphFinalize:
@@ -425,7 +425,7 @@ Resources:
         PropogateUpdates: !Ref PropogateUpdates
         UniqueId: !Ref UniqueId
         RoleArn: !GetAtt CarveCoreRole.Arn
-      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
       TimeoutInMinutes: 5
 
   FunctionSfCleanupInitialize:
@@ -444,7 +444,7 @@ Resources:
         PropogateUpdates: !Ref PropogateUpdates
         UniqueId: !Ref UniqueId
         RoleArn: !GetAtt CarveCoreRole.Arn
-      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
       TimeoutInMinutes: 5
 
   FunctionSfCleanupDiscover:
@@ -463,7 +463,7 @@ Resources:
         PropogateUpdates: !Ref PropogateUpdates
         UniqueId: !Ref UniqueId
         RoleArn: !GetAtt CarveCoreRole.Arn
-      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
       TimeoutInMinutes: 5
 
   FunctionSfCleanupOrganize:
@@ -482,7 +482,7 @@ Resources:
         PropogateUpdates: !Ref PropogateUpdates
         UniqueId: !Ref UniqueId
         RoleArn: !GetAtt CarveCoreRole.Arn
-      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
       TimeoutInMinutes: 5
 
   FunctionSfCleanupDeleteStack:
@@ -501,7 +501,7 @@ Resources:
         PropogateUpdates: !Ref PropogateUpdates
         UniqueId: !Ref UniqueId
         RoleArn: !GetAtt CarveCoreRole.Arn
-      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
       TimeoutInMinutes: 5
 
   # FunctionSfCleanupDescribeStack:
@@ -520,7 +520,7 @@ Resources:
   #       PropogateUpdates: !Ref PropogateUpdates
   #       UniqueId: !Ref UniqueId
   #       RoleArn: !GetAtt CarveCoreRole.Arn
-  #     TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/nested-templates/${GITSHA}/carve-core-lambda.cfn.yml"
+  #     TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
   #     TimeoutInMinutes: 5
 
   CarveCoreRole:

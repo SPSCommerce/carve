@@ -2,18 +2,18 @@
 
 The deployment of Carve resources is split into two categories: **pipeline** and **managed**. The CodePipeline is deployed first as a CloudFormation stack. The pipeline will deploy the Carve core lambda and it's required resources. The managed deployments are the subnet beacons and their resources that the Carve core lambda deploys and manages thru CloudFormation stacks.
 
-## Account Considerations
+## Organization CloudFormation StackSet for IAM
 
-Carve can be deployed into its own isolated account in your AWS Organization, or it can be deployed directly into the Organization root account. At the time this was written, CodePipeline did not (an may not still) support StackSet deployments from delegated accounts. Because of this, there are two pipeline CloudFormation templates, one for each use case. Carve requires an IAM role to be deployed across the Organization via a StackSet, which is included in the pipeline if you deploy into the root account. If you deploy Carve into it's own account, you will need to deploy the [Carve-org-stackset.cfn.yml](deployment/Carve-org-stackset.cfn.yml) template manually as a StackSet from the delegate or root account, targeting your entire AWS Organization.
+Carve requires an IAM role to be deployed across the Organization via a StackSet. You will need to deploy the [carve-org-stackset.cfn.yml](deployment/carve-org-stackset.cfn.yml) as a StackSet, targeting your entire AWS Organization.
 
 ## Pipeline Deployment
 
 Pipeline Prerequisites:
 
 * If you are deploying the IAM stackset into an AWS account that is not your Organization root account, you will need to enable the account as a [Cloudformation Delegated Administrator](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/stacksets-orgs-enable-trusted-access.html)
-* CodePipeline requires a GitHub OAuth token to pull from the repository. If you don't already have one, you will need to create an OAuth token on GitHub for CodePipeline and put it in AWS Secrets Manager for CodePipeline to access. A template to create the secret resource is provided here: [Carve-secret-github.yml](deployment/codepipeline/Carve-secret-github.yml)
+* CodePipeline requires a GitHub OAuth token to pull from the repository. If you don't already have one, you will need to create an OAuth token on GitHub for CodePipeline and put it in AWS Secrets Manager for CodePipeline to access. A template to create the secret resource is provided here: [pipeline-secret-github.yml](templates/pipeline-secret-github.yml)
 
-To get started with Carve, deploy the either the CodePipeline stack template [Carve-pipeline-root.cfn.yml](deployment/codepipeline/Carve-pipeline-root.cfn.yml) in your AWS Organization root account, or deploy the CloudFormation template [Carve-pipeline-delegate.cfn.yml](deployment/codepipeline/Carve-pipeline-delegate.cfn.yml) for delegate accounts into its own account. 
+To get started with Carve, deploy the CodePipeline CloudFormation stack template [deployment-pipeline.cfn.yml](deployment/deployment-pipeline.cfn.yml) into a dedicated account in your AWS Organization. 
 
 The parameters for the CodePipeline stack templates are outlined below:
 

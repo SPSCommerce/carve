@@ -19,7 +19,7 @@ phases:
       # upload state machine defintions to s3
       - aws s3 sync "deployment/step-functions" s3://$DEPLOYMENT_BUCKET/step-functions/${CODEBUILD_RESOLVED_SOURCE_VERSION}/
       # upload nested templates to s3
-      - aws s3 sync "deployment/nested-templates" s3://$DEPLOYMENT_BUCKET/nested-templates/${CODEBUILD_RESOLVED_SOURCE_VERSION}/
+      - aws s3 sync "deployment/templates" s3://$DEPLOYMENT_BUCKET/templates/${CODEBUILD_RESOLVED_SOURCE_VERSION}/
       # upload beacon image code to S3
       - aws s3 sync "deployment/beacon-image" s3://$DEPLOYMENT_BUCKET/beacon-image/
       # convert the VPC template to JSON for python import (CFN yaml is not valid yaml)

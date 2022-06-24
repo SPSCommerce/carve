@@ -267,7 +267,7 @@ Resources:
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt 'CarvePipelineRole.Arn'
                 StackName: !Ref "AWS::StackName"
-                TemplatePath: GithubRepo::deployment/codepipeline/carve-pipeline.cfn.yml
+                TemplatePath: GithubRepo::deployment/deployment-pipeline.cfn.yml
                 ParameterOverrides: !Sub |
                   {
                     "GitHubOAUTHTokenASMPath": "${GitHubOAUTHTokenASMPath}", 
@@ -329,7 +329,7 @@ Resources:
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
                 RoleArn: !GetAtt 'CarvePipelineRole.Arn'
                 StackName: !Sub '${Prefix}carve-core'
-                TemplatePath: GithubRepo::deployment/carve-core.cfn.yml
+                TemplatePath: GithubRepo::deployment/templates/carve-core.cfn.yml
                 TemplateConfiguration: TagData::carve-tags.json
                 ParameterOverrides: !Sub |
                   {
@@ -399,7 +399,7 @@ Resources:
             Value: !Ref 'AWS::AccountId'
       Source:
         Type: CODEPIPELINE
-        BuildSpec: deployment/codepipeline/buildspec.yml
+        BuildSpec: deployment/templates/buildspec.yml
       TimeoutInMinutes: 5
       Tags:
         - Key: GitSHA
