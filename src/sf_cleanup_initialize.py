@@ -2,7 +2,7 @@ import json
 import os
 
 from aws import aws_current_account, aws_discover_org_accounts, current_region
-from carve import get_deploy_key, load_graph, unique_node_values
+from utils import get_deploy_key, load_graph, unique_node_values
 
 
 def lambda_handler(event, context):

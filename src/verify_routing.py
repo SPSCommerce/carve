@@ -6,7 +6,7 @@ import concurrent.futures
 from networkx.readwrite import json_graph
 
 from aws import *
-from carve import (load_graph, save_graph, carve_role_arn,
+from utils import (load_graph, save_graph, carve_role_arn,
                    get_deploy_key)
 
 

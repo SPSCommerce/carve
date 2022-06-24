@@ -2,7 +2,7 @@ import json
 from copy import deepcopy
 
 from aws import aws_assume_role, aws_describe_stack
-from carve import carve_role_arn
+from utils import carve_role_arn
 
 
 def lambda_handler(event, context):

@@ -2,7 +2,7 @@ import lambdavars
 import json
 import os
 from copy import deepcopy
-from carve import load_graph, get_deploy_key
+from utils import load_graph, get_deploy_key
 from aws import *
 
 

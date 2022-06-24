@@ -3,7 +3,7 @@ import os
 import time
 import networkx as nx
 from aws import *
-from carve import (carve_role_arn, save_graph)
+from utils import (carve_role_arn, save_graph)
 
 
 def discover_subnets(region, account_id, account_name, credentials):

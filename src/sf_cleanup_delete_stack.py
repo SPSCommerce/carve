@@ -1,6 +1,6 @@
 import json
 import os
-from carve import carve_role_arn
+from utils import carve_role_arn
 from aws import aws_delete_stack, aws_purge_s3_bucket, aws_assume_role
 
 
