@@ -64,6 +64,7 @@ Resources:
       ServiceId: !Ref EndpointService
 
   EndpointServiceNLB:
+    DependsOn: PrivateLinkVPC
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
       Name: !Sub ${Prefix}carve-privatelink-nlb
@@ -79,6 +80,7 @@ Resources:
           Value: "false"
 
   EndpointServiceNLBListener:
+    DependsOn: EndpointServiceNLBTargetGroup
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
       DefaultActions:
@@ -89,6 +91,7 @@ Resources:
       Protocol: TCP
 
   EndpointServiceNLBTargetGroup:
+    DependsOn: EndpointServiceNLB
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
       Name: !Sub ${Prefix}carve-nlb-tg
@@ -106,11 +109,8 @@ Resources:
 
 
   AutoScalingGroup:
+    DependsOn: EndpointServiceNLBTargetGroup
     Type: AWS::AutoScaling::AutoScalingGroup
-    # CreationPolicy:
-    #   ResourceSignal:
-    #     Timeout: PT5M
-    #     Count: !Ref MaxSize
     Properties:
       MaxInstanceLifetime: 1209600 # 14 days
       AutoScalingGroupName: !Sub ${Prefix}carve-privatelink-asg
@@ -131,6 +131,7 @@ Resources:
           PropagateAtLaunch: true
 
   LaunchConfig:
+    DependsOn: InstanceProfile
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
       SecurityGroups:
@@ -176,6 +177,7 @@ Resources:
           systemctl start amazon-ssm-agent
 
   SecurityGroup:
+    DependsOn: PrivateLinkVPC
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId: !Ref PrivateLinkVPC
@@ -241,6 +243,7 @@ Resources:
           Value: !Sub ${Prefix}carve-privatelink-${AWS::Region}
 
   PrivateSubnet:
+    DependsOn: PrivateLinkVPC
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref PrivateLinkVPC
@@ -252,6 +255,7 @@ Resources:
           Value: !Sub ${Prefix}carve-privatelink-a
 
   PrivateRoutingTable:
+    DependsOn: PrivateLinkVPC
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref PrivateLinkVPC
@@ -260,12 +264,14 @@ Resources:
         Value: !Sub ${Prefix}carve-privatelink-private-routing
 
   RoutingTableAssociation:
+    DependsOn: PrivateRoutingTable
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref 'PrivateSubnet'
       RouteTableId: !Ref 'PrivateRoutingTable'
 
   S3GatewayEndpoint:
+    DependsOn: PrivateLinkVPC
     Type: AWS::EC2::VPCEndpoint
     Properties:
       ServiceName: !Sub 'com.amazonaws.${AWS::Region}.s3'
@@ -287,6 +293,7 @@ Resources:
               - !Sub "arn:aws:s3:::ec2-downloads-windows/*"
 
   SSMInterfaceEndpoint:
+    DependsOn: PrivateLinkVPC
     Type: 'AWS::EC2::VPCEndpoint'
     Properties:
       VpcEndpointType: Interface
@@ -299,6 +306,7 @@ Resources:
       PrivateDnsEnabled: true 
 
   SSMMessagesInterfaceEndpoint:
+    DependsOn: PrivateLinkVPC
     Type: 'AWS::EC2::VPCEndpoint'
     Properties:
       VpcEndpointType: Interface
@@ -311,6 +319,7 @@ Resources:
       PrivateDnsEnabled: true
 
   VPCPeeringConnection:
+    DependsOn: PrivateLinkVPC
     Type: AWS::EC2::VPCPeeringConnection
     Condition: NotCoreRegion
     Properties:
