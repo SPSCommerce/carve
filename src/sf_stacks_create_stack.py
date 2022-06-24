@@ -32,8 +32,8 @@ def lambda_handler(event, context):
         )
 
     if response is None:
-        # create an empty bootstrap stack to orchestrate all deploys/updates thru changesets
-        with open('managed_deployment/carve-bootstrap.cfn.json') as f:
+        # create an empty bootstrap stack for changesets
+        with open('managed_deployment/bootstrap-stack.cfn.json') as f:
             template = (json.load(f))
 
         aws_create_stack(
