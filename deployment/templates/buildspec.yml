@@ -20,10 +20,7 @@ phases:
       - aws s3 sync "deployment/step-functions" s3://$DEPLOYMENT_BUCKET/step-functions/${CODEBUILD_RESOLVED_SOURCE_VERSION}/
       # upload nested templates to s3
       - aws s3 sync "deployment/templates" s3://$DEPLOYMENT_BUCKET/templates/${CODEBUILD_RESOLVED_SOURCE_VERSION}/
-      # upload beacon image code to S3
-      - aws s3 sync "deployment/beacon-image" s3://$DEPLOYMENT_BUCKET/beacon-image/
-      # convert the VPC template to JSON for python import (CFN yaml is not valid yaml)
-      - cfn-flip "src/managed_deployment/carve-vpc-stack-ec2.cfn.yml" "src/managed_deployment/carve-vpc-stack-ec2.cfn.json"
+      # convert managed deployment templates to JSON for python import (CFN yaml is not valid yaml)
       - cfn-flip "src/managed_deployment/carve-vpc-stack.cfn.yml" "src/managed_deployment/carve-vpc-stack.cfn.json"
       - cfn-flip "src/managed_deployment/private-link.cfn.yml" "src/managed_deployment/private-link.cfn.json"
       # build lambda container
