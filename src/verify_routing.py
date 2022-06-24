@@ -84,7 +84,7 @@ def verify_subnet_routes(subnet_id, credentials, region, beacons):
     '''
     lambda_arn = f"arn:aws:lambda:{region}:{credentials['Account']}:function:{os.environ['Prefix']}carve-{subnet_id}"
     payload = {'action': 'verify', 'beacons': beacons}
-    result = aws_invoke_lambda(lambda_arn, payload, region, credentials)
+    result = aws_invoke_lambda(lambda_arn, payload, credentials)
     verified = {subnet_id: result}
     return verified
 

@@ -510,7 +510,7 @@ Resources:
                   - lambda:ListTags
                   - lambda:GetFunction
                 Resource:
-                  - !Sub "arn:aws:lambda:*:*:function:${Prefix}carve-*"
+                  - !Sub "arn:aws:lambda:*:${AWS::AccountId}:function:${Prefix}carve-*"
               - Effect: Allow
                 Action:
                   - iam:PassRole
@@ -518,8 +518,6 @@ Resources:
                   - logs:CreateLogGroup
                   - logs:CreateLogStream
                   - logs:PutLogEvents
-                  - organizations:ListAccounts
-                  - organizations:DescribeOrganization
                 Resource: "*"
               - Effect: Allow
                 Action:
@@ -535,7 +533,6 @@ Resources:
                   - states:SendTaskSuccess
                 Resource:
                   - !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-*"
-
               - Effect: Allow
                 Action:
                   - cloudformation:*
@@ -572,18 +569,18 @@ Resources:
                   - elbv2:RegisterTargets
                 Resource:
                   - !Sub "arn:aws:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:targetgroup/${Prefix}carve-nlb-*"
-              - Effect: Allow
-                Action:
-                  - ec2:ModifyImageAttribute
-                  - ec2:CopyImage
-                  - ec2:DeregisterImage
-                  - ec2:DeleteSnapshot
-                Resource:
-                  - "*"
-                Condition:
-                  StringEquals:
-                    ec2:Owner:
-                      - !Ref "AWS::AccountId"
+              # - Effect: Allow
+              #   Action:
+              #     - ec2:ModifyImageAttribute
+              #     - ec2:CopyImage
+              #     - ec2:DeregisterImage
+              #     - ec2:DeleteSnapshot
+              #   Resource:
+              #     - "*"
+              #   Condition:
+              #     StringEquals:
+              #       ec2:Owner:
+              #         - !Ref "AWS::AccountId"
               - Effect: Allow
                 Action:
                   - s3:*
