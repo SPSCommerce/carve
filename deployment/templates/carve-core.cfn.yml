@@ -518,6 +518,8 @@ Resources:
                   - logs:CreateLogGroup
                   - logs:CreateLogStream
                   - logs:PutLogEvents
+                  - organizations:ListAccounts
+                  - organizations:DescribeOrganization
                 Resource: "*"
               - Effect: Allow
                 Action:
@@ -569,18 +571,6 @@ Resources:
                   - elbv2:RegisterTargets
                 Resource:
                   - !Sub "arn:aws:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:targetgroup/${Prefix}carve-nlb-*"
-              # - Effect: Allow
-              #   Action:
-              #     - ec2:ModifyImageAttribute
-              #     - ec2:CopyImage
-              #     - ec2:DeregisterImage
-              #     - ec2:DeleteSnapshot
-              #   Resource:
-              #     - "*"
-              #   Condition:
-              #     StringEquals:
-              #       ec2:Owner:
-              #         - !Ref "AWS::AccountId"
               - Effect: Allow
                 Action:
                   - s3:*

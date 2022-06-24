@@ -115,6 +115,7 @@ def lambda_handler(event, context):
     # create a new graph with verified routes
     R = add_routes(G)
 
+
     if 'output' in event:
         # set a name for the new graph and save to s3
         name = event['output'].split('/')[-1]
@@ -124,6 +125,7 @@ def lambda_handler(event, context):
         return {'discovery': f"s3://{os.environ['CarveS3Bucket']}/{event['output']}"}
     else:
         # if no s3 path provided, return the graph data with routes
+        R.graph['Name'] = f"carve-routes-verified-{int(time.time())}"
         return json_graph.node_link_data(R)
 
 

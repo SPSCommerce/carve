@@ -22,37 +22,6 @@ from aws import *
 
 
 
-
-
-def network_diff(A, B):
-    # compare peering both directions
-    diff_peering(A, B)
-    diff_vpcs(A, B)
-
-
-def diff_peering(A, B, repeat=True):
-    for edge in A.edges() - B.edges():
-        print(f"DIFFERENCE DETECTED! \'{B.graph['Name']}\' contains a CONNECTION that \'{A.graph['Name']}\' does not:")
-        print(f"#######################")
-        print(A.nodes().data()[edge[0]])
-        print(f"-------peered to-------")
-        print(A.nodes().data()[edge[1]])
-        print(f"#######################")
-    if repeat:
-        diff_peering(B, A, repeat=False)
-
-
-def diff_vpcs(A, B, repeat=True):
-    for node in A.nodes() - B.nodes():
-        print(f"DIFF DETECTED! \'{B.graph['Name']}\' contains a VPC that \'{A.graph['Name']}\' does not:")
-        print(f"#######################")
-        print(A.nodes().data()[node])
-        print(f"#######################")
-    if repeat:
-        diff_peering(B, A, repeat=False)
-
-
-
 def export_visual(Graph, c_context):
 
     G = Graph
