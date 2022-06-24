@@ -1,17 +1,19 @@
-from telnetlib import GA
-from aws import aws_invoke_lambda, current_region
+import json
 import os
+
 import networkx as nx
 from networkx.readwrite import json_graph
-import json
-from utils import load_graph, get_deploy_key
+
+from aws import aws_invoke_lambda, current_region
+from utils import get_deploy_key, load_graph
+
 
 def lambda_handler(event, context):
     '''
     respond to cloudwatch events and execute carve verifications
     '''
 
-
+    print(event)
     if 'detail-type' in event:
 
         if event['source'] == 'aws.events':
