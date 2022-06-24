@@ -10,7 +10,7 @@ In a nutshell, Carve offers the following:
 - Discovery of all subnet level routing across an AWS Organization by executing tests directly in the VPCs
 - Continuous verification of your desired AWS network state with as low as 1 minute response time
 - Monitors any/all AWS networks, even fully isolated ones
-- Managed idempotent deployment and cleanup of all CARVE resources across the Organization
+- Managed idempotent deployment and cleanup of all Carve resources across the Organization
 - Zero requirements to make any changes to your existing networks
 
 To get started with Carve, deploy this CFN template:  [deployment-pipeline.cfn.yml](deployment/deployment-pipeline.cfn.yml).
