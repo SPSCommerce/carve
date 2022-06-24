@@ -816,7 +816,7 @@ Resources:
       Description: execute VPC route test every minute
       Name: !Sub "${Prefix}carve-results"
       RoleArn: !GetAtt EventsRole.Arn
-      ScheduleExpression:  "cron(* * * * *)"  # Every Minute
+      ScheduleExpression:  "rate(1 minute)"  # Every Minute
       State: DISABLED
       Targets:
         - Arn: 
