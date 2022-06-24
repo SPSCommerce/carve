@@ -815,7 +815,7 @@ Resources:
     Properties:
       Description: execute VPC route test every minute
       Name: !Sub "${Prefix}carve-results"
-      RoleArn: !GetAtt CloudWatchRole.Arn
+      RoleArn: !GetAtt EventsRole.Arn
       ScheduleExpression:  "cron(* * * * *)"  # Every Minute
       State: DISABLED
       Targets:
