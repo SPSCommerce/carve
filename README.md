@@ -1,7 +1,7 @@
 # Carve
 # Continuous AWS Route Verification Engine
 
-Carve was developed as a functional POC for AWS network testing across an AWS Organization, and is still currently in that state. There is little documentation and some work to be completed for full functionality. The Cloud Operations team at SPS is in the process of moving Carve ahead, with a goal of having a release sometime in late 2022.
+Carve was developed as a functional POC for AWS network testing across an AWS Organization, and is still currently in that state. There is very little documentation, and work remains to be completed for full functionality. The Cloud Operations team at SPS is in the process of moving Carve ahead, with a goal of having a release sometime in late 2022.
 
 In a nutshell, Carve offers the following:
 
