@@ -1,3 +1,4 @@
+import lambdavars
 import json
 import os
 
@@ -6,6 +7,14 @@ from networkx.readwrite import json_graph
 
 from aws import aws_invoke_lambda, current_region
 from utils import get_deploy_key, load_graph
+
+'''
+Left off with errors from this current lambda
+added event to main test
+not getting graph in input verify_routing
+
+'''
+
 
 
 def lambda_handler(event, context):
@@ -71,3 +80,8 @@ def diff_nodes(A, B, repeat=True):
         print(f"#######################")
     if repeat:
         diff_nodes(B, A, repeat=False)
+
+# main function to test lambda
+if __name__ == '__main__':
+    event = {'version': '0', 'id': '0d4a3544-ea7e-1478-e85d-647144861aa7', 'detail-type': 'Scheduled Event', 'source': 'aws.events', 'account': '816849209215', 'time': '2022-06-24T21:33:28Z', 'region': 'us-east-1', 'resources': ['arn:aws:events:us-east-1:816849209215:rule/nonprod-carve-results'], 'detail': {}}
+    lambda_handler(event, lambdavars.lambda_context)

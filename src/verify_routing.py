@@ -103,7 +103,7 @@ def lambda_handler(event, context):
         G = json_graph.node_link_graph(json.loads(event['graph_data']))
     else:
         # load current graph from s3
-        deploy_key = get_deploy_key()
+        deploy_key = get_deploy_key(last=True)
         if not deploy_key:
             raise Exception('No graph provided or found')
         else:
