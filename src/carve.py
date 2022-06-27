@@ -43,7 +43,7 @@ def carve_results(event, context):
 
     V = json_graph.node_link_graph(result)
 
-    deploy_key = get_deploy_key(Last=True)
+    deploy_key = get_deploy_key(last=True)
     if not deploy_key:
         raise Exception('No graph provided or found')
     else:
