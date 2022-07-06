@@ -78,14 +78,24 @@ def diff_links(A, B, repeat=True, diffs=[]):
         return diffs
 
 
-def diff_nodes(A, B, repeat=True):
+
+def diff_nodes(A, B, repeat=True, diffs=[]):
+    '''
+    Compare the nodes between two graphs and return any differences
+    Returns a list of dicts containing differences
+    '''
     for node in A.nodes() - B.nodes():
-        print(f"DIFF DETECTED! \'{B.graph['Name']}\' contains a VPC that \'{A.graph['Name']}\' does not:")
-        print(f"#######################")
-        print(A.nodes().data()[node])
-        print(f"#######################")
+        diff = {
+            'status': 'present',
+            'graph': A.graph['Name'],
+            'node': A.nodes().data()[node],
+            }
+        diffs.append(diff)
     if repeat:
-        diff_nodes(B, A, repeat=False)
+        diff_links(B, A, repeat=False, diffs=diffs)
+    else:
+        return diffs
+
 
 # main function to test lambda
 if __name__ == '__main__':
