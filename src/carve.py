@@ -1,8 +1,7 @@
 import lambdavars
-import json
+import time
 import os
 
-import networkx as nx
 from networkx.readwrite import json_graph
 
 from aws import aws_invoke_lambda, current_region
@@ -28,7 +27,9 @@ def lambda_handler(event, context):
         if event['source'] == 'aws.events':
             cw_rule = event['resources'][0].split('rule/')[-1]
             if cw_rule == f"{os.environ['Prefix']}carve-results":
-                result = carve_results(event, context)
+                diffs = carve_results(event, context)
+                if len(diffs) > 0:
+                    print(f"VERIFICATION FAILED: {diffs}")
 
 
 def carve_results(event, context):
@@ -42,6 +43,8 @@ def carve_results(event, context):
     print(result)
 
     V = json_graph.node_link_graph(result)
+    name = f"verification-{int(time.time())}"
+    V.graph['Name'] = name
 
     deploy_key = get_deploy_key(last=True)
     if not deploy_key:
@@ -49,27 +52,30 @@ def carve_results(event, context):
     else:
         G = load_graph(deploy_key, local=False)
 
-    network_diff(V, G)
+    diff_links(V, G)
 
     # return the result
     return result
 
 
-def network_diff(A, B):
-    diff_links(A, B)
-    diff_nodes(A, B)
-
-
-def diff_links(A, B, repeat=True):
+def diff_links(A, B, repeat=True, diffs=[]):
+    '''
+    Compare the links between two graphs and return any differences
+    Graphs are assumed to have the same nodes
+    Returns a list of dicts containing differences
+    '''
     for edge in A.edges() - B.edges():
-        print(f"DIFFERENCE DETECTED! \'{B.graph['Name']}\' contains a CONNECTION that \'{A.graph['Name']}\' does not:")
-        print(f"#######################")
-        print(A.nodes().data()[edge[0]])
-        print(f"-------routes to-------")
-        print(A.nodes().data()[edge[1]])
-        print(f"#######################")
+        diff = {
+            'status': 'present',
+            'graph': A.graph['Name'],
+            'source': A.nodes().data()[edge[0]],
+            'target': A.nodes().data()[edge[1]]
+            }
+        diffs.append(diff)
     if repeat:
-        diff_links(B, A, repeat=False)
+        diff_links(B, A, repeat=False, diffs=diffs)
+    else:
+        return diffs
 
 
 def diff_nodes(A, B, repeat=True):
