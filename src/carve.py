@@ -4,12 +4,11 @@ import os
 
 from networkx.readwrite import json_graph
 
-from aws import aws_invoke_lambda, current_region
 from utils import get_deploy_key, load_graph
+from verify_routing import verify_routing
 
 '''
 Left off with errors from this current lambda
-added event to main test
 not getting graph in input verify_routing
 
 '''
@@ -23,42 +22,40 @@ def lambda_handler(event, context):
 
     print(event)
     if 'detail-type' in event:
-
+        # verify this was launched by the carve results event, else exit
         if event['source'] == 'aws.events':
             cw_rule = event['resources'][0].split('rule/')[-1]
-            if cw_rule == f"{os.environ['Prefix']}carve-results":
-                diffs = carve_results(event, context)
-                if len(diffs) > 0:
-                    verification = "failed" 
-                else:
-                    verification = "passed" 
-                print({"verification": verification, "results": diffs})
+            if cw_rule != f"{os.environ['Prefix']}carve-results":
+                print('Not a carve results event')
+                return
+
+            print(f"running carve route verification")
+
+            # verify current routes for deployed graph
+            current_routes = verify_routing()
+
+            # load the verification results as a graph
+            V = json_graph.node_link_graph(current_routes)
+            name = f"verification-{int(time.time())}"
+            V.graph['Name'] = name
+
+            # load the deployed graph to compare to the verification results
+            deploy_key = get_deploy_key(last=True)
+            if not deploy_key:
+                raise Exception('No graph provided or found')
+            else:
+                G = load_graph(deploy_key, local=False)
 
 
-def carve_results(event, context):
-    '''
-    respond to cloudwatch events and execute carve verifications
-    '''
-    current_account = context.invoked_function_arn.split(':')[4]
-    lambda_arn = f"arn:aws:lambda:{current_region}:{current_account}:function:{os.environ['Prefix']}carve-core-verify_routing"
-    payload = {}
-    result = aws_invoke_lambda(lambda_arn, payload)
-    print(result)
+            # compare the two graphs
+            print(f"comparing {G.graph['Name']} to {V.graph['Name']}")
+            diffs = diff_links(V, G)
 
-    V = json_graph.node_link_graph(result)
-    name = f"verification-{int(time.time())}"
-    V.graph['Name'] = name
-
-    deploy_key = get_deploy_key(last=True)
-    if not deploy_key:
-        raise Exception('No graph provided or found')
-    else:
-        G = load_graph(deploy_key, local=False)
-
-    diff_links(V, G)
-
-    # return the result
-    return result
+            if len(diffs) > 0:
+                verification = "failed" 
+            else:
+                verification = "passed" 
+            print({"verification": verification, "results": diffs})
 
 
 def diff_links(A, B, repeat=True, diffs=[]):
@@ -75,29 +72,31 @@ def diff_links(A, B, repeat=True, diffs=[]):
             'target': A.nodes().data()[edge[1]]
             }
         diffs.append(diff)
+
     if repeat:
-        diff_links(B, A, repeat=False, diffs=diffs)
+        diffs = diff_links(B, A, repeat=False, diffs=diffs)
+        return diffs
+
     else:
         return diffs
 
 
-
-def diff_nodes(A, B, repeat=True, diffs=[]):
-    '''
-    Compare the nodes between two graphs and return any differences
-    Returns a list of dicts containing differences
-    '''
-    for node in A.nodes() - B.nodes():
-        diff = {
-            'status': 'present',
-            'graph': A.graph['Name'],
-            'node': A.nodes().data()[node],
-            }
-        diffs.append(diff)
-    if repeat:
-        diff_links(B, A, repeat=False, diffs=diffs)
-    else:
-        return diffs
+# def diff_nodes(A, B, repeat=True, diffs=[]):
+#     '''
+#     Compare the nodes between two graphs and return any differences
+#     Returns a list of dicts containing differences
+#     '''
+#     for node in A.nodes() - B.nodes():
+#         diff = {
+#             'status': 'present',
+#             'graph': A.graph['Name'],
+#             'node': A.nodes().data()[node],
+#             }
+#         diffs.append(diff)
+#     if repeat:
+#         diff_links(B, A, repeat=False, diffs=diffs)
+#     else:
+#         return diffs
 
 
 # main function to test lambda

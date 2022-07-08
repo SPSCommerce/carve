@@ -89,20 +89,25 @@ def verify_subnet_routes(subnet_id, credentials, region, beacons):
     return verified
 
 
-def lambda_handler(event, context):
+def verify_routing(G=None, graph_key=None, output_key=None):
     '''
-    main function to run routing verification
+    main function to run routing verification. graph can be loaded 3 ways:
+     - provide a graph_key to load from the carve s3 bucket
+     - provide graph as a networkx graph
+     - providing neither graph_key or graph_data will load most recently deployed graph from s3
+    
+    If output_key is provided, the graph will be saved to provided key in the carve s3 bucket
     '''
 
-    # check event for provided s3 graph_key or full graph data in payload under graph_data
-    # if neither provided, load last deploy key from s3
-    if 'graph_key' in event:
-        deploy_key = event['graph_key']
-        G = load_graph(deploy_key, local=False)
-    if 'graph_data' in event:
-        G = json_graph.node_link_graph(json.loads(event['graph_data']))
+    # determine which graph to use
+    if G != None:
+        print('graph provided, using provided graph...')
+    elif graph_key != None:
+        print('graph_key provided, loading graph...')
+        G = load_graph(graph_key, local=False)
     else:
-        # load current graph from s3
+        # if neither provided, load last deploy key from s3
+        print('no graph provided, loading last deploy key...')
         deploy_key = get_deploy_key(last=True)
         if not deploy_key:
             raise Exception('No graph provided or found')
@@ -115,14 +120,13 @@ def lambda_handler(event, context):
     # create a new graph with verified routes
     R = add_routes(G)
 
-
-    if 'output' in event:
+    if output_key != None:
         # set a name for the new graph and save to s3
-        name = event['output'].split('/')[-1]
+        name = output_key.split('/')[-1]
         R.graph['Name'] = name
         save_graph(R, f"/tmp/{name}.json")
-        aws_upload_file_s3(event['output'], f"/tmp/{name}.json")
-        return {'discovery': f"s3://{os.environ['CarveS3Bucket']}/{event['output']}"}
+        aws_upload_file_s3(output_key, f"/tmp/{name}.json")
+        return {'discovery': f"s3://{os.environ['CarveS3Bucket']}/{output_key}"}
     else:
         # if no s3 path provided, return the graph data with routes
         R.graph['Name'] = f"carve-routes-verified-{int(time.time())}"
@@ -132,10 +136,7 @@ def lambda_handler(event, context):
 if __name__ == '__main__':
     local_graph = "ignore/carve-test-pl-subnets.json"
     G = load_graph(local_graph, local=True)
-    graph_data = json.dumps(json_graph.node_link_data(G))
-    event = {'graph_data': graph_data}
-
-    routed_graph = lambda_handler(event, None)
+    routed_graph = verify_routing(G=G)
 
     print(routed_graph)
 

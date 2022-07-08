@@ -446,11 +446,11 @@ Resources:
       TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
       TimeoutInMinutes: 5
 
-  FunctionVerifyRouting:
+  FunctionSfRoutingDiscovery:
     Type: AWS::CloudFormation::Stack
     Properties: 
       Parameters:
-        HandlerFile: verify_routing
+        HandlerFile: sf_routing_discovery
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
@@ -691,6 +691,19 @@ Resources:
           Fn::GetAtt: [FunctionSfNetworkDiscoveryFinalize, Outputs.LambdaName]
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
       StateMachineName: !Sub "${Prefix}carve-network-discovery"
+      StateMachineType: STANDARD
+
+  CarveRoutingDiscoveryStepFunction:
+    Type: AWS::StepFunctions::StateMachine
+    Properties: 
+      DefinitionS3Location: 
+        Bucket: !Ref CodeBucket
+        Key: !Sub "step-functions/${GITSHA}/steps-carve-routing-discovery.json"
+      DefinitionSubstitutions: 
+        FunctionSfRoutingDiscovery:
+          Fn::GetAtt: [FunctionSfRoutingDiscovery, Outputs.LambdaName]
+      RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
+      StateMachineName: !Sub "${Prefix}carve-routing-discovery"
       StateMachineType: STANDARD
 
   StepFunctionRole:
