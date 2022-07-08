@@ -29,7 +29,10 @@ def lambda_handler(event, context):
             if cw_rule == f"{os.environ['Prefix']}carve-results":
                 diffs = carve_results(event, context)
                 if len(diffs) > 0:
-                    print(f"VERIFICATION FAILED: {diffs}")
+                    verification = "failed" 
+                else:
+                    verification = "passed" 
+                print({"verification": verification, "results": diffs})
 
 
 def carve_results(event, context):
