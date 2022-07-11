@@ -2,7 +2,6 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: Core Organization Resources for Carve
 
 Parameters:
-  
   OrgId:
     Type: String
     Description: AWS Organizations Id
@@ -44,10 +43,9 @@ Conditions:
 
 
 Resources:
-
   # To help manage the repetitiveness of the carve lambda resources, we use nested stacks for each lambda function.
   #   * Duplicate this nested stack resource for each function, only changing the HandlerFile parameter.
-  #   * Name the resource FunctionCamelCasePythonFile, so sf_scale_initialize.py is FunctionSfScaleInitialize
+  #   * Name the resource FunctionCamelCasePythonFile, so sf_privatelink_core.py is FunctionSfPrivateLinkCore
   FunctionEntrypoint:
     Type: AWS::CloudFormation::Stack
     Properties: 
@@ -56,6 +54,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -75,6 +74,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -94,6 +94,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -113,6 +114,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -124,82 +126,6 @@ Resources:
       TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
       TimeoutInMinutes: 5
 
-  # FunctionSfScaleInitialize:
-  #   Type: AWS::CloudFormation::Stack
-  #   Properties: 
-  #     Parameters:
-  #       HandlerFile: sf_scale_initialize
-  #       # params below are the same for all nested lambda stacks
-  #       CarveVersion: !Ref CarveVersion
-  #       CodeBucket: !Ref CodeBucket
-  #       ECR: !Ref ECR
-  #       IMAGETAG: !Ref IMAGETAG
-  #       OrgId: !Ref OrgId
-  #       OrgSNSTopic: !Ref OrgSNSTopic
-  #       Prefix: !Ref Prefix
-  #       PropogateUpdates: !Ref PropogateUpdates
-  #       UniqueId: !Ref UniqueId
-  #       RoleArn: !GetAtt CarveCoreRole.Arn
-  #     TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
-  #     TimeoutInMinutes: 5
-
-  # FunctionSfScaleUpdateAsg:
-  #   Type: AWS::CloudFormation::Stack
-  #   Properties: 
-  #     Parameters:
-  #       HandlerFile: sf_scale_update_asg
-  #       # params below are the same for all nested lambda stacks
-  #       CarveVersion: !Ref CarveVersion
-  #       CodeBucket: !Ref CodeBucket
-  #       ECR: !Ref ECR
-  #       IMAGETAG: !Ref IMAGETAG
-  #       OrgId: !Ref OrgId
-  #       OrgSNSTopic: !Ref OrgSNSTopic
-  #       Prefix: !Ref Prefix
-  #       PropogateUpdates: !Ref PropogateUpdates
-  #       UniqueId: !Ref UniqueId
-  #       RoleArn: !GetAtt CarveCoreRole.Arn
-  #     TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
-  #     TimeoutInMinutes: 5
-
-  # FunctionSfScaleCheckAsg:
-  #   Type: AWS::CloudFormation::Stack
-  #   Properties: 
-  #     Parameters:
-  #       HandlerFile: sf_scale_check_asg
-  #       # params below are the same for all nested lambda stacks
-  #       CarveVersion: !Ref CarveVersion
-  #       CodeBucket: !Ref CodeBucket
-  #       ECR: !Ref ECR
-  #       IMAGETAG: !Ref IMAGETAG
-  #       OrgId: !Ref OrgId
-  #       OrgSNSTopic: !Ref OrgSNSTopic
-  #       Prefix: !Ref Prefix
-  #       PropogateUpdates: !Ref PropogateUpdates
-  #       UniqueId: !Ref UniqueId
-  #       RoleArn: !GetAtt CarveCoreRole.Arn
-  #     TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
-  #     TimeoutInMinutes: 5
-
-  # FunctionSfScaleFinalize:
-  #   Type: AWS::CloudFormation::Stack
-  #   Properties: 
-  #     Parameters:
-  #       HandlerFile: sf_scale_finalize
-  #       # params below are the same for all nested lambda stacks
-  #       CarveVersion: !Ref CarveVersion
-  #       CodeBucket: !Ref CodeBucket
-  #       ECR: !Ref ECR
-  #       IMAGETAG: !Ref IMAGETAG
-  #       OrgId: !Ref OrgId
-  #       OrgSNSTopic: !Ref OrgSNSTopic
-  #       Prefix: !Ref Prefix
-  #       PropogateUpdates: !Ref PropogateUpdates
-  #       UniqueId: !Ref UniqueId
-  #       RoleArn: !GetAtt CarveCoreRole.Arn
-  #     TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
-  #     TimeoutInMinutes: 5
-
   FunctionSfNetworkDiscoveryInitialize:
     Type: AWS::CloudFormation::Stack
     Properties: 
@@ -208,6 +134,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -227,6 +154,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -246,6 +174,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -265,6 +194,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -284,6 +214,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -303,6 +234,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -322,6 +254,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -341,6 +274,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -360,6 +294,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -379,6 +314,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -398,6 +334,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -417,6 +354,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -436,6 +374,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -455,6 +394,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -474,6 +414,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -493,6 +434,7 @@ Resources:
         # params below are the same for all nested lambda stacks
         CarveVersion: !Ref CarveVersion
         CodeBucket: !Ref CodeBucket
+        CarveS3Bucket: !Ref CarveS3Bucket
         ECR: !Ref ECR
         IMAGETAG: !Ref IMAGETAG
         OrgId: !Ref OrgId
@@ -504,24 +446,45 @@ Resources:
       TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
       TimeoutInMinutes: 5
 
-  # FunctionSfCleanupDescribeStack:
-  #   Type: AWS::CloudFormation::Stack
-  #   Properties: 
-  #     Parameters:
-  #       HandlerFile: sf_cleanup_describe_stack
-  #       # params below are the same for all nested lambda stacks
-  #       CarveVersion: !Ref CarveVersion
-  #       CodeBucket: !Ref CodeBucket
-  #       ECR: !Ref ECR
-  #       IMAGETAG: !Ref IMAGETAG
-  #       OrgId: !Ref OrgId
-  #       OrgSNSTopic: !Ref OrgSNSTopic
-  #       Prefix: !Ref Prefix
-  #       PropogateUpdates: !Ref PropogateUpdates
-  #       UniqueId: !Ref UniqueId
-  #       RoleArn: !GetAtt CarveCoreRole.Arn
-  #     TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
-  #     TimeoutInMinutes: 5
+  FunctionSfRoutingDiscovery:
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      Parameters:
+        HandlerFile: sf_routing_discovery
+        # params below are the same for all nested lambda stacks
+        CarveVersion: !Ref CarveVersion
+        CodeBucket: !Ref CodeBucket
+        CarveS3Bucket: !Ref CarveS3Bucket
+        ECR: !Ref ECR
+        IMAGETAG: !Ref IMAGETAG
+        OrgId: !Ref OrgId
+        OrgSNSTopic: !Ref OrgSNSTopic
+        Prefix: !Ref Prefix
+        PropogateUpdates: !Ref PropogateUpdates
+        UniqueId: !Ref UniqueId
+        RoleArn: !GetAtt CarveCoreRole.Arn
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TimeoutInMinutes: 5
+
+  FunctionCarve:
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      Parameters:
+        HandlerFile: carve
+        # params below are the same for all nested lambda stacks
+        CarveVersion: !Ref CarveVersion
+        CodeBucket: !Ref CodeBucket
+        CarveS3Bucket: !Ref CarveS3Bucket
+        ECR: !Ref ECR
+        IMAGETAG: !Ref IMAGETAG
+        OrgId: !Ref OrgId
+        OrgSNSTopic: !Ref OrgSNSTopic
+        Prefix: !Ref Prefix
+        PropogateUpdates: !Ref PropogateUpdates
+        UniqueId: !Ref UniqueId
+        RoleArn: !GetAtt CarveCoreRole.Arn
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TimeoutInMinutes: 5
 
   CarveCoreRole:
     Type: AWS::IAM::Role
@@ -547,7 +510,7 @@ Resources:
                   - lambda:ListTags
                   - lambda:GetFunction
                 Resource:
-                  - !Sub "arn:aws:lambda:*:*:function:${Prefix}carve-*"
+                  - !Sub "arn:aws:lambda:*:${AWS::AccountId}:function:${Prefix}carve-*"
               - Effect: Allow
                 Action:
                   - iam:PassRole
@@ -572,7 +535,6 @@ Resources:
                   - states:SendTaskSuccess
                 Resource:
                   - !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-*"
-
               - Effect: Allow
                 Action:
                   - cloudformation:*
@@ -609,18 +571,6 @@ Resources:
                   - elbv2:RegisterTargets
                 Resource:
                   - !Sub "arn:aws:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:targetgroup/${Prefix}carve-nlb-*"
-              - Effect: Allow
-                Action:
-                  - ec2:ModifyImageAttribute
-                  - ec2:CopyImage
-                  - ec2:DeregisterImage
-                  - ec2:DeleteSnapshot
-                Resource:
-                  - "*"
-                Condition:
-                  StringEquals:
-                    ec2:Owner:
-                      - !Ref "AWS::AccountId"
               - Effect: Allow
                 Action:
                   - s3:*
@@ -685,18 +635,6 @@ Resources:
       StateMachineName: !Sub "${Prefix}carve-privatelink-setup"
       StateMachineType: STANDARD
 
-  # CarvePrivateLinkDeleteFunction:
-  #   Type: AWS::StepFunctions::StateMachine
-  #   Properties: 
-  #     DefinitionS3Location: 
-  #       Bucket: !Ref CodeBucket
-  #       Key: !Sub "step-functions/${GITSHA}/steps-carve-privatelink-delete.json"
-  #     DefinitionSubstitutions: 
-  #       CarveCleanupStepFunction: !Ref CarveCleanupStepFunction
-  #     RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
-  #     StateMachineName: !Sub "${Prefix}carve-privatelink-delete"
-  #     StateMachineType: STANDARD
-
   CarveDeployGraphStepFunction:
     Type: AWS::StepFunctions::StateMachine
     Properties: 
@@ -734,9 +672,6 @@ Resources:
           Fn::GetAtt: [FunctionSfCleanupDeleteStack, Outputs.LambdaName]
         FunctionSfStacksDescribeStack:
           Fn::GetAtt: [FunctionSfStacksDescribeStack, Outputs.LambdaName]
-        # CarveFunction: 
-        #   Fn::GetAtt: [FunctionEntrypoint, Outputs.LambdaArn]
-        # CarveDeployStacksStepFunction: !Ref CarveDeployStacksStepFunction
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
       StateMachineName: !Sub "${Prefix}carve-cleanup"
       StateMachineType: STANDARD
@@ -748,7 +683,6 @@ Resources:
         Bucket: !Ref CodeBucket
         Key: !Sub "step-functions/${GITSHA}/steps-carve-network-discovery.json"
       DefinitionSubstitutions: 
-        # CarveFunction: !Ref CarveFunction
         FunctionSfNetworkDiscoveryInitialize:
           Fn::GetAtt: [FunctionSfNetworkDiscoveryInitialize, Outputs.LambdaName]
         FunctionSfNetworkDiscoveryAccount:
@@ -759,25 +693,18 @@ Resources:
       StateMachineName: !Sub "${Prefix}carve-network-discovery"
       StateMachineType: STANDARD
 
-  # CarveScaleStepFunction:
-  #   Type: AWS::StepFunctions::StateMachine
-  #   Properties: 
-  #     DefinitionS3Location: 
-  #       Bucket: !Ref CodeBucket
-  #       Key: !Sub "step-functions/${GITSHA}/steps-carve-scale.json"
-  #     DefinitionSubstitutions: 
-  #       FunctionSfScaleInitialize: 
-  #         Fn::GetAtt: [FunctionSfScaleInitialize, Outputs.LambdaName]
-  #       FunctionSfScaleUpdateAsg: 
-  #         Fn::GetAtt: [FunctionSfScaleUpdateAsg, Outputs.LambdaName]
-  #       FunctionSfScaleCheckAsg:
-  #         Fn::GetAtt: [FunctionSfScaleCheckAsg, Outputs.LambdaName]
-  #       FunctionSfScaleFinalize: 
-  #         Fn::GetAtt: [FunctionSfScaleFinalize, Outputs.LambdaName]
-  #     RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
-  #     StateMachineName: !Sub "${Prefix}carve-scale"
-  #     StateMachineType: STANDARD
-
+  CarveRoutingDiscoveryStepFunction:
+    Type: AWS::StepFunctions::StateMachine
+    Properties: 
+      DefinitionS3Location: 
+        Bucket: !Ref CodeBucket
+        Key: !Sub "step-functions/${GITSHA}/steps-carve-routing-discovery.json"
+      DefinitionSubstitutions: 
+        FunctionSfRoutingDiscovery:
+          Fn::GetAtt: [FunctionSfRoutingDiscovery, Outputs.LambdaName]
+      RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
+      StateMachineName: !Sub "${Prefix}carve-routing-discovery"
+      StateMachineType: STANDARD
 
   StepFunctionRole:
     Type: AWS::IAM::Role
@@ -850,114 +777,11 @@ Resources:
             Condition:
               StringEquals:
                 aws:PrincipalOrgID: !Ref OrgId
-              # ArnLike:
-              #   AWS:SourceArn: !Sub "arn:aws:lambda:*:*:function:${Prefix}carve-*"
-          # - Sid: Allow Carve Core Lambdas
-          #   Effect: "Allow"
-          #   Principal:
-          #     AWS: "*"
-          #   Action:
-          #     - "sns:Subscribe"
-          #     - "sns:Receive"
-          #     - "sns:Publish"
-          #   Resource: !Ref OrgSNSTopic
-          #   Condition:
-          #     StringEquals:
-          #       aws:PrincipalOrgID: !Ref OrgId
-          #     ArnLike:
-          #       AWS:SourceArn: !Sub "arn:aws:lambda:*:*:function:${Prefix}carve-vpc-*"
 
-
-  # AccountSNSTopic:
-  #   Type: AWS::SNS::Topic
-  #   Properties:
-  #     DisplayName: !Sub "${Prefix}carve-account-events"
-  #     TopicName: !Sub "${Prefix}carve-account-events"
-
-  # AccountSNSSubscription:
-  #   Type: AWS::SNS::Subscription
-  #   Properties:
-  #     Endpoint: !GetAtt CarveFunction.Arn
-  #     Protocol: Lambda
-  #     TopicArn: !Ref AccountSNSTopic
-
-  # AccountSNSInvoke:
-  #   Type: AWS::Lambda::Permission
-  #   Properties:
-  #     Action: lambda:InvokeFunction
-  #     Principal: sns.amazonaws.com
-  #     SourceArn: !Ref AccountSNSTopic
-  #     FunctionName: !GetAtt CarveFunction.Arn
-
-  # AccountSNSTopicPolicy:
-  #   Type: AWS::SNS::TopicPolicy
-  #   Properties:
-  #     Topics:
-  #       - !Ref AccountSNSTopic
-  #     PolicyDocument:
-  #       Id: Carve SNS Policy
-  #       Version: "2012-10-17"
-  #       Statement:
-  #         - Sid: Allow events
-  #           Effect: Allow
-  #           Principal:
-  #             Service: events.amazonaws.com
-  #           Action: 'sns:Publish'
-  #           Resource: '*'
-  #         - Sid: Allow Carve Lambdas
-  #           Effect: "Allow"
-  #           Principal:
-  #             AWS: "*"
-  #           Action:
-  #             - "sns:Subscribe"
-  #             - "sns:Receive"
-  #             - "sns:Publish"
-  #           Resource: !Ref AccountSNSTopic
-  #           Condition:
-  #             StringEquals:
-  #               aws:PrincipalOrgID: !Ref OrgId
-
-
-
-  # SSMParameter:
-  #   Type: AWS::SSM::Parameter
-  #   Properties:
-  #     Name: !Sub "/${Prefix}carve-resources/scale"
-  #     Description: "Valid Values: none, subnet, vpc"
-  #     Type: String
-  #     Value: subnet
-
-  # SSMParameterChange:
-  #   Type: AWS::Events::Rule
-  #   Properties:
-  #     Description: "ASG notifications to SNS"
-  #     EventPattern: 
-  #       source:
-  #         - "aws.ssm"
-  #       detail-type:
-  #         - "Parameter Store Change"
-  #       detail:
-  #         name:
-  #           - !Ref SSMParameter
-  #     State: "ENABLED"
-  #     Targets:
-  #       - Id: "InvokeCarve"
-  #         # Arn: !GetAtt CarveFunction.Arn
-  #         Arn: 
-  #           Fn::GetAtt: [FunctionEntrypoint, Outputs.LambdaArn]
-
-  # CloudWatchInvokeLambda:
-  #   Type: AWS::Lambda::Permission
-  #   Properties:
-  #     FunctionName: !GetAtt [FunctionEntrypoint, Outputs.LambdaArn]
-  #     Action: "lambda:InvokeFunction"
-  #     Principal: "events.amazonaws.com"
-  #     SourceArn: !GetAtt SSMParameterChange.Arn
-
-  CloudWatchRole:
+  EventsRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub "${Prefix}carve-cloudwatch"
+      RoleName: !Sub "${Prefix}carve-events"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -976,19 +800,29 @@ Resources:
                 Action:
                   - lambda:Invoke*
                 Resource:
-                 #  - !GetAtt CarveFunction.Arn
-                  - Fn::GetAtt: [FunctionEntrypoint, Outputs.LambdaArn]
+                  - Fn::GetAtt: [FunctionCarve, Outputs.LambdaArn]
 
-   # ScheduleRule:
-   #   Type: AWS::Events::Rule
-   #   Properties:
-   #     Description: execute VPC route test every minute
-   #     RoleArn: !GetAtt CloudWatchRole.Arn
-   #     ScheduleExpression:  "cron(* * * * *)"  # Every Minute
-   #     State: ENABLED
-   #     Targets:
-   #       - Arn: !GetAtt CarveFunction.Arn
-   #         Id: !Ref CarveFunction
+  EventsInvokeLambda:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt [FunctionCarve, Outputs.LambdaArn]
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn: !GetAtt EventsRule.Arn
+
+  EventsRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: execute VPC route test every minute
+      Name: !Sub "${Prefix}carve-results"
+      RoleArn: !GetAtt EventsRole.Arn
+      ScheduleExpression:  "rate(1 minute)"  # Every Minute
+      State: DISABLED
+      Targets:
+        - Arn: 
+            Fn::GetAtt: [FunctionCarve, Outputs.LambdaArn]
+          Id: 
+            Fn::GetAtt: [FunctionCarve, Outputs.LambdaName]
 
   CarveS3Bucket:
     Type: AWS::S3::Bucket

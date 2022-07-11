@@ -15,10 +15,10 @@ Parameters:
     Type: String
     Default: ""
     Description: S3 Bucket with Carve lambda zip package
-  # GITSHA:
-  #   Type: String
-  #   Default: ""
-  #   Description: latest Git commit SHA determines S3 artifact paths
+  CarveS3Bucket:
+    Type: String
+    Default: ""
+    Description: Carve S3 Bucket ARN
   Prefix:
     Type: String
     Description: "Prefix carve AWS resources and stacknames with this"
@@ -53,8 +53,9 @@ Parameters:
 
 Conditions:
   UseOrgId: !Equals [ !Ref "UniqueId", "" ]
-  Trigger: !Equals [ !Ref "HandlerFile", "deploy_trigger" ]
   SNS: !Equals [ !Ref "HandlerFile", "sns_event" ]
+  Carve: !Equals [ !Ref "HandlerFile", "carve" ]
+  DeployTrigger: !Equals [ !Ref "HandlerFile", "deploy_trigger" ]
 
 Resources:
   CarveFunction:
@@ -70,10 +71,7 @@ Resources:
       Environment:
         Variables:
           CodeBucket: !Ref CodeBucket
-          CarveS3Bucket: !If
-            - UseOrgId
-            - !Sub "${Prefix}carve-managed-bucket-${OrgId}-${AWS::Region}"
-            - !Sub "${Prefix}carve-managed-bucket-${UniqueId}-${AWS::Region}"
+          CarveS3Bucket: !Ref CarveS3Bucket
           CarveSNSTopicArn: !Ref OrgSNSTopic
           CarveVersion: !Ref CarveVersion
           CleanupStateMachine: !Sub arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${Prefix}carve-cleanup
@@ -93,34 +91,30 @@ Resources:
       # ReservedConcurrentExecutions: 20
 
   S3InvokeCarvePermission:
-    Condition: Trigger
+    Condition: DeployTrigger
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
       FunctionName: !GetAtt CarveFunction.Arn  
       Principal: s3.amazonaws.com
-      SourceArn: !If
-        - UseOrgId
-        - !Sub "arn:aws:s3:::${Prefix}carve-managed-bucket-${OrgId}-${AWS::Region}"
-        - !Sub "arn:aws:s3:::${Prefix}carve-managed-bucket-${UniqueId}-${AWS::Region}"
+      SourceArn: !Sub "arn:aws:s3:::${CarveS3Bucket}"
 
-  OrgSNSSubscription:
-    Condition: SNS
-    Type: AWS::SNS::Subscription
-    Properties:
-      Endpoint: !GetAtt CarveFunction.Arn  
-      Protocol: Lambda
-      TopicArn: !Ref OrgSNSTopic
+  # OrgSNSSubscription:
+  #   Condition: SNS
+  #   Type: AWS::SNS::Subscription
+  #   Properties:
+  #     Endpoint: !GetAtt CarveFunction.Arn  
+  #     Protocol: Lambda
+  #     TopicArn: !Ref OrgSNSTopic
 
-  OrgSNSInvoke:
-    Condition: SNS
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      Principal: sns.amazonaws.com
-      SourceArn: !Ref OrgSNSTopic
-      FunctionName: !GetAtt CarveFunction.Arn  
-
+  # OrgSNSInvoke:
+  #   Condition: SNS
+  #   Type: AWS::Lambda::Permission
+  #   Properties:
+  #     Action: lambda:InvokeFunction
+  #     Principal: sns.amazonaws.com
+  #     SourceArn: !Ref OrgSNSTopic
+  #     FunctionName: !GetAtt CarveFunction.Arn  
 
 Outputs:
   LambdaName:

@@ -4,7 +4,7 @@ from copy import deepcopy
 
 from aws import (aws_assume_role, aws_create_changeset, aws_get_carve_tags,
                  aws_read_s3_direct, current_region)
-from carve import carve_role_arn
+from utils import carve_role_arn
 
 
 def lambda_handler(event, context):

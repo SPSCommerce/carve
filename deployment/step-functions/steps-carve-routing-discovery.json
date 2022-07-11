@@ -1,0 +1,30 @@
+{
+  "Comment": "Carve Routing Discovery",
+  "StartAt": "Initialize",
+  "States": {
+    "Initialize": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Retry": [
+        {
+          "ErrorEquals": [ 
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 7,
+          "BackoffRate": 2
+        }
+      ],  
+      "Parameters": {
+        "FunctionName": "${FunctionSfRoutingDiscovery}",
+        "Payload": {
+          "Input.$": "$"
+        }
+      },
+      "End": true,
+      "TimeoutSeconds": 30
+    }
+  }
+}

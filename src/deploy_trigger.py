@@ -5,7 +5,7 @@ import time
 from aws import (aws_codepipeline_success, aws_copy_s3_object,
                  aws_create_s3_path, aws_put_bucket_notification,
                  aws_start_stepfunction)
-from carve import get_deploy_key
+from utils import get_deploy_key
 
 
 def lambda_handler(event, context):

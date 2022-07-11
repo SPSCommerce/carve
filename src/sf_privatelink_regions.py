@@ -2,7 +2,7 @@ import lambdavars
 
 import json
 from aws import *
-from carve import load_graph, unique_node_values
+from utils import load_graph, unique_node_values
 from privatelink import private_link_deployment, privatelink_template
 
 

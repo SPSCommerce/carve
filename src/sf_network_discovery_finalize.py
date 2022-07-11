@@ -7,7 +7,7 @@ import networkx as nx
 from networkx.readwrite import json_graph
 
 from aws import *
-from carve import load_graph, save_graph
+from utils import load_graph, save_graph
 
 
 def lambda_handler(event, context):

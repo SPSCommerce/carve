@@ -1,7 +1,7 @@
 import json
 import os
 from aws import *
-from carve import carve_role_arn
+from utils import carve_role_arn
 
 
 def asg_event(event):
@@ -55,7 +55,7 @@ def lambda_handler(event, context):
             message = json.loads(event['Records'][0]['Sns']['Message'])
             if 'source' in message:
                 if message['source'] == 'aws.autoscaling':
-                    from carve import asg_event
+                    from utils import asg_event
                     asg_event(event)
 
 

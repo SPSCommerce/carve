@@ -905,18 +905,22 @@ def aws_ssm_delete_parameter(path):
         pass
 
 
-def aws_invoke_lambda(arn, payload, region=current_region, credentials=None):
+def aws_invoke_lambda(arn, payload, credentials=None):
     if credentials is None:
-        credentials = _get_credentials(arn=arn)
-
-    client = boto3.client(
-        'lambda',
-        config=boto_config,
-        region_name=region,
-        aws_access_key_id = credentials['AccessKeyId'],
-        aws_secret_access_key = credentials['SecretAccessKey'],
-        aws_session_token = credentials['SessionToken']
-        )
+        client = boto3.client(
+            'lambda',
+            config=boto_config,
+            region_name=arn.split(':')[3],
+            )
+    else:
+        client = boto3.client(
+            'lambda',
+            config=boto_config,
+            region_name=arn.split(':')[3],
+            aws_access_key_id = credentials['AccessKeyId'],
+            aws_secret_access_key = credentials['SecretAccessKey'],
+            aws_session_token = credentials['SessionToken']
+            )
     response = client.invoke(
         FunctionName=arn,
         Payload=json.dumps(payload)

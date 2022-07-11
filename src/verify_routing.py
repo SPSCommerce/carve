@@ -1,16 +1,16 @@
 # import pylab as plt
 import lambdavars
 import os
-import time
 
 import concurrent.futures
+from networkx.readwrite import json_graph
 
 from aws import *
-from carve import (load_graph, save_graph, carve_role_arn,
+from utils import (load_graph, save_graph, carve_role_arn,
                    get_deploy_key)
 
 
-def verify_current_routes(G):
+def add_routes(G):
     '''
     run a verification of current routes, invoking every subnet lamabda function in a thread
     then process the results and add verified routes to the graph
@@ -24,6 +24,7 @@ def verify_current_routes(G):
     cred_cache = {}
     verified_routes = {}
     futures = set()
+    print("verifying routes...")
     with concurrent.futures.ThreadPoolExecutor(max_workers=300) as executor:
             for target, data in inventory.items():
                 # only create threads for carve managed subnet lambdas
@@ -51,15 +52,16 @@ def verify_current_routes(G):
                     verified_routes[subnet] = results
 
     # add verified routes to graph
-    R = create_graph_links(G, verified_routes, inventory)
+    R = add_graph_links(G, verified_routes, inventory)
     return R
 
 
-def create_graph_links(G, verified_routes, inventory):
+def add_graph_links(G, verified_routes, inventory):
     '''
     create new graph with links by adding routes to the currently deployed graph
     '''
     # make new dict from inventory with address as key and subnet/name for easy lookup
+    print("adding routes to graph...")
     beacons_dict = {}
     for beacon, data in inventory.items():
         beacons_dict[data['address']] = beacon
@@ -82,43 +84,59 @@ def verify_subnet_routes(subnet_id, credentials, region, beacons):
     '''
     lambda_arn = f"arn:aws:lambda:{region}:{credentials['Account']}:function:{os.environ['Prefix']}carve-{subnet_id}"
     payload = {'action': 'verify', 'beacons': beacons}
-    result = aws_invoke_lambda(lambda_arn, payload, region, credentials)
+    result = aws_invoke_lambda(lambda_arn, payload, credentials)
     verified = {subnet_id: result}
     return verified
 
 
-def lambda_handler(event, context):
-    # load current graph from s3
-    deploy_key = get_deploy_key()
-    if not deploy_key:
-        raise Exception('No deployment key found')
-    G = load_graph(deploy_key, local=False)
+def verify_routing(G=None, graph_key=None, output_key=None):
+    '''
+    main function to run routing verification. graph can be loaded 3 ways:
+     - provide a graph_key to load from the carve s3 bucket
+     - provide graph as a networkx graph
+     - providing neither graph_key or graph_data will load most recently deployed graph from s3
+    
+    If output_key is provided, the graph will be saved to provided key in the carve s3 bucket
+    '''
 
-    # create a new graph with verified routes from graph G
-    R = verify_current_routes(G)
+    # determine which graph to use
+    if G != None:
+        print('graph provided, using provided graph...')
+    elif graph_key != None:
+        print('graph_key provided, loading graph...')
+        G = load_graph(graph_key, local=False)
+    else:
+        # if neither provided, load last deploy key from s3
+        print('no graph provided, loading last deploy key...')
+        deploy_key = get_deploy_key(last=True)
+        if not deploy_key:
+            raise Exception('No graph provided or found')
+        else:
+            G = load_graph(deploy_key, local=False)
 
-    # set a name for the new graph and save to s3
-    name = f"routes_verified-{int(time.time())}"
-    G.graph['Name'] = name
-    save_graph(G, f"/tmp/{name}.json")
-    aws_upload_file_s3(f'discovered/{name}.json', f"/tmp/{name}.json")
+    # remove any old routes from graph
+    G.remove_edges_from(G.edges)
 
-    return {'discovery': f"s3://{os.environ['CarveS3Bucket']}/discovered/{name}.json"}
+    # create a new graph with verified routes
+    R = add_routes(G)
 
-
+    if output_key != None:
+        # set a name for the new graph and save to s3
+        name = output_key.split('/')[-1]
+        R.graph['Name'] = name
+        save_graph(R, f"/tmp/{name}.json")
+        aws_upload_file_s3(output_key, f"/tmp/{name}.json")
+        return {'discovery': f"s3://{os.environ['CarveS3Bucket']}/{output_key}"}
+    else:
+        # if no s3 path provided, return the graph data with routes
+        R.graph['Name'] = f"carve-routes-verified-{int(time.time())}"
+        return json_graph.node_link_data(R)
 
 
 if __name__ == '__main__':
-    # lambda_handler(None, None)
+    local_graph = "ignore/carve-test-pl-subnets.json"
+    G = load_graph(local_graph, local=True)
+    routed_graph = verify_routing(G=G)
 
-    # deploy_key = get_deploy_key()
-    # if not deploy_key:
-    #     raise Exception('No deployment key found')
+    print(routed_graph)
 
-    deploy_key = "ignore/carve-test-pl-subnets.json"
-
-    # get inventory of all beacons (endpoint private IP addresses)
-    G = load_graph(deploy_key, local=True)
-    R = verify_current_routes(G)
-    file_path = f"ignore/{R.graph['Name']}-routing.json"
-    save_graph(R, file_path)

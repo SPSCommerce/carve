@@ -6,7 +6,7 @@ Carve was developed as a functional POC for AWS network testing across an AWS Or
 In a nutshell, Carve offers the following:
 
 - Serverless logic and orchestration to control and perform AWS network routing verifications
-- Discovery of all VPC subnets, and performs automated deployment of Carve infrastructure into those subnets
+- Discovery of all VPC subnets, and automated deployment of Carve infrastructure into those subnets
 - Discovery of all subnet level routing across an AWS Organization by executing tests directly in the VPCs
 - Continuous verification of your desired AWS network state with as low as 1 minute response time
 - Monitors any/all AWS networks, even fully isolated ones
