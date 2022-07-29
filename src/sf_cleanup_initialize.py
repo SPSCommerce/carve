@@ -1,7 +1,7 @@
 import json
 import os
 
-from aws import aws_current_account, aws_discover_org_accounts, current_region
+from aws import aws_current_account, aws_discover_org_accounts, current_region, aws_all_regions
 from utils import get_deploy_key, load_graph, unique_node_values
 
 
@@ -50,8 +50,9 @@ def lambda_handler(event, context):
                 'Region': G.nodes().data()[subnet]['Region']
                 })
 
-    # add all private link stacks from the current account to safe stacks
-    for region in sorted(unique_node_values(G, 'Region')):
+    # add all private link stacks to safe stacks
+    # for region in sorted(unique_node_values(G, 'Region')):
+    for region in aws_all_regions():
         safe_stacks.append({
             'StackName': f"{os.environ['Prefix']}carve-managed-privatelink-{region}",
             'Account': aws_current_account(),
