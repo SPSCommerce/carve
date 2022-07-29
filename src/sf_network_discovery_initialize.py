@@ -12,10 +12,12 @@ def lambda_handler(event, context):
     # need to purge S3 discovery folder before starting new discovery
     aws_purge_s3_path('discovery/')
 
+    print(event)
+
     # get list of accounts/regions in use in the Org
     accounts = aws_discover_org_accounts()
-    if 'regions' in event:
-        regions = event['regions']
+    if 'regions' in event['Input']:
+        regions = event['Input']['regions']
     else:
         regions = aws_all_regions()
     discovery_targets = []
