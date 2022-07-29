@@ -14,7 +14,10 @@ def lambda_handler(event, context):
 
     # get list of accounts/regions in use in the Org
     accounts = aws_discover_org_accounts()
-    regions = aws_all_regions()
+    if 'regions' in event:
+        regions = event['regions']
+    else:
+        regions = aws_all_regions()
     discovery_targets = []
     for account_id, account_name in accounts.items():
         discovery_targets.append({
