@@ -1,20 +1,18 @@
 import lambdavars
-import os
-import time
 import networkx as nx
 from aws import *
 from utils import (carve_role_arn, save_graph)
+from networkx.readwrite import json_graph
 
 
-def discover_subnets(region, account_id, account_name, credentials):
+def discover_nodes(region, account_id, account_name, credentials):
     ''' get subnets in account/region, returns nx.Graph object of subnets nodes'''
 
     # create graph structure for subnets
     G = nx.Graph()
 
-    # list will be filled with all non-default VpcIds owned by this account
-    vpcids = []
-
+    # first add discovered VPC nodes
+    print("discovering vpcs in {}".format(region))
     vpcs = aws_describe_vpcs(region, credentials, account_id)
     for vpc in vpcs:
 
@@ -26,29 +24,51 @@ def discover_subnets(region, account_id, account_name, credentials):
             # don't add default VPCs
             continue
 
-        vpcids.append(vpc['VpcId'])
+        # get tags from vpc
+        try:
+            tags = aws_tag_dict(vpc['Tags'])
+        except:
+            tags = {}
 
+        # update vpc name to match tag if available
+        try:
+            vpc_name = tags['Name']
+        except:
+            vpc_name = vpc['VpcId']
 
+        # create vpc nodes
+        G.add_node(
+            vpc['VpcId'],
+            Name=vpc_name,
+            Account=account_id,
+            AccountName=account_name,
+            Region=region,
+            CidrBlock=vpc['CidrBlock'],
+            Type='vpc',
+            Tags=tags
+            )
+
+    # next add subnet nodes
+    print("discovering subnets in {}".format(region))
     for subnet in aws_describe_subnets(region, account_id, credentials):
 
-        # ignore default VPCs and shared subnets
-        if subnet['VpcId'] not in vpcids:
+        # only add subnets for discovered vpcs
+        if subnet['VpcId'] not in G.nodes():
             continue
 
-        subnet_name = subnet['SubnetId']
+        # get tags from subnet
+        try:
+            tags = aws_tag_dict(subnet['Tags'])
+        except:
+            tags = {}
 
         # update subnet name to match tag if available
-        if 'Tags' in subnet:
-            for tag in subnet['Tags']:
-                if tag['Key'] == 'Name':
-                    subnet_name = tag['Value']
-                    break
+        try:
+            subnet_name = tags['Name']
+        except:
+            subnet_name = subnet['SubnetId']
 
-        if subnet_name == f"{os.environ['Prefix']}carve-imagebuilder-public-subnet":
-            # exclude carve image builder subnet
-            continue
-
-        # create graph nodes
+        # create graph nodes for subnets
         G.add_node(
             subnet['SubnetId'],
             Name=subnet_name,
@@ -57,9 +77,10 @@ def discover_subnets(region, account_id, account_name, credentials):
             Region=region,
             AvailabilityZone=subnet['AvailabilityZone'],
             AvailabilityZoneId=subnet['AvailabilityZoneId'],
-            CidrBlock=vpc['CidrBlock'],
+            CidrBlock=subnet['CidrBlock'],
             VpcId=subnet['VpcId'],
-            Type='managed'
+            Type='subnet',
+            Tags=tags
             )
 
     # return graph of all subnets in this region
@@ -94,8 +115,8 @@ def lambda_handler(event, context):
         if not aws_active_region(region, credentials, account_id):
             continue
 
-        # create networkx instance of all subnets in this region
-        R = discover_subnets(region, account_id, account_name, credentials)
+        # create networkx instance of all subnets and vpcs in this region
+        R = discover_nodes(region, account_id, account_name, credentials)
         
         # add discovered subnets to A
         A.add_nodes_from(R.nodes.data())
@@ -105,7 +126,9 @@ def lambda_handler(event, context):
         save_graph(A, f"/tmp/{A.graph['Name']}.json")
         aws_upload_file_s3(f"discovery/{A.graph['Name']}.json", f"/tmp/{A.graph['Name']}.json")
 
-    print(f"discovered {len(A.nodes)} subnets in {account_id} {account_name}: {A.nodes.data()}")
+    json_data = json.dumps(json_graph.node_link_data(A))
+
+    print(f"discovered {len(A.nodes)} subnets in {account_id} {account_name}: {json_data}")
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@ import os
 from copy import deepcopy
 from aws import *
 import time
-
+from utils import rank_azs, unique_node_values, subnet_filter
 
 #
 # first seed just a small VPC stack template to the current region to create the VPC
@@ -148,6 +148,17 @@ def privatelink_template(region, second_octet, deploy_accounts, azs):
     return template
 
 
+# def max_subnets(G, region):
+#     # from graph G, find the maximum number of subnets in a single AZ in any VPC in a given region
+#     max = 0
+#     for node in list(G.nodes):
+#         try:
+#             values.add(G.nodes().data()[node][key])
+#         except:
+#             pass
+#     return values
+
+
 def add_peer_routes(template, deploy_regions):
     ''' add routes to the peered regions in CFN '''
     stackname = f"{os.environ['Prefix']}carve-managed-privatelink-{current_region}"
@@ -188,3 +199,33 @@ def discover_privatelink_services(deploy_regions):
             print(f"{region}: failed to find privatelink service")
     
     return services
+
+
+def select_subnets(G):
+    ''' 
+    using the SubnetFilters in graph G, select 1 subnet per VPC
+    Selection logic:
+        after subnets are filered, select the subnet with the most common AZID
+    Returns:
+        subnets = {'VpcId': {"subnet": SubnetId, "name": Name, "azid": AvailabilityZoneId}}
+    '''
+    az_rank = rank_azs(G)
+    subnets = {}
+    for vpc in sorted(unique_node_values(G, 'VpcId')):
+        # filter for preferred subnets
+        S = subnet_filter(G, vpc)
+        if len(S) == 0:
+            print(f"WARNING: no subnets found in {vpc} after applying filters")
+            continue
+        # pick the first subnet from the highest ranked AZ in the VPC
+        region = G.nodes().data()[vpc]['Region']
+        for az in az_rank[region]:
+            azid = az[0]
+            for subnet in S.nodes():
+                if S.nodes()[subnet]['AvailabilityZoneId'] == azid:
+                    subnets[vpc] = {
+                        "subnet": subnet,
+                        "name": S.nodes()[subnet]['Name'],
+                        "azid": S.nodes()[subnet]['AvailabilityZoneId']
+                        }
+    return subnets

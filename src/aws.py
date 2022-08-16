@@ -157,6 +157,7 @@ def aws_describe_stack(stackname, region, credentials=None):
     try:
         stack = client.describe_stacks(StackName=stackname)['Stacks'][0]
     except ClientError as e:
+        print(f'error describing stack {stackname}: {e}')
         if e.response['Error']['Code'] == 'ValidationError':
             stack = None
         else:
@@ -791,14 +792,9 @@ def aws_delete_bucket_notification():
         print(f'error creating bucket notification: {e}')
 
 
-def aws_tag_value( tags, key ):
-    if type(tags) != list:
-        return None
-    res = map( lambda tag: tag['Value'] , filter( lambda tag: tag['Key'] == key, tags ) )
-    if len(res) == 0:
-        return None
-    else:    # tags are unique, so this is the _only_ value
-        return res[0]
+def aws_tag_dict(tags):
+    # return a dictionary of tags from an AWS tag list
+    return { tag['Key']: tag['Value'] for tag in tags }
 
 
 # def aws_latest_ami(region=current_region):
@@ -896,6 +892,7 @@ def aws_ssm_get_parameters(path):
     except ClientError as e:
         pass
     return params
+
 
 def aws_ssm_delete_parameter(path):
     client = boto3.client('ssm', config=boto_config)

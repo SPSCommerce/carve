@@ -7,8 +7,6 @@ import os
 from aws import *
 
 
-
-
 # def process_test_results(results):
 #     # determine verification beacons here
 #     G = load_graph(aws_newest_s3('deployed_graph/'), local=False)
@@ -116,7 +114,7 @@ def get_deploy_key(last=False):
 
 
 def unique_node_values(G, key):
-    # from graph G, get all unique values of key
+    # from graph G, get all unique values from nodes of a specific key
     values = set()
     for node in list(G.nodes):
         try:
@@ -124,6 +122,21 @@ def unique_node_values(G, key):
         except:
             pass
     return values
+
+def matching_node_values(G, key, value, return_value=None):
+    # from graph G, get all matching nodes with specific key matching a value
+    data = []
+    for node in list(G.nodes):
+        try:
+            if G.nodes().data()[node][key] == value:
+                if return_value is not None:
+                    data.append(G.nodes().data()[node][return_value])
+                else:
+                    data.append(node)
+        except:
+            pass
+    return data
+
 
 def load_graph(graph, local=True):
     try:
@@ -152,5 +165,104 @@ def save_graph(G, file_path):
         json.dump(json_graph.node_link_data(G), f)
 
 
+def subnet_filter(G, vpc):
+    # using the "SubnetFilters" in Graph G, filter subnets from the vpc using tags
+    # filter is allow by default:
+    #  - if no allow filters, then the defualt is to allow all subnets other than denied
+    #  - if any allow filters, then only allow subnets that match all allow and deny filters
+    # returns a new graph with only the filtered subnets in the specified vpc
+    S = nx.Graph()
+    filters = G.graph['SubnetFilters']
+
+    # if any filters are allow, then disable default allow
+    default_allow = True
+    for filter in filters:
+        if filter['Action'] == 'allow':
+            default_allow = False
+
+    # apply tags filter to all subnets in the vpc
+    for subnet in matching_node_values(G, "VpcId", vpc):
+        tags = G.nodes().data()[subnet]['Tags']
+        allow = default_allow
+        for filter in filters:
+            result = tag_filter(tags, filter['Operation'], filter['Key'], filter['Value'])
+            if filter['Action'] == 'allow':
+                if not allow:
+                    allow = result
+            elif filter['Action'] == 'deny':
+                allow = not result
+                # deny is explictly false, so if we get to deny, we can break
+                if not allow:
+                    break
+        if allow:
+            print(f'subnet filter allowing subnet {subnet} for selection')
+            S.add_nodes_from([subnet], **G.nodes().data()[subnet])
+
+    return S
+
+
+def tag_filter(tags_dict, operation, key, value):
+    # filter tags based on key and value
+    # operation = [equal|not-equal|in|not-in]
+    # return True if match, False if no match
+    if operation == 'equal':
+        if key in tags_dict:
+            if tags_dict[key] == value:
+                return True
+            else:
+                return False
+        else:
+            return False
+
+    elif operation == 'not-equal':
+        if key in tags_dict:
+            if tags_dict[key] != value:
+                return True
+            else:
+                return False
+        else:
+            return False
+
+    elif operation == 'in':
+        if key in tags_dict:
+            if value in tags_dict[key]:
+                return True
+            else:
+                return False
+        else:
+            return False
+
+    elif operation == 'not-in':
+        if key in tags_dict:
+            if value not in tags_dict[key]:
+                return True
+            else:
+                return False
+        else:
+            return False
+
+
+def rank_azs(G):
+    # sort all AZs in a graph by most to least used per region
+    # returns regions with sorted list of AZs = {<region>: [<az>, <az>, <az>]}
+    regions = {}
+    for vpc in matching_node_values(G, "Type", "vpc"):
+        region = G.nodes().data()[vpc]['Region']
+        # loop through all subnets in this vpc
+        for subnet in matching_node_values(G, "VpcId", vpc):
+            az = G.nodes().data()[subnet]['AvailabilityZoneId']
+            if region not in regions:
+                regions[region] = {az: 1}
+            else:
+                if az in regions[region].keys():
+                    regions[region][az] = regions[region][az] + 1
+                else:
+                    regions[region][az] = 1
+
+    sorted_regions = {}
+    for region, azs in regions.items():
+        sorted_regions[region] = sorted(regions[region].items(), key=lambda x: x[1], reverse=True)
+
+    return sorted_regions
 
 

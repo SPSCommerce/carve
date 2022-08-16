@@ -6,7 +6,7 @@ import os
 from aws import *
 from utils import load_graph, unique_node_values
 from privatelink import (add_peer_routes, private_link_deployment,
-                            privatelink_template)
+                            privatelink_template, select_subnets)
 
 
 def update_peer_names(deploy_regions):
@@ -44,33 +44,51 @@ def lambda_handler(event, context):
     # get all regions and AZids in use in the carve deployment
     deploy_regions = sorted(unique_node_values(G, 'Region'))
     print(f"additional regions in use: {len(deploy_regions)-1}")
-    deploy_azids = sorted(unique_node_values(G, 'AvailabilityZoneId'))
-    print(f"availability zone ids in use: {deploy_azids}")
+
     deploy_accounts = sorted(unique_node_values(G, 'Account'))
     print(f"accounts in use: {deploy_accounts}")
 
+    # if covering all subnets with the carve deployment (not just VPCs), then...
+    # find the highest number of subnets found in a single AZ in any VPC in each region in graph G
+    # this will determine how many PrivateLink services need to be created (will need one service per
+    # the maximum number of subnets in any AZ in any VPC in any region)
+
+    # deploy_azids = sorted(unique_node_values(G, 'AvailabilityZoneId'))
+    # print(f"availability zone ids in use across all VPCs: {deploy_azids}")
+
+    # vpcs = sorted(unique_node_values(G, 'VpcId'))
+    # print(f"vpcs in use: {vpcs}")
+    # for region in deploy_regions:
+    #     for vpc in vpcs:
+    #         nodes = matching_node_values(G, 'VpcId', vpc, return_value='AvailabilityZoneId')
+    #         # for azid in deploy_azids:
+    #         #     pass
+    #         print(vpc)
+    #         print(max(set(nodes), key=nodes.count))
+    #         # print(f"{len(nodes)} AZs in VPC {vpc}: {nodes}")
+    #         print('')
+
+
+    # get all the AZIDs that will be used in this deployment
+    subnets = select_subnets(G)
+    deploy_azids = set()
+    for vpc, subnet in subnets.items():
+        print(f"selecting {subnet['subnet']} ({subnet['name']}) in azid {subnet['azid']} for vpc {vpc}")
+        deploy_azids.add(subnet['azid'])
+
+    # determine if any VPC peering connections are needed in private link for multi-region
     peer_regions =[]
     for region in deploy_regions:
         if region != current_region:
             peer_regions.append(region)
 
-
-    if 'mode' in event:
-        if event['mode'] == 'test':
-            deploy_regions = ['us-east-1', 'us-east-2']
-            print(f"testing with only {len(deploy_regions)} regions: {deploy_regions}")
-
-
     # update any carve peering connection names in the current region
-    routing = update_peer_names(peer_regions)
+    routing = update_peer_names(peer_regions) # will set routing to True if any peering connections were updated
     print(f"routing found: {routing}")
-
-    # get the AZ id to AZ name mapping for this account
-    azs = aws_describe_availability_zones(current_region)['AvailabilityZones']
 
     # map the AZ names that are in the deployment in this region to the AZ id
     azmap = {}
-    for az in azs:
+    for az in aws_describe_availability_zones(current_region)['AvailabilityZones']:
         if az['ZoneId'] in deploy_azids:
             azmap[az['ZoneName']] = az['ZoneId']
 
@@ -78,10 +96,12 @@ def lambda_handler(event, context):
     second_octet = 0
     template = privatelink_template(current_region, second_octet, deploy_accounts, azmap)
 
+    # add the private link peering routes if any peering connections were updated
     if routing:
         routing_template = add_peer_routes(template, deploy_regions)
         template = routing_template
 
+    # push template to s3
     key = f"managed_deployment/private-link-{current_region}.cfn.json"
     data = json.dumps(template, ensure_ascii=True, indent=2, sort_keys=True)
     aws_put_direct(data, key)
@@ -97,12 +117,5 @@ def lambda_handler(event, context):
 
 
 if __name__ == '__main__':
-    event = {"Input": {"graph": "discovered/carve-discovered-1652883036.json"}, "mode": "test"}
-    # event = {"Input": {"graph": "deploy_active/carve-test-pl-subnets.json"}}
+    event = {"Input": {"graph": "discovery/testing.json"}}
     deploy = json.loads(lambda_handler(event, None))
-
-    if len(deploy) > 0:
-        import time
-        name = f"deploying-privatelink-{int(time.time())}"
-        aws_start_stepfunction(os.environ['DeployStacksStateMachine'], {'Input': deploy}, name)
-
