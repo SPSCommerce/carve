@@ -111,6 +111,7 @@ def lambda_handler(event, context):
 
 
 if __name__ == '__main__':
-    event = {"Input": {"graph": "discovered/carve-discovered-1659110898.json"}}
+    event = {"Input": {"graph": "discovered/carve-test-all.json"}}
     deploy = json.loads(lambda_handler(event, None))
-    print(deploy)
+    print('Json output:')
+    print(json.dumps({"Input": deploy}, default=str))

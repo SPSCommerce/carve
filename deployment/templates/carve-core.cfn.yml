@@ -598,6 +598,23 @@ Resources:
                 Resource:
                   - !Sub "arn:aws:ssm:*:*:parameter/${Prefix}carve-resources/*"
 
+  PrivateLinkInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${Prefix}carve-privatelink-ec2-role"
+      Path: /
+      ManagedPolicyArns:
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonSSMManagedInstanceCore
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: "Allow"
+          Principal:
+            Service:
+              - "ec2.amazonaws.com"
+          Action:
+            - "sts:AssumeRole"
+
   CarveDeployStacksStepFunction:
     Type: AWS::StepFunctions::StateMachine
     Properties: 
