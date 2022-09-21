@@ -1,7 +1,6 @@
 import os
 from copy import deepcopy
 from aws import *
-import time
 from utils import rank_azs, unique_node_values, subnet_filter
 
 #
@@ -25,17 +24,8 @@ def private_link_deployment(deployments, account, regions, routing=False):
 
     print(f"creating {len(deployments.items())} item deployment input list for deploy-stacks state machine")
     for region, template in deployments.items():
-        # if region == current_region:
-        #     internet = 'true'
-        # else:
-        #     internet = 'false'
-
         stackname = f"{os.environ['Prefix']}carve-managed-privatelink-{region}"
         parameters = [
-            # {
-            #     "ParameterKey": "InternetAccess",
-            #     "ParameterValue": internet
-            # },
             {
                 "ParameterKey": "CoreRegion",
                 "ParameterValue": current_region

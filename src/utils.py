@@ -138,7 +138,8 @@ def matching_node_values(G, key, value, return_value=None):
     return data
 
 
-def load_graph(graph, local=True):
+def load_graph(graph=None, event=None, local=True):
+    # handle the various ways of loading a graph for carve
     try:
         if local:
             with open(graph) as f:
@@ -146,12 +147,24 @@ def load_graph(graph, local=True):
                 G.graph['Name'] = graph.split('/')[-1].split('.')[0]
                 return G
         else:
-            graph_data = aws_read_s3_direct(graph)
-            G = json_graph.node_link_graph(json.loads(graph_data))
-            return G
+            if graph is not None:
+                graph_data = aws_read_s3_direct(graph)
+                G = json_graph.node_link_graph(json.loads(graph_data))
+                return G
+            else:
+                if 'graph' in event['Input']:
+                    G = load_graph(event['Input']['graph'], local=False)
+                    print(f"successfully loaded graph: {event['Input']['graph']}")
+                elif 'graph' in event:
+                    G = load_graph(event['graph'], local=False)
+                    print(f"successfully loaded graph: {event['graph']}")
+                else:
+                    raise Exception("no graph provided in input. input format: {'input': {'graph': 'carve-privatelink-graph.json'}}")
+                return G
     except Exception as e:
         print(f'error opening json_graph {json_graph}: {e}')
         sys.exit()
+
 
 
 def save_graph(G, file_path):
@@ -172,7 +185,10 @@ def subnet_filter(G, vpc):
     #  - if any allow filters, then only allow subnets that match all allow and deny filters
     # returns a new graph with only the filtered subnets in the specified vpc
     S = nx.Graph()
-    filters = G.graph['SubnetFilters']
+    try:
+        filters = G.graph['SubnetFilters']
+    except:
+        filters = []
 
     # if any filters are allow, then disable default allow
     default_allow = True

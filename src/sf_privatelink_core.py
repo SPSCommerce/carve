@@ -10,10 +10,10 @@ from privatelink import (add_peer_routes, private_link_deployment,
 
 
 def update_peer_names(deploy_regions):
+    # update carve peering connection names in the current region
     routing = False
     stackname = f"{os.environ['Prefix']}carve-managed-privatelink"
     for region in deploy_regions:
-        # stack = aws_describe_stack(stackname, region)
         outputs = aws_get_stack_outputs_dict(stackname, region)
         if 'VpcPeeringConnectionId' in outputs:
             routing = True
@@ -32,15 +32,8 @@ def lambda_handler(event, context):
     ''' build CFN templates for a carve private link deployment '''
     print(event)
 
-    if 'graph' in event['Input']:
-        G = load_graph(event['Input']['graph'], local=False)
-        print(f"successfully loaded graph: {event['Input']['graph']}")
-    elif 'graph' in event:
-        G = load_graph(event['graph'], local=False)
-        print(f"successfully loaded graph: {event['graph']}")
-    else:
-        raise Exception("no graph provided in input. input format: {'input': {'graph': 'carve-privatelink-graph.json'}}")
-    
+    G = load_graph(event=event, local=False)
+
     # get all regions and AZids in use in the carve deployment
     deploy_regions = sorted(unique_node_values(G, 'Region'))
     print(f"additional regions in use: {len(deploy_regions)-1}")
@@ -68,8 +61,9 @@ def lambda_handler(event, context):
     #         # print(f"{len(nodes)} AZs in VPC {vpc}: {nodes}")
     #         print('')
 
-
     # get all the AZIDs that will be used in this deployment
+    # after applying subnet filters that are defined in the graph
+    # to exclude or include subnets from selection
     subnets = select_subnets(G)
     deploy_azids = set()
     for vpc, subnet in subnets.items():
@@ -117,5 +111,6 @@ def lambda_handler(event, context):
 
 
 if __name__ == '__main__':
-    event = {"Input": {"graph": "discovery/testing.json"}}
+    event = {"Input": {"graph": "discovered/carve-discovered-1659110898.json"}}
     deploy = json.loads(lambda_handler(event, None))
+    print(deploy)
