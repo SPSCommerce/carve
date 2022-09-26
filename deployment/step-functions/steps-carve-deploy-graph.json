@@ -45,6 +45,22 @@
         }
       }
     },
+    "CheckPrivateLink":{
+      "Type":"Choice",
+      "Choices":[
+         {
+            "Variable":"$$.Execution.Input.privatelink",
+            "StringEquals":"deploy",
+            "Next":"DeployPrivateLink"
+         },
+         {
+          "Variable":"$$.Execution.Input.privatelink",
+          "StringEquals":"skip",
+          "Next":"BuildDeploymentList"
+        }
+      ],
+      "Default":"DeployPrivateLink"
+    },
     "DeployPrivateLink": {
       "Comment": "Create Carve Private Link",
       "Type": "Task",
