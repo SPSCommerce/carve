@@ -2,8 +2,8 @@ import lambdavars
 
 import json
 from aws import *
-from utils import load_graph, unique_node_values
-from privatelink import private_link_deployment, privatelink_template, select_subnets
+from utils import load_graph, unique_node_values, select_subnets
+from privatelink import private_link_deployment, privatelink_template
 
 
 def lambda_handler(event, context):
@@ -77,5 +77,5 @@ if __name__ == '__main__':
 
     if len(deploy) > 0:
         import time
-        name = f"deploying-privatelink-{int(time.time())}"
+        name = f"deploying-privatelink-regions-{int(time.time())}"
         aws_start_stepfunction(os.environ['DeployStacksStateMachine'], {'Input': deploy}, name)

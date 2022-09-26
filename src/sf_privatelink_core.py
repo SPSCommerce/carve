@@ -4,9 +4,9 @@ import json
 import os
 
 from aws import *
-from utils import load_graph, unique_node_values
+from utils import load_graph, unique_node_values, select_subnets
 from privatelink import (add_peer_routes, private_link_deployment,
-                            privatelink_template, select_subnets)
+                            privatelink_template)
 
 
 def update_peer_names(deploy_regions):
@@ -14,7 +14,7 @@ def update_peer_names(deploy_regions):
     routing = False
     stackname = f"{os.environ['Prefix']}carve-managed-privatelink"
     for region in deploy_regions:
-        outputs = aws_get_stack_outputs_dict(stackname, region)
+        outputs = aws_get_stack_outputs_dict(f"{stackname}-{region}", region)
         if 'VpcPeeringConnectionId' in outputs:
             routing = True
             aws_update_tags(
@@ -115,3 +115,7 @@ if __name__ == '__main__':
     deploy = json.loads(lambda_handler(event, None))
     print('Json output:')
     print(json.dumps({"Input": deploy}, default=str))
+    if len(deploy) > 0:
+        import time
+        name = f"deploying-privatelink-core-region-{int(time.time())}"
+        aws_start_stepfunction(os.environ['DeployStacksStateMachine'], {'Input': deploy}, name)

@@ -65,7 +65,7 @@ def stacks_by_account(G):
             if vpc not in vpcs:
                 account = G.nodes().data()[subnet]['Account']
                 region = G.nodes().data()[subnet]['Region']
-                stackname = f"{os.environ['Prefix']}carve-managed-beacons-{vpc}"
+                stackname = f"{os.environ['Prefix']}carve-managed-endpoints-{vpc}"
                 if account not in account_dict:
                     account_dict[account] = []
                 account_dict[account].append({'stackname': stackname, 'region': region}) 
@@ -98,11 +98,10 @@ def update_beacon_inventory(G):
 
 
 def lambda_handler(event, context):
-    # copy deployment object
+    # load graph
     deploy_key = get_deploy_key()
     if not deploy_key:
         raise Exception('No deployment key found')
-
     G = load_graph(deploy_key, local=False)
 
     # get inventory of all beacons (endpoint private IP addresses)

@@ -33,6 +33,10 @@ def private_link_deployment(deployments, account, regions, routing=False):
             {
                 "ParameterKey": "PrivateLinkRegions",
                 "ParameterValue": ','.join(regions)
+            },
+            {
+                "ParameterKey": "Prefix",
+                "ParameterValue": os.environ['Prefix']
             }
         ]
 
@@ -150,11 +154,11 @@ def privatelink_template(region, second_octet, deploy_accounts, azs):
 
 
 def add_peer_routes(template, deploy_regions):
-    ''' add routes to the peered regions in CFN '''
-    stackname = f"{os.environ['Prefix']}carve-managed-privatelink-{current_region}"
+    ''' add routes to the peered regions in the CFN template '''
     for region in deploy_regions:
         if region == current_region:
             continue
+        stackname = f"{os.environ['Prefix']}carve-managed-privatelink-{region}"
         outputs = aws_get_stack_outputs_dict(stackname, region)
         if 'VpcPeeringConnectionId' in outputs:
             print(f"{current_region}: adding route to {current_region} template for peered region: {region}")
@@ -191,31 +195,3 @@ def discover_privatelink_services(deploy_regions):
     return services
 
 
-def select_subnets(G):
-    ''' 
-    using the SubnetFilters in graph G, select 1 subnet per VPC
-    Selection logic:
-        after subnets are filered, select the subnet with the most common AZID
-    Returns:
-        subnets = {'VpcId': {"subnet": SubnetId, "name": Name, "azid": AvailabilityZoneId}}
-    '''
-    az_rank = rank_azs(G)
-    subnets = {}
-    for vpc in sorted(unique_node_values(G, 'VpcId')):
-        # filter for preferred subnets
-        S = subnet_filter(G, vpc)
-        if len(S) == 0:
-            print(f"WARNING: no subnets found in {vpc} after applying filters")
-            continue
-        # pick the first subnet from the highest ranked AZ in the VPC
-        region = G.nodes().data()[vpc]['Region']
-        for az in az_rank[region]:
-            azid = az[0]
-            for subnet in S.nodes():
-                if S.nodes()[subnet]['AvailabilityZoneId'] == azid:
-                    subnets[vpc] = {
-                        "subnet": subnet,
-                        "name": S.nodes()[subnet]['Name'],
-                        "azid": S.nodes()[subnet]['AvailabilityZoneId']
-                        }
-    return subnets

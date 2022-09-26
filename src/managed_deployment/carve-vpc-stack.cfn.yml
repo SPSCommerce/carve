@@ -96,7 +96,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId: !Ref VpcId
-      GroupName: !Sub '${Prefix}carve-endponit-${VpcId}'
+      GroupName: !Sub '${Prefix}carve-endpoint-${VpcId}'
       GroupDescription: Carve Endpoint SecurityGroup
       SecurityGroupIngress:
         -

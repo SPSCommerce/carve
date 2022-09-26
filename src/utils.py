@@ -178,6 +178,36 @@ def save_graph(G, file_path):
         json.dump(json_graph.node_link_data(G), f)
 
 
+def select_subnets(G):
+    ''' 
+    using the SubnetFilters in graph G, select 1 subnet per VPC
+    Selection logic:
+        after subnets are filered, select the subnet with the most common AZID
+    Returns:
+        subnets = {'VpcId': {"subnet": SubnetId, "name": Name, "azid": AvailabilityZoneId}}
+    '''
+    az_rank = rank_azs(G)
+    subnets = {}
+    for vpc in sorted(unique_node_values(G, 'VpcId')):
+        # filter for preferred subnets
+        S = subnet_filter(G, vpc)
+        if len(S) == 0:
+            print(f"WARNING: no subnets found in {vpc} after applying filters")
+            continue
+        # pick the first subnet from the highest ranked AZ in the VPC
+        region = G.nodes().data()[vpc]['Region']
+        for az in az_rank[region]:
+            azid = az[0]
+            for subnet in S.nodes():
+                if S.nodes()[subnet]['AvailabilityZoneId'] == azid:
+                    subnets[vpc] = {
+                        "subnet": subnet,
+                        "name": S.nodes()[subnet]['Name'],
+                        "azid": S.nodes()[subnet]['AvailabilityZoneId']
+                        }
+    return subnets
+
+
 def subnet_filter(G, vpc):
     # using the "SubnetFilters" in Graph G, filter subnets from the vpc using tags
     # filter is allow by default:
@@ -211,7 +241,7 @@ def subnet_filter(G, vpc):
                 if not allow:
                     break
         if allow:
-            print(f'subnet filter allowing subnet {subnet} for selection')
+            # print(f'subnet filter allowing subnet {subnet} for selection')
             S.add_nodes_from([subnet], **G.nodes().data()[subnet])
 
     return S

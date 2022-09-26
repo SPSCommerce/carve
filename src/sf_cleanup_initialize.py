@@ -45,7 +45,7 @@ def lambda_handler(event, context):
         if vpc not in vpcs:
             vpcs.append(vpc)
             safe_stacks.append({
-                'StackName': f"{os.environ['Prefix']}carve-managed-beacons-{vpc}",
+                'StackName': f"{os.environ['Prefix']}carve-managed-endpoints-{vpc}",
                 'Account': G.nodes().data()[subnet]['Account'],
                 'Region': G.nodes().data()[subnet]['Region']
                 })
