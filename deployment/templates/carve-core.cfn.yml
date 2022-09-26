@@ -426,6 +426,26 @@ Resources:
       TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
       TimeoutInMinutes: 5
 
+  FunctionSfCleanupDescribeDelete:
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      Parameters:
+        HandlerFile: sf_cleanup_describe_delete
+        # params below are the same for all nested lambda stacks
+        CarveVersion: !Ref CarveVersion
+        CodeBucket: !Ref CodeBucket
+        CarveS3Bucket: !Ref CarveS3Bucket
+        ECR: !Ref ECR
+        IMAGETAG: !Ref IMAGETAG
+        OrgId: !Ref OrgId
+        OrgSNSTopic: !Ref OrgSNSTopic
+        Prefix: !Ref Prefix
+        PropogateUpdates: !Ref PropogateUpdates
+        UniqueId: !Ref UniqueId
+        RoleArn: !GetAtt CarveCoreRole.Arn
+      TemplateURL: !Sub "https://s3.amazonaws.com/${CodeBucket}/templates/${GITSHA}/carve-core-lambda.cfn.yml"
+      TimeoutInMinutes: 5
+
   FunctionSfCleanupDeleteStack:
     Type: AWS::CloudFormation::Stack
     Properties: 
@@ -687,8 +707,8 @@ Resources:
           Fn::GetAtt: [FunctionSfCleanupOrganize, Outputs.LambdaName]
         FunctionSfCleanupDeleteStack:
           Fn::GetAtt: [FunctionSfCleanupDeleteStack, Outputs.LambdaName]
-        FunctionSfStacksDescribeStack:
-          Fn::GetAtt: [FunctionSfStacksDescribeStack, Outputs.LambdaName]
+        FunctionSfCleanupDescribeDelete:
+          Fn::GetAtt: [FunctionSfCleanupDescribeDelete, Outputs.LambdaName]
       RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Prefix}carve-stepfunctions"
       StateMachineName: !Sub "${Prefix}carve-cleanup"
       StateMachineType: STANDARD
