@@ -72,6 +72,7 @@ def deployment_list(G, upload_template=True):
             except:
                 skipped.append(vpc)
                 print(f"WARNING: No preferred subnet found for VPC {vpc}. Excluding VPC.")
+                continue
 
         # generate the CFN template for this VPC
         vpc_template, stack = generate_template(vpc, vpc_subnets, account, region_map[region], region)
