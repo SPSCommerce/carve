@@ -32,7 +32,7 @@
     "DeployS3BucketStacks": {
       "Comment": "Create S3 Buckets in each region to support deployments",
       "Type": "Task",
-      "Next": "DeployPrivateLink",
+      "Next": "CheckPrivateLink",
       "ResultSelector": {
         "Payload.$": "States.StringToJson($.Input)"
       },

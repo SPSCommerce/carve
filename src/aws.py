@@ -1223,7 +1223,3 @@ def aws_upload_file_s3(key, file_path):
         print(f's3 error: {e}')
         # logger.exception(f'Failed to write outputs/logs s3 bucket')
 
-
-
-# if __name__ == '__main__':
-#     main()

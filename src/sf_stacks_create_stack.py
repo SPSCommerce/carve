@@ -1,3 +1,4 @@
+import lambdavars
 import json
 from copy import deepcopy
 
@@ -23,7 +24,7 @@ def lambda_handler(event, context):
     region = event['Input']['Region']
     account = event['Input']['Account']
 
-    credentials = aws_assume_role(carve_role_arn(account), f"carve-create-{stackname}")
+    credentials = aws_assume_role(carve_role_arn(account), f"carve-create-stack")
 
     response = aws_describe_stack(
         stackname=stackname,
@@ -51,5 +52,3 @@ def lambda_handler(event, context):
 
     # return json to step function
     return json.dumps(payload, default=str)
-
-
