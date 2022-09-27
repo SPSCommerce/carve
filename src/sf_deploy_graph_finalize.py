@@ -1,6 +1,6 @@
 import lambdavars
 from utils import get_deploy_key, carve_role_arn, load_graph
-# from sf_deploy_graph_deployment_list import deployment_list
+from sf_cleanup_initialize import deployed_vpc_stacks
 from aws import *
 import concurrent.futures
 
@@ -51,33 +51,22 @@ def stack_outputs_thread(credentials, region, stackname):
         raise Exception(f"No Beacons stack output found in {stackname} in account {credentials['Account']}")
     
 
-def stacks_by_account(G):
-    '''
-    determine all deployed stacks for all VPCs in the graph G, with their account and region
-    Using that, generate an account dictionary of stacks:
-       account_dict = {account_id: [{stackname: stackname1, region: region}, {stackname: stackname2, region: region}], ...}
-    '''
-    account_dict = {}
-    vpcs = []
-    for subnet in list(G.nodes):
-        if G.nodes[subnet]['Type'] == 'managed':
-            vpc = G.nodes().data()[subnet]['VpcId']
-            if vpc not in vpcs:
-                account = G.nodes().data()[subnet]['Account']
-                region = G.nodes().data()[subnet]['Region']
-                stackname = f"{os.environ['Prefix']}carve-managed-endpoints-{vpc}"
-                if account not in account_dict:
-                    account_dict[account] = []
-                account_dict[account].append({'stackname': stackname, 'region': region}) 
-    return account_dict
-
-
 def update_beacon_inventory(G):
     '''
     update the inventory of beacons in the graph G
     '''
-    # get all stacks by account
-    account_dict = stacks_by_account(G)
+    # get all deployed stacks and organize by account
+    account_dict = {}
+    stacks = deployed_vpc_stacks(G)  # [{'StackName': 's', 'Account': 'a', 'Region': 'r'}, ...]
+    for stack in stacks:
+        if stack['Account'] not in account_dict:
+            account_dict[stack['Account']] = []
+
+        account_dict[stack['Account']].append({
+            'stackname': stack['StackName'],
+            'region': stack['Region']
+        })
+
     # add managed beacons to inventory
     beacons = inventory_beacons(account_dict)
 

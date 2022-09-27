@@ -41,7 +41,8 @@
         "StateMachineArn": "${CarveDeployStacksStepFunction}",
         "Input": {
           "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id",
-          "Input.$": "$"
+          "Input.$": "$",
+          "Name.$": "States.Format('{}-s3-buckets', $$.Execution.Name)"
         }
       }
     },
@@ -71,7 +72,8 @@
         "Input": {
           "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id",
           "Input.$": "$",
-          "graph.$": "$$.Execution.Input.graph"
+          "graph.$": "$$.Execution.Input.graph",
+          "Name.$": "States.Format('{}-private-link', $$.Execution.Name)"
         }
       }
     },
@@ -108,7 +110,8 @@
         "StateMachineArn": "${CarveDeployStacksStepFunction}",
         "Input": {
           "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id",
-          "Input.$": "$.Payload"
+          "Input.$": "$.Payload",
+          "Name.$": "States.Format('{}-endpoints', $$.Execution.Name)"
         }
       }
     },

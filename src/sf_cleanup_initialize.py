@@ -2,7 +2,7 @@ import json
 import os
 
 from aws import aws_current_account, aws_discover_org_accounts, current_region, aws_all_regions
-from utils import get_deploy_key, load_graph, unique_node_values
+from utils import get_deploy_key, load_graph, unique_node_values, select_subnets, matching_node_values
 
 
 def lambda_handler(event, context):
@@ -25,7 +25,7 @@ def lambda_handler(event, context):
     accounts = aws_discover_org_accounts()
 
     # create a list for carve stacks to not delete
-    safe_stacks = []
+    safe_stacks = deployed_vpc_stacks(G)
 
     # add the s3 bucket stacks for active regions to safe stacks
     deploy_region_list = set(sorted(unique_node_values(G, 'Region')))
@@ -37,18 +37,6 @@ def lambda_handler(event, context):
             'Account': context.invoked_function_arn.split(":")[4],
             'Region': region
             })
-
-    # add all VPC stacks in the graph to safe stacks
-    vpcs = []
-    for subnet in list(G.nodes):
-        vpc = G.nodes().data()[subnet]['VpcId']
-        if vpc not in vpcs:
-            vpcs.append(vpc)
-            safe_stacks.append({
-                'StackName': f"{os.environ['Prefix']}carve-managed-endpoints-{vpc}",
-                'Account': G.nodes().data()[subnet]['Account'],
-                'Region': G.nodes().data()[subnet]['Region']
-                })
 
     # add all private link stacks to safe stacks
     # for region in sorted(unique_node_values(G, 'Region')):
@@ -76,3 +64,27 @@ def lambda_handler(event, context):
     # returns to a step function iterator
     # return json.dumps(discover_stacks, default=str)
     return discover_stacks
+
+def deployed_vpc_stacks(G):
+    # create a list of all VPCs in the graph
+    vpcs = matching_node_values(G, 'Type', 'vpc', return_value=None)
+
+    # if running with vpc level verification, remove any VPCs that are not monitored
+    if G.graph["VerificationScope"] == "vpc":
+        subnets = select_subnets(G)
+        for vpc in vpcs:
+            if vpc not in subnets:
+                print(f"removing vpc from safe stacks: {vpc}")
+                vpcs.remove(vpc)
+
+    # add all VPC stacks in the graph to safe stacks
+    stacks = []
+    for vpc in vpcs:
+        print(f"adding vpc to safe stacks: {vpc}")
+        stacks.append({
+            'StackName': f"{os.environ['Prefix']}carve-managed-endpoints-{vpc}",
+            'Account': G.nodes().data()[vpc]['Account'],
+            'Region': G.nodes().data()[vpc]['Region']
+            })
+
+    return stacks
