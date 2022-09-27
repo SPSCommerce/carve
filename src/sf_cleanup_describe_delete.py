@@ -11,7 +11,7 @@ def lambda_handler(event, context):
     try:
         payload = event['Input']['Payload']
     except:
-        payload = event['Payload']
+        payload = event['Input']
 
     account = payload['Account']
     credentials = aws_assume_role(carve_role_arn(account), f"carve-deploy-{payload['Region']}")
