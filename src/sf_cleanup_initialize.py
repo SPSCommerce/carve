@@ -1,4 +1,4 @@
-import json
+import lambdavars
 import os
 
 from aws import aws_current_account, aws_discover_org_accounts, current_region, aws_all_regions
@@ -70,12 +70,17 @@ def deployed_vpc_stacks(G):
     vpcs = matching_node_values(G, 'Type', 'vpc', return_value=None)
 
     # if running with vpc level verification, remove any VPCs that are not monitored
-    if G.graph["VerificationScope"] == "vpc":
-        subnets = select_subnets(G)
-        for vpc in vpcs:
-            if vpc not in subnets:
-                print(f"removing vpc from safe stacks: {vpc}")
-                vpcs.remove(vpc)
+    try:
+        # wrapped in try because VerificationScope may not be defined
+        if G.graph["VerificationScope"] == "vpc":
+            subnets = select_subnets(G)
+            for vpc in vpcs:
+                if vpc not in subnets:
+                    print(f"removing vpc from safe stacks: {vpc}")
+                    vpcs.remove(vpc)
+    except:
+        print('Note:  VerificationScope is not defined in graph')
+        pass
 
     # add all VPC stacks in the graph to safe stacks
     stacks = []
@@ -88,3 +93,4 @@ def deployed_vpc_stacks(G):
             })
 
     return stacks
+
