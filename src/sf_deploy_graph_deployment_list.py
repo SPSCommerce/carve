@@ -30,15 +30,6 @@ def deployment_list(G, upload_template=True):
         vpcs[vpc] = (account, region)
         regions.add(region)
 
-    # # determine all VPCs in the graph and their account and region
-    # vpcs = {}
-    # regions = set()
-    # for subnet in list(G.nodes):
-    #     a = G.nodes().data()[subnet]['Account']
-    #     r = G.nodes().data()[subnet]['Region']
-    #     vpcs[G.nodes().data()[subnet]['VpcId']] = (a, r)
-    #     regions.add(r)
-
     # create a region map of private link endpoint urls
     region_map = {}
     for region in regions:
@@ -133,7 +124,11 @@ def generate_template(vpc, vpc_subnets, account, vpce_service, region):
         {
             "ParameterKey": "VpcSubnetIds",
             "ParameterValue": ','.join(vpc_subnets)
-        },      
+        },
+        {
+            "ParameterKey": "VpcSecurityGroupIds",
+            "ParameterValue": G.nodes().data()[vpc]['DefaultSecurityGroup']
+        },
         {
             "ParameterKey": "Prefix",
             "ParameterValue": os.environ['Prefix']

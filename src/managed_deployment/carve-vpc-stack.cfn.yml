@@ -10,6 +10,10 @@ Parameters:
     Type: String
     Description: one or more comma separated subnets in which to create beacons
     Default: ""
+  VpcSecurityGroupId:
+    Type: String
+    Description: Security Group ID to use for the lambdas
+    Default: ""
   Prefix:
     Type: String
     Description: "Prefix carve AWS resources and stacknames with this"
@@ -39,7 +43,7 @@ Resources:
           VpcId: !Ref VpcId
       VpcConfig:
         SecurityGroupIds:
-          - !Ref LambdaSecurityGroup
+          - !Ref VpcSecurityGroupId
         SubnetIds: !Split [ ",", !Ref VpcSubnetIds ]
       Code: 
         ZipFile: "print('error injecting code at deploy time')"
@@ -72,12 +76,6 @@ Resources:
                 Action:
                   - "ec2:DescribeNetworkInterfaces"
                 Resource: "*"
-
-  LambdaSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      VpcId: !Ref VpcId
-      GroupDescription: Carve Lambda Egress
 
   CarvePrivateEndpoint:
     Type: AWS::EC2::VPCEndpoint

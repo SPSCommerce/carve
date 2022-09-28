@@ -11,6 +11,9 @@ def discover_nodes(region, account_id, account_name, credentials):
     # create graph structure for subnets
     G = nx.Graph()
 
+    # determine default security group for each VPC in this region
+    default_groups = aws_discover_default_security_groups(credentials, region)
+
     # first add discovered VPC nodes
     print("discovering vpcs in {}".format(region))
     vpcs = aws_describe_vpcs(region, credentials, account_id)
@@ -36,7 +39,7 @@ def discover_nodes(region, account_id, account_name, credentials):
         except:
             vpc_name = vpc['VpcId']
 
-        # create vpc nodes
+        # add vpc nodes to graph
         G.add_node(
             vpc['VpcId'],
             Name=vpc_name,
@@ -45,6 +48,7 @@ def discover_nodes(region, account_id, account_name, credentials):
             Region=region,
             CidrBlock=vpc['CidrBlock'],
             Type='vpc',
+            DefaultSecurityGroup=default_groups[vpc['VpcId']],
             Tags=tags
             )
 
