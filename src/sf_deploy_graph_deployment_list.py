@@ -133,7 +133,7 @@ def generate_template(vpc, vpc_subnets, security_group, account, vpce_service, r
             "ParameterValue": ','.join(vpc_subnets)
         },
         {
-            "ParameterKey": "VpcSecurityGroupIds",
+            "ParameterKey": "VpcSecurityGroupId",
             "ParameterValue": security_group
         },
         {
