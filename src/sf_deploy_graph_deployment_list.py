@@ -101,19 +101,31 @@ def generate_template(vpc, vpc_subnets, security_group, account, vpce_service, r
     with open(f"{path}/carve-vpc-stack.cfn.json") as f:
         vpc_template = json.load(f)
 
-    # open lambda code to insert into template
+    # open subnet lambda code to insert into template
     with open(f"{path}/subnet_lambda.py") as f:
         lambda_code = f.read()
 
     # update the VPC CFN template to contain 1 lambda function per subnet
+    i=1
     for subnet in vpc_subnets:
+        # create a copy of the lambda function for each subnet
         Function = deepcopy(vpc_template['Resources']['SubnetFunction'])
         Function['Properties']['FunctionName'] = f"{os.environ['Prefix']}carve-{subnet}"
         Function['Properties']['Environment']['Variables']['VpcSubnetIds'] = subnet
         Function['Properties']['VpcConfig']['SubnetIds'] = [subnet]
         Function['Properties']['Code']['ZipFile'] = lambda_code
-        name = f"Function{subnet.split('-')[-1]}"
-        vpc_template['Resources'][name] = deepcopy(Function)
+        # add the function to the template, and to the delete function variables in the template
+        vpc_template['Resources'][f"Function{subnet.split('-')[-1]}"] = deepcopy(Function)
+        vpc_template['Resources']['LambdaDelete']['Properties']['Environment']['Variables'][f"Function{i}"] = f"{os.environ['Prefix']}carve-{subnet}"
+        i+=1
+
+    # set the number of subnet lambdas for the lambda delete function
+    vpc_template['Resources']['LambdaDelete']['Properties']['Environment']['Variables']['FunctionCount'] = str(len(vpc_subnets))
+
+    # insert the lambda delete CFN resource code into the template
+    with open(f"{path}/lambda_delete.py") as f:
+        delete_lambda_code = f.read()
+    vpc_template['Resources']['LambdaDelete']['Properties']['Code']['ZipFile'] = delete_lambda_code
 
     # remove original SubnetFunction object from template
     del vpc_template['Resources']['SubnetFunction']
