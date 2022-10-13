@@ -66,7 +66,8 @@ def deployment_list(G, upload_template=True):
                 continue
 
         # generate the CFN template for this VPC
-        vpc_template, stack = generate_template(vpc, vpc_subnets, account, region_map[region], region)
+        security_group = G.nodes().data()[vpc]['DefaultSecurityGroup']
+        vpc_template, stack = generate_template(vpc, vpc_subnets, security_group, account, region_map[region], region)
 
         # push template to s3
         if upload_template:
@@ -85,7 +86,7 @@ def deployment_list(G, upload_template=True):
     return deploy_beacons
 
 
-def generate_template(vpc, vpc_subnets, account, vpce_service, region):
+def generate_template(vpc, vpc_subnets, security_group, account, vpce_service, region):
 
     # get current folder path
     path = f"{os.path.dirname(os.path.realpath(__file__))}/managed_deployment"
@@ -127,7 +128,7 @@ def generate_template(vpc, vpc_subnets, account, vpce_service, region):
         },
         {
             "ParameterKey": "VpcSecurityGroupIds",
-            "ParameterValue": G.nodes().data()[vpc]['DefaultSecurityGroup']
+            "ParameterValue": security_group
         },
         {
             "ParameterKey": "Prefix",
