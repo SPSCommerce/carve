@@ -48,5 +48,5 @@ def lambda_handler(event, context):
             cfnresponse.send(event, context, cfnresponse.FAILED, responseData)
             return
 
-        cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
-        return
+    cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
+    return
