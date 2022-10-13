@@ -91,6 +91,7 @@ Resources:
                   - ec2:CreateNetworkInterface
                   - ec2:DeleteNetworkInterface
                   - ec2:DescribeVpcEndpointServices
+                  - ec2:DescribeSecurityGroups
                   # - autoscaling:DescribeAutoScalingGroups
                 Resource:
                   - "*"
