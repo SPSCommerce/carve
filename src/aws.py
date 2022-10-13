@@ -243,7 +243,8 @@ def aws_discover_default_security_groups(credentials, region):
     groups = {}
     for page in paginator.paginate(Filters=[{'Name': 'group-name', 'Values': ['default']}]):
         for group in page['SecurityGroups']:
-            groups[group['VpcId']] = group['GroupId']
+            if 'VpcId' in group:
+                groups[group['VpcId']] = group['GroupId']
     return groups
 
 
