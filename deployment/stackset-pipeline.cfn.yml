@@ -111,8 +111,7 @@ Resources:
                     "RootOU": "${RootOU}", 
                     "Prefix": "${Prefix}", 
                     "DeployBucket": "${DeployBucket}", 
-                    "CarveCoreAccount": "${CarveCoreAccount}", 
-                    "UniqueId": "${UniqueId}"
+                    "CarveCoreAccount": "${CarveCoreAccount}"
                   }
               OutputArtifacts: []
               InputArtifacts:
