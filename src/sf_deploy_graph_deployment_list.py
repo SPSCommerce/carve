@@ -55,9 +55,15 @@ def deployment_list(G, upload_template=True):
         account = location[0]
         region = location[1]
 
-        if G.graph["VerificationScope"] == "subnet":
+        # default scope to vpc if verification scope is not defined in graph
+        try:
+            scope = G.graph["VerificationScope"]
+        except:
+            scope = "vpc"
+
+        if scope == "subnet":
             vpc_subnets = [x for x,y in G.nodes(data=True) if y['VpcId'] == vpc]
-        elif G.graph["VerificationScope"] == "vpc":
+        elif scope == "vpc":
             try:
                 vpc_subnets = [subnets[vpc]['subnet']]
             except:
