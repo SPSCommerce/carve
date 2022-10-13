@@ -6,9 +6,9 @@ import boto3
 #
 # CloudFormation has a bug where it takes 20-40 minutes to delete a VPC attached
 # Lambda due delays in communication around ENI deletion. To delete Lambdas much
-# faster, when the stack is deleted, this custom resource will delete all Lambda 
-# functions in the stack with a DeletionPolicy of Retain. This makes the deletion
-# of the lambda almost immediate.
+# faster during stack deletion, this custom resource will delete all Lambda 
+# functions in the same stack with a DeletionPolicy of Retain. This makes deleting
+# the lambdas almost immediate, while still being part of the stack deletion.
 #
 # CloudFormation Bug:
 # https://github.com/serverless/serverless/issues/5008
