@@ -198,7 +198,13 @@ Resources:
                   - "lambda:DeleteFunction"
                 Resource:
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${Prefix}carve-subnet-*"
-
+              - Effect: Allow
+                Action:
+                  - "cloudformation:DescribeStackResources"
+                  - "cloudformation:GetTemplate"
+                Resource:
+                  - !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}"
+                  - !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}/*"
 Outputs:
   Beacons:
     Description: Private IPs for each subnet endpoint
