@@ -27,10 +27,6 @@ def discover_nodes(region, account_id, account_name, credentials):
             # don't add default VPCs
             continue
 
-        if vpc['Name'].startswith(f"{os.environ['Prefix']}carve-privatelink-"):
-            # don't add carve privatelink VPCs
-            continue
-
         # get tags from vpc
         try:
             tags = aws_tag_dict(vpc['Tags'])
@@ -42,6 +38,10 @@ def discover_nodes(region, account_id, account_name, credentials):
             vpc_name = tags['Name']
         except:
             vpc_name = vpc['VpcId']
+
+        # don't add carve privatelink VPCs
+        if vpc['Name'].startswith(f"{os.environ['Prefix']}carve-privatelink-"):
+            continue
 
         # add vpc nodes to graph
         G.add_node(
