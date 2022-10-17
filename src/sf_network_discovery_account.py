@@ -40,7 +40,7 @@ def discover_nodes(region, account_id, account_name, credentials):
             vpc_name = vpc['VpcId']
 
         # don't add carve privatelink VPCs
-        if vpc['Name'].startswith(f"{os.environ['Prefix']}carve-privatelink-"):
+        if vpc_name.startswith(f"{os.environ['Prefix']}carve-privatelink-"):
             continue
 
         # add vpc nodes to graph
