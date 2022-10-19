@@ -22,6 +22,7 @@ def lambda_handler(event, context):
     name = f"carve-discovered-{int(time.time())}"
     G = nx.Graph(Name=name)
     G.graph["VerificationScope"] = "vpc"
+    G.graph["PrivateLink"] = "deploy"
 
     # Load all org discovered subnets into graph G
     for account in discovered:
