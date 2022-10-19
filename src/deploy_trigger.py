@@ -5,7 +5,7 @@ import time
 from aws import (aws_codepipeline_success, aws_copy_s3_object,
                  aws_create_s3_path, aws_put_bucket_notification,
                  aws_start_stepfunction)
-from utils import get_deploy_key
+from utils import get_deploy_key, load_graph
 
 
 def lambda_handler(event, context):
@@ -15,7 +15,20 @@ def lambda_handler(event, context):
     elif 's3' in event['Records'][0]:
         if event['Records'][0]['s3']['bucket']['name'] == os.environ['CarveS3Bucket']:
             key = event['Records'][0]['s3']['object']['key']
-            input = {'graph': key, "privatelink": "deploy"}
+
+            try:
+                G = load_graph(key, local=False)
+                print(f"successfully loaded graph: {key}")
+            except:
+                raise Exception(f"failed to load graph: {key}")
+
+            try:
+                # use the graph definition to determine if private link should be deployed
+                privatelink = G.graph["PrivateLink"]
+            except:
+                privatelink = "deploy"
+
+            input = {'graph': key, "privatelink": privatelink}
             name = f's3-bucket-trigger-{int(time.time())}'
             aws_start_stepfunction(os.environ['DeployBeaconsGraphMachine'], input, name)
 
