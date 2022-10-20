@@ -228,26 +228,6 @@ def aws_describe_network_interfaces(interface_ids, credentials, region=current_r
     return results
 
 
-# a function to discover all default security groups in a region
-def aws_discover_default_security_groups(credentials, region):
-    client = boto3.client(
-        'ec2',
-        config=boto_config,
-        region_name=region,
-        aws_access_key_id = credentials['AccessKeyId'],
-        aws_secret_access_key = credentials['SecretAccessKey'],
-        aws_session_token = credentials['SessionToken']
-        )
-    # use a paginator
-    paginator = client.get_paginator('describe_security_groups')
-    groups = {}
-    for page in paginator.paginate(Filters=[{'Name': 'group-name', 'Values': ['default']}]):
-        for group in page['SecurityGroups']:
-            if 'VpcId' in group:
-                groups[group['VpcId']] = group['GroupId']
-    return groups
-
-
 def aws_get_template(stackname, region, credentials=None):
     ''' return the template for a stack '''
     if credentials is None:
