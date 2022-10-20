@@ -77,7 +77,7 @@ Resources:
   LambdaSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: !Sub ${Prefix}-carve-lambdas
+      GroupName: !Sub ${Prefix}carve-lambdas
       VpcId: !Ref VpcId
       GroupDescription: Carve Lambda Egress
 

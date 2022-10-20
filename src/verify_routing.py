@@ -21,6 +21,8 @@ def add_routes(G):
     # get all addresses from beacons
     beacons = [beacon['address'] for beacon in inventory.values()]
 
+    print("verifying routes with beacons: ", beacons)
+
     cred_cache = {}
     verified_routes = {}
     futures = set()
@@ -45,11 +47,15 @@ def add_routes(G):
                         region=data['region'],
                         beacons=beacons
                         ))
+                else:
+                    print(f"skipping {target} - not a managed beacon")
 
             # collect thread results
             for future in concurrent.futures.as_completed(futures):
                 for subnet, results in future.result().items():
                     verified_routes[subnet] = results
+
+            print(f"verified routes: {verified_routes}")
 
     # add verified routes to graph
     R = add_graph_links(G, verified_routes, inventory)
@@ -58,7 +64,7 @@ def add_routes(G):
 
 def add_graph_links(G, verified_routes, inventory):
     '''
-    create new graph with links by adding routes to the currently deployed graph
+    create new graph with links by adding routes (links) to the currently deployed graph
     '''
     # make new dict from inventory with address as key and subnet/name for easy lookup
     print("adding routes to graph...")
@@ -66,15 +72,22 @@ def add_graph_links(G, verified_routes, inventory):
     for beacon, data in inventory.items():
         beacons_dict[data['address']] = beacon
 
+    print("beacons:", beacons_dict)
+
     # add route links to managed subnets in graph
     for subnet in list(G.nodes):
-        if G.nodes[subnet]['Type'] == 'managed':
+        if G.nodes[subnet]['Type'] == 'subnet':
             for result in verified_routes[subnet]:
                 if result['result'] == 'up':
                     beacon = result['beacon']
                     edge = beacons_dict[beacon]
                     if subnet != edge:
                         G.add_edge(subnet, edge)
+                        print(f"route added: {subnet} to {edge}")
+                    else:
+                        print(f"route not added: {subnet} to {edge} - same subnet")
+                else:
+                    print(f"route down: {subnet} to {edge}")
     return G
 
 
@@ -101,7 +114,7 @@ def verify_routing(G=None, graph_key=None, output_key=None):
 
     # determine which graph to use
     if G != None:
-        print('graph provided, using provided graph...')
+        print(f"graph provided, using provided graph: {G.graph['Name']}")
     elif graph_key != None:
         print('graph_key provided, loading graph...')
         G = load_graph(graph_key, local=False)
@@ -134,9 +147,6 @@ def verify_routing(G=None, graph_key=None, output_key=None):
 
 
 if __name__ == '__main__':
-    local_graph = "ignore/carve-test-pl-subnets.json"
-    G = load_graph(local_graph, local=True)
-    routed_graph = verify_routing(G=G)
-
-    print(routed_graph)
-
+    routed_graph = verify_routing()
+    print(routed_graph['links'])
+    
