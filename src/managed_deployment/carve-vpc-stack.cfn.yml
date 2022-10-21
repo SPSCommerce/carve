@@ -25,7 +25,7 @@ Parameters:
 Resources:
   SubnetFunction:
     Type: AWS::Lambda::Function
-    DeletionPolicy: Retain
+    # DeletionPolicy: Retain
     Properties:
       FunctionName: CarveSubnetFunction
       Description: Continuous AWS Route Verification Engine
@@ -69,16 +69,13 @@ Resources:
                 Action:
                   - "sns:Publish"
                 Resource: !Ref CarveSNSTopicArn
-              - Effect: Allow
-                Action:
-                  - "ec2:DescribeNetworkInterfaces"
-                Resource: "*"
+
 
   LambdaSecurityGroup:
-    DeletionPolicy: Retain
+    # DeletionPolicy: Retain
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: ${Prefix}carve-${VpcId}
+      GroupName: !Sub "${Prefix}carve-${VpcId}"
       VpcId: !Ref VpcId
       GroupDescription: Carve Lambda Egress
 
@@ -155,70 +152,74 @@ Resources:
       ServiceToken: !GetAtt ENIAddressesLambda.Arn
       NetworkInterfaceIds: !GetAtt CarvePrivateEndpoint.NetworkInterfaceIds
 
-#####################################
-# Custom Resource for faster deletion of Lambdas
-  ResourceDelete:
-    Type: 'AWS::Lambda::Function'
-    Properties:
-      FunctionName: !Sub '${Prefix}carve-cfn-resources-delete-${VpcId}'
-      Handler: index.lambda_handler
-      Role: !GetAtt ResourceDeleteRole.Arn
-      Runtime: python3.9
-      Timeout: 10
-      Environment:
-        Variables:
-          FunctionCount: 1
-      Code:
-        ZipFile: "print('error injecting code at deploy time')"
+# #####################################
+# # Custom Resource for faster deletion of Lambdas
+#   ResourceDelete:
+#     Type: 'AWS::Lambda::Function'
+#     Properties:
+#       FunctionName: !Sub '${Prefix}carve-cfn-resources-delete-${VpcId}'
+#       Handler: index.lambda_handler
+#       Role: !GetAtt ResourceDeleteRole.Arn
+#       Runtime: python3.9
+#       Timeout: 10
+#       Environment:
+#         Variables:
+#           FunctionCount: 1
+#       Code:
+#         ZipFile: "print('error injecting code at deploy time')"
 
-  ResourceDeleteCustomResource:
-    Type: Custom::GetPrivateIPs
-    Properties:
-      ServiceToken: !GetAtt ResourceDelete.Arn
+#   ResourceDeleteCustomResource:
+#     Type: Custom::GetPrivateIPs
+#     Properties:
+#       ServiceToken: !GetAtt ResourceDelete.Arn
 
-  ResourceDeleteRole:
-    Type: AWS::IAM::Role
-    Properties:
-      Path: /
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-        - Effect: "Allow"
-          Principal:
-            Service:
-              - "lambda.amazonaws.com"
-          Action:
-            - "sts:AssumeRole"
-      Policies:
-        - PolicyName: ResourceDelete
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action:
-                  - "lambda:DeleteFunction"
-                Resource:
-                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${Prefix}carve-subnet-*"
-              - Effect: Allow
-                Action:
-                  - "cloudformation:DescribeStackResources"
-                  - "cloudformation:GetTemplate"
-                Resource:
-                  - !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}"
-                  - !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}/*"
-              - Effect: Allow
-                Action:
-                  - "ec2:DeleteSecurityGroup"
-                Resource:
-                  - !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:security-group/${Prefix}carve-${VpcId}"
-              - Effect: Allow
-                # allow deletion of ENIs attached to the carve security group
-                Action:
-                  - "ec2:DeleteNetworkInterface"
-                Resource:
-                  - !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:network-interface/*"
+#   ResourceDeleteRole:
+#     Type: AWS::IAM::Role
+#     Properties:
+#       Path: /
+#       ManagedPolicyArns:
+#         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+#       AssumeRolePolicyDocument:
+#         Version: "2012-10-17"
+#         Statement:
+#         - Effect: "Allow"
+#           Principal:
+#             Service:
+#               - "lambda.amazonaws.com"
+#           Action:
+#             - "sts:AssumeRole"
+#       Policies:
+#         - PolicyName: ResourceDelete
+#           PolicyDocument:
+#             Version: "2012-10-17"
+#             Statement:
+#               - Effect: Allow
+#                 Action:
+#                   - "lambda:DeleteFunction"
+#                 Resource:
+#                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${Prefix}carve-subnet-*"
+#               - Effect: Allow
+#                 Action:
+#                   - "cloudformation:DescribeStackResources"
+#                   - "cloudformation:GetTemplate"
+#                 Resource:
+#                   - !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}"
+#                   - !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}/*"
+#               - Effect: Allow
+#                 Action:
+#                   - "ec2:DeleteSecurityGroup"
+#                 Resource:
+#                   - !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:security-group/${Prefix}carve-${VpcId}"
+#               - Effect: Allow
+#                 # allow deletion of ENIs attached to the carve security group
+#                 Action:
+#                   - "ec2:DeleteNetworkInterface"
+#                 Resource:
+#                   - !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:network-interface/*"
+#               - Effect: Allow
+#                 Action:
+#                   - "ec2:DescribeNetworkInterfaces"
+#                 Resource: "*"
 
 Outputs:
   Beacons:

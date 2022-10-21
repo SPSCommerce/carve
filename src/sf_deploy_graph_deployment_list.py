@@ -115,16 +115,16 @@ def generate_template(vpc, vpc_subnets, account, vpce_service, region):
         Function['Properties']['Code']['ZipFile'] = lambda_code
         # add the function to the template, and to the delete function variables in the template
         vpc_template['Resources'][f"Function{subnet.split('-')[-1]}"] = deepcopy(Function)
-        vpc_template['Resources']['ResourceDelete']['Properties']['Environment']['Variables'][f"Function{i}"] = f"{os.environ['Prefix']}carve-{subnet}"
+        # vpc_template['Resources']['ResourceDelete']['Properties']['Environment']['Variables'][f"Function{i}"] = f"{os.environ['Prefix']}carve-{subnet}"
         i+=1
 
     # set the number of subnet lambdas for the lambda delete function
-    vpc_template['Resources']['ResourceDelete']['Properties']['Environment']['Variables']['FunctionCount'] = str(len(vpc_subnets))
+    # vpc_template['Resources']['ResourceDelete']['Properties']['Environment']['Variables']['FunctionCount'] = str(len(vpc_subnets))
 
     # insert the lambda delete CFN resource code into the template
-    with open(f"{path}/cfn_resources_delete.py") as f:
-        cfn_resources_delete = f.read()
-    vpc_template['Resources']['ResourceDelete']['Properties']['Code']['ZipFile'] = cfn_resources_delete
+    # with open(f"{path}/cfn_resources_delete.py") as f:
+    #     cfn_resources_delete = f.read()
+    # vpc_template['Resources']['ResourceDelete']['Properties']['Code']['ZipFile'] = cfn_resources_delete
 
     # remove original SubnetFunction object from template
     del vpc_template['Resources']['SubnetFunction']
