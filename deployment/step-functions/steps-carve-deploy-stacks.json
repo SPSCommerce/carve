@@ -81,7 +81,7 @@
           },
           "DescribeStackWait": {
             "Type": "Wait",
-            "Seconds": 10,
+            "Seconds": 30,
             "Next": "DescribeStackCreation"
           },
           "Failure": {
@@ -310,7 +310,7 @@
           },
           "CreateChangeSetWait": {
             "Type": "Wait",
-            "Seconds": 10,
+            "Seconds": 30,
             "Next": "DescribeChangeSet"
           },
           "ExecuteChangeSet": {
@@ -369,7 +369,7 @@
           },
           "ExecuteChangeSetWait": {
             "Type": "Wait",
-            "Seconds": 30,
+            "Seconds": 60,
             "Next": "DescribeChangeSetExecution"
           },
           "ExecuteChangeSetChoice": {

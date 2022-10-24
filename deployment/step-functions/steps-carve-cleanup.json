@@ -147,7 +147,7 @@
           },
           "DeleteStackWait": {
             "Type": "Wait",
-            "Seconds": 10,
+            "Seconds": 60,
             "Next": "DescribeDeleteStack"
           },
           "DeleteFailure": {
