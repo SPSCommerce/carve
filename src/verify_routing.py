@@ -1,4 +1,5 @@
 # import pylab as plt
+from telnetlib import GA
 import lambdavars
 import os
 
@@ -7,7 +8,7 @@ from networkx.readwrite import json_graph
 
 from aws import *
 from utils import (load_graph, save_graph, carve_role_arn,
-                   get_deploy_key)
+                   get_deploy_key, matching_node_values)
 
 
 def add_routes(G):
@@ -74,9 +75,10 @@ def add_graph_links(G, verified_routes, inventory):
 
     print("beacons:", beacons_dict)
 
-    # add route links to managed subnets in graph
-    for subnet in list(G.nodes):
-        if G.nodes[subnet]['Type'] == 'subnet':
+    # add route links to managed beacons in graph
+    for subnet, data in inventory.items():
+        print(subnet, data)
+        if data['type'] == 'managed':
             for result in verified_routes[subnet]:
                 if result['result'] == 'up':
                     beacon = result['beacon']
@@ -87,7 +89,7 @@ def add_graph_links(G, verified_routes, inventory):
                     else:
                         print(f"route not added: {subnet} to {edge} - same subnet")
                 else:
-                    print(f"route down: {subnet} to {edge}")
+                    print(f"route down: {subnet} to {data}")
     return G
 
 
@@ -100,6 +102,66 @@ def verify_subnet_routes(subnet_id, credentials, region, beacons):
     result = aws_invoke_lambda(lambda_arn, payload, credentials)
     verified = {subnet_id: result}
     return verified
+
+
+def vpc_routing_report(key):
+    '''
+    Generate a more human digestible report of the current routing graph
+    '''
+    G = load_graph(key, local=False)
+    routing_report = {}
+    for edge in G.edges:
+        source_vpc = G.nodes[edge[0]]['VpcId']
+        dest_vpc = G.nodes[edge[1]]['VpcId']
+        source_vpc_data = G.nodes[G.nodes[edge[0]]['VpcId']]
+        dest_vpc_data = G.nodes[G.nodes[edge[1]]['VpcId']]
+
+        if source_vpc != dest_vpc:
+            # add source vpc if not already in report
+            if source_vpc not in routing_report:
+                routing_report[source_vpc] = {
+                    "Config": {
+                        "Name": source_vpc_data['Name'],
+                        "Account": source_vpc_data['Account'],
+                        "AccountName": source_vpc_data['AccountName'],
+                        "Region": source_vpc_data['Region'],
+                    },
+                    "Routes": {}}
+
+            # add dest vpc if not already in report
+            if dest_vpc not in routing_report:
+                routing_report[dest_vpc] = {
+                    "Config": {
+                        "Name": dest_vpc_data['Name'],
+                        "Account": dest_vpc_data['Account'],
+                        "AccountName": dest_vpc_data['AccountName'],
+                        "Region": dest_vpc_data['Region'],
+                    },
+                    "Routes": {}}
+
+            # add dest vpc to source vpc if not already there
+            if dest_vpc not in routing_report[source_vpc]['Routes']:
+                routing_report[source_vpc]["Routes"][dest_vpc] = {
+                    "Name": dest_vpc_data['Name'],
+                    "Account": dest_vpc_data['Account'],
+                    "AccountName": dest_vpc_data['AccountName'],
+                    "Region": dest_vpc_data['Region'],
+                }
+
+            # add source vpc to dest vpc if not already there
+            if source_vpc not in routing_report[dest_vpc]['Routes']:
+                routing_report[dest_vpc]["Routes"][source_vpc] = {
+                    "Name": source_vpc_data['Name'],
+                    "Account": source_vpc_data['Account'],
+                    "AccountName": source_vpc_data['AccountName'],
+                    "Region": source_vpc_data['Region'],
+                }
+
+    # write report as json direclty to s3
+    report_key = f"discovered/routing-report-{int(time.time())}.json"
+    data = json.dumps(routing_report, ensure_ascii=True, indent=2, sort_keys=True)
+    aws_put_direct(data, report_key)
+    return f"s3://{os.environ['CarveS3Bucket']}/{report_key}"
 
 
 def verify_routing(G=None, graph_key=None, output_key=None):
@@ -139,7 +201,7 @@ def verify_routing(G=None, graph_key=None, output_key=None):
         R.graph['Name'] = name
         save_graph(R, f"/tmp/{name}.json")
         aws_upload_file_s3(output_key, f"/tmp/{name}.json")
-        return {'discovery': f"s3://{os.environ['CarveS3Bucket']}/{output_key}"}
+        return {'discovered': f"s3://{os.environ['CarveS3Bucket']}/{output_key}"}
     else:
         # if no s3 path provided, return the graph data with routes
         R.graph['Name'] = f"carve-routes-verified-{int(time.time())}"
@@ -147,6 +209,9 @@ def verify_routing(G=None, graph_key=None, output_key=None):
 
 
 if __name__ == '__main__':
-    routed_graph = verify_routing()
-    print(routed_graph['links'])
+    # routed_graph = verify_routing()
+    # print(routed_graph['links'])
     
+    import sys
+    report = vpc_routing_report(f"discovered/last-routing-discovery.json")
+    print(report)
