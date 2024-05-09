@@ -60,7 +60,10 @@
               "Payload.$": "$"
             },
             "End": true,
-            "TimeoutSeconds": 60
+            "TimeoutSeconds": 60,
+            "ResultSelector": {
+              "Payload.$": "$.Payload"
+            }
           }
         }
       }
